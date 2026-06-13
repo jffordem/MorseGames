@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Morse Games</title>
+  </head>
+  <body>
+    <header class="app-header">
+      <h1>Morse Games</h1>
+      <p class="tagline">Ham-centric CW training</p>
+    </header>
+
+    <nav class="tabs" id="tabs">
+      <button class="tab active" data-tab="random-run">Random Run</button>
+      <button class="tab" data-tab="word-wrangler">Word Wrangler</button>
+      <button class="tab" data-tab="contest" disabled title="Coming soon">Contest</button>
+      <button class="tab" data-tab="reading">Reading</button>
+      <button class="tab" data-tab="qso" disabled title="Coming soon">QSO Sim</button>
+    </nav>
+
+    <main id="mode-root"></main>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

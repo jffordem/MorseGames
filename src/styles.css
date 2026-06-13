@@ -1,0 +1,404 @@
+:root {
+  color-scheme: dark;
+  --bg: #0f1419;
+  --panel: #1a2330;
+  --panel-2: #222e3e;
+  --border: #2c3a4d;
+  --text: #e6edf3;
+  --muted: #8b9bb0;
+  --accent: #4fc3f7;
+  --good: #43c463;
+  --bad: #ef5350;
+  --listen: #4fc3f7;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+.app-header {
+  text-align: center;
+  padding: 1.2rem 1rem 0.4rem;
+}
+.app-header h1 {
+  margin: 0;
+  font-size: 1.6rem;
+  letter-spacing: 0.12em;
+}
+.tagline {
+  margin: 0.15rem 0 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.tabs {
+  display: flex;
+  gap: 0.4rem;
+  justify-content: center;
+  padding: 0.8rem 1rem;
+  flex-wrap: wrap;
+}
+.tab {
+  background: var(--panel);
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.45rem 1rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+.tab:hover:not(:disabled) {
+  color: var(--text);
+}
+.tab.active {
+  background: var(--accent);
+  color: #06121b;
+  border-color: var(--accent);
+  font-weight: 600;
+}
+.tab:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+main {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 1rem 3rem;
+}
+
+.placeholder {
+  text-align: center;
+  color: var(--muted);
+  padding: 4rem 1rem;
+}
+
+/* Settings */
+.settings {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.8rem;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+}
+.field-label {
+  color: var(--muted);
+}
+.field input[type="number"] {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 0.4rem 0.5rem;
+  font-size: 1rem;
+}
+.field input[type="range"] {
+  width: 100%;
+  accent-color: var(--accent);
+}
+.field-value {
+  color: var(--text);
+  font-family: ui-monospace, "Cascadia Code", monospace;
+  font-size: 0.8rem;
+}
+
+/* HUD */
+.hud {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+.stat {
+  flex: 1;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.6rem 0.4rem;
+  text-align: center;
+}
+.stat-label {
+  color: var(--muted);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Stage */
+.stage {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 2rem 1rem;
+  text-align: center;
+  margin-bottom: 1rem;
+}
+.display {
+  font-size: 6rem;
+  font-weight: 700;
+  line-height: 1;
+  min-height: 6rem;
+  font-family: ui-monospace, "Cascadia Code", monospace;
+  transition: color 0.1s, transform 0.1s;
+}
+.display.listening {
+  color: var(--listen);
+  opacity: 0.55;
+}
+.display.correct {
+  color: var(--good);
+  transform: scale(1.05);
+}
+.display.wrong {
+  color: var(--bad);
+  font-size: 4rem;
+}
+.display-sub {
+  margin-top: 0.8rem;
+  color: var(--muted);
+  min-height: 1.2rem;
+  font-size: 0.95rem;
+}
+
+/* Graduation progress */
+.progress {
+  margin: 1.4rem auto 0.4rem;
+  max-width: 360px;
+  height: 8px;
+  background: var(--panel-2);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.progress-bar {
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, var(--accent), var(--good));
+  transition: width 0.3s ease;
+}
+.progress-label {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+/* Controls */
+.controls {
+  text-align: center;
+}
+.btn {
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.6rem 1.4rem;
+  font-size: 1rem;
+  cursor: pointer;
+}
+.btn:hover {
+  border-color: var(--accent);
+}
+.btn.primary {
+  background: var(--accent);
+  color: #06121b;
+  border-color: var(--accent);
+  font-weight: 600;
+}
+.hint {
+  color: var(--muted);
+  font-size: 0.8rem;
+  margin-top: 0.8rem;
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 50;
+}
+.modal {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1.6rem;
+  max-width: 460px;
+  width: 100%;
+}
+.modal-title {
+  margin: 0 0 0.8rem;
+  text-align: center;
+}
+.modal-body {
+  color: var(--text);
+  white-space: pre-wrap;
+  line-height: 1.5;
+  margin-bottom: 1.2rem;
+}
+.modal-footer {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: center;
+}
+
+/* Summary */
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.summary-label {
+  color: var(--muted);
+}
+.summary-value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.heatmap {
+  margin-top: 1rem;
+}
+.heatmap-title {
+  color: var(--muted);
+  font-size: 0.8rem;
+  margin-bottom: 0.4rem;
+}
+.heatmap-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+.heat-cell {
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  font-weight: 700;
+  font-family: ui-monospace, monospace;
+  background: var(--panel-2);
+}
+.heat-cell.empty {
+  color: var(--muted);
+  opacity: 0.4;
+}
+
+/* Select + textarea (reading mode) */
+.field select,
+.field textarea {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 0.4rem 0.5rem;
+  font-size: 0.95rem;
+  font-family: inherit;
+}
+.custom-text {
+  grid-column: 1 / -1;
+}
+.controls .btn {
+  margin: 0 0.25rem;
+}
+
+/* Word Wrangler answer input */
+.answer-input {
+  margin-top: 1.2rem;
+  width: 100%;
+  max-width: 420px;
+  background: var(--panel-2);
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  text-align: center;
+  font-size: 2.4rem;
+  font-weight: 700;
+  font-family: ui-monospace, "Cascadia Code", monospace;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  padding: 0.6rem 0.8rem;
+}
+.answer-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.answer-input.correct {
+  border-color: var(--good);
+  color: var(--good);
+}
+.answer-input.wrong {
+  border-color: var(--bad);
+  color: var(--bad);
+}
+.answer-input:disabled {
+  opacity: 0.5;
+}
+.pool-info {
+  color: var(--muted);
+  font-size: 0.78rem;
+  margin-top: 0.5rem;
+}
+.missed-words {
+  font-family: ui-monospace, monospace;
+  line-height: 1.7;
+  color: var(--text);
+}
+
+/* Reading stage */
+.reading-stage {
+  text-align: left;
+  padding: 1.4rem;
+}
+.chunk-label {
+  margin-top: 0.5rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--accent);
+  letter-spacing: 0.02em;
+}
+.reading-text {
+  margin-top: 1rem;
+  max-height: 40vh;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.9;
+  font-size: 1.15rem;
+  font-family: ui-monospace, "Cascadia Code", monospace;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+.reading-text span.done {
+  color: var(--text);
+}
+.reading-text span.active {
+  color: #06121b;
+  background: var(--accent);
+  border-radius: 3px;
+  padding: 0 1px;
+}

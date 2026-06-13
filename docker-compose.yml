@@ -1,0 +1,7 @@
+services:
+  morse-games:
+    build: .
+    container_name: morse-games
+    ports:
+      - "4080:80"
+    restart: unless-stopped

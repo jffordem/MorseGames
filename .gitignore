@@ -1,0 +1,7 @@
+node_modules/
+dist/
+*.local
+.DS_Store
+
+# Bundled SCRABBLE word list for Word Wrangler (overrides the repo-root *.txt ignore)
+!public/words.txt
