@@ -47,7 +47,7 @@ This is the single most important pedagogical decision and must be right from da
 
 Entered once, stored in `localStorage`. Makes every exchange *yours*:
 
-- Your callsign and/or club callsign (e.g. `W7HBC`)
+- Your callsign and/or club callsign (e.g. `W7XYZ`)
 - ARRL section (e.g. `ID`)
 - Field Day class (e.g. `2A`)
 - County (for state QSO parties, e.g. `ADA`)
@@ -129,7 +129,7 @@ other half (just like the real thing).
 
 **Player keying echo (sidetone).** Just like a real logger feeding a keyer + rig:
 everything *you* send is played back as audible Morse at the current speed, so typing
-`CQ TEST KG7FVO` keys out `-.-. --.- / - . ... - / -.- --. --... ..-. ...- ---` in your ear.
+`CQ TEST W7XYZ` keys out `-.-. --.- / - . ... - / .-- --... -..- -.-- --..` in your ear.
 - Typed characters drop into a **send buffer** and drain out as Morse with correct
   inter-character (and inter-word) spacing — type-ahead is fine; the buffer keeps up.
 - After the buffer empties, a **realistic "thinking" pause** before the other party
@@ -324,7 +324,7 @@ Score the way a contester thinks, not raw keystrokes:
   [Questions for Hams](#questions-for-hams) — to be settled with experienced operators
   before this is built.
 - **Strict scoring mode** — real-ARRL-style penalties for busted QSOs, as a toggle.
-- **Club angle (HPBARC)** — shared daily-challenge seed; compare scores at a meeting.
+- **Club angle** — shared daily-challenge seed; compare scores at a meeting.
   Fits the "social, bounded, high-visibility" energy rubric.
 
 ## Questions for Hams

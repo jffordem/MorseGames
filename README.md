@@ -1,15 +1,89 @@
-# MORSE GAMES
+# Morse Games
 
-This project provides fun and useful Morse Code training tools for amateur radio practitioners.
+A browser-based Morse code (CW) trainer for amateur radio operators. Practice copying
+characters, words, and realistic ham radio exchanges — all in your browser, no radio or
+antenna required.
 
-The idea is to learn morse code, increase decoding speed, and have fun.
+## Trying it out (Docker — no dev environment needed)
 
-It should be simple and browser based - either running directly or via docker - and the primary capability is to play the 'dits' and 'dahs' for the 'player' so they can learn and practice in a fun way.
+The easiest way to run Morse Games is with Docker. You don't need Node.js or any other
+development tools installed.
 
-The games should be easy to access - probably different tabs in the app - with options such as 
-- random practice (hear a letter, type the letter, character set and speed & rate adjustable)
-- word practice (similar to random practice, but for words - hear a word, type the word)
-- reading mode (a selected work is read starting from a reasonably random location - we can get full text works from Gutenberg Project)
-- and maybe other games, like 'secret message' or 'chat mode' where player types and the game responds in Morse.
+### 1. Install Docker Desktop
 
-Be creative and help think about ways to increase proficiency and feel enjoyably challenged.
+Download and install **Docker Desktop** for your operating system:
+
+- **Windows:** https://docs.docker.com/desktop/install/windows-install/
+- **Mac:** https://docs.docker.com/desktop/install/mac-install/
+- **Linux:** https://docs.docker.com/desktop/install/linux/
+
+After installing, launch Docker Desktop and wait for it to finish starting up (the whale
+icon in your system tray/menu bar will stop animating).
+
+### 2. Get the code
+
+If you have Git installed:
+
+```bash
+git clone https://github.com/jffordem/MorseGames.git
+cd MorseGames
+```
+
+Or download the ZIP from the GitHub page (green **Code** button → **Download ZIP**),
+then unzip it and open a terminal in that folder.
+
+### 3. Build and run
+
+```bash
+docker compose up --build
+```
+
+This builds the app and starts a local web server. The first run takes a minute or two
+to download dependencies and compile; subsequent runs are faster.
+
+You'll know it's ready when you see output like:
+
+```
+morse-games  | /docker-entrypoint.sh: Configuration complete; ready for start up
+```
+
+### 4. Open in your browser
+
+Navigate to **http://localhost:4080** in Chrome or Firefox.
+
+### Stopping the app
+
+Press `Ctrl+C` in the terminal to stop the server. To restart it later (without
+rebuilding):
+
+```bash
+docker compose up
+```
+
+---
+
+## Training modes
+
+- **Random Run** — Hear a character, type it. Koch-method progression unlocks new
+  characters as accuracy builds.
+- **Word Wrangler** — Hear a word, type it. Word list is filtered to only include words
+  you can form with your current Koch character set.
+- **Reading** — Passive listening to public-domain texts (Aesop, Gettysburg Address,
+  Alice in Wonderland). Bookmarks your place between sessions.
+
+## Settings
+
+Character speed, Farnsworth effective speed, tone frequency, and Koch level are all
+adjustable and saved automatically between sessions.
+
+---
+
+## For developers
+
+```bash
+npm install
+npm run dev      # Dev server at http://localhost:4080 with hot reload
+npm run build    # TypeScript check + Vite production build → dist/
+```
+
+See [PROJECT-PLAN.md](PROJECT-PLAN.md) for the full feature roadmap and design notes.
