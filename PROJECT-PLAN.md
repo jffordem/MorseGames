@@ -217,19 +217,103 @@ Score the way a contester thinks, not raw keystrokes:
 
 ## Parked ideas / future upgrades
 
-- **Sending practice — needs real hardware (low priority / skeptical).** Simulating a
-  key with keyboard/mouse is probably a dead end: no spring tension or paddle throw, no
-  tactile feel, and a clacking spacebar gets annoying fast. If sending is ever worth
-  doing, the realistic path is *actual* hardware — a real straight key / iambic paddle
-  read via Web Serial / WebUSB (a simple key-to-USB interface), or audio-in detecting the
-  tone from a real code-practice oscillator. Until then, the keyboard **keying echo**
-  above (type → hear perfect machine-sent Morse) covers the "hear what you send" benefit
-  without pretending the keyboard is a key.
-  - **Known keyer hardware to research:** K1EL **WinKeyer** (de facto USB CW keyer, driven
-    by N1MM etc.) and **Mortty** (open-source Arduino-based USB keyer kit) — both enumerate
-    as **USB serial (CDC)**, so the browser path is the **Web Serial API**. Raw-HID
-    key-to-USB adapters would instead use **WebUSB/HID**. Either is reachable from the
-    browser without a native app, keeping the serverless design intact.
+- **Real keyer / straight key as game input.** Connecting actual hardware unlocks two
+  things at once: *sending practice* (finally tactile and real) and *full game input* —
+  every mode that currently accepts keystrokes could accept keyed Morse instead. That's
+  the bigger prize: you're practicing copy *and* sending in every session, the way real
+  CW operators work. Hardware paths:
+  - **Web Serial API** — K1EL **WinKeyer** and **Mortty** (open-source Arduino keyer kit)
+    both enumerate as USB serial (CDC). WinKeyer is the de-facto standard driven by N1MM
+    and most logging software; Mortty is a buildable open-source alternative. Either sends
+    decoded characters over serial, so the app reads text, not raw paddle state.
+  - **WebUSB/HID** — raw key-to-USB adapters (no keyer chip) appear as HID devices.
+    More direct, but the app must implement iambic squeeze logic in JavaScript.
+  - **Audio-in decoding** — detect the sidetone from any code-practice oscillator via
+    `getUserMedia` + Web Audio analyser → decode in-browser. No special hardware at all;
+    works with a straight key into any oscillator. Latency is the main risk.
+  - Once any of these input paths exists, the keyer-as-keyboard concept follows: you could
+    key your way through *all* text input in the app — answers in Random Run, callsign
+    fields in contest mode, etc. That's a significant training mode in itself: operating
+    the whole app in CW, the way a real radio sounds and feels.
+  - **Sending feedback loop**: if the app can hear or read what you sent, it can compare
+    it against what it asked for and show timing errors (dit/dah ratio, spacing) —
+    something no keyboard simulation can do. High value, requires audio-in or HID path.
+
+- **Text adventure / Interactive Fiction in CW (the Zork idea).** Hear the room
+  description as Morse, key your command back, advance the story. The game *motivates
+  copying* — you want to know what's in the room, so you focus harder than you would on
+  a drill. Two flavors worth exploring:
+  - **Classic IF (Zork, Adventure/Colossal Cave):** Zork I is legally available in many
+    forms; Inform / Frotz can run in the browser via WebAssembly. Pipe its output through
+    the Morse engine; accept keyed or typed input. Even just piping Zork through CW
+    would be a genuinely fun training tool.
+  - **Ham-radio-themed custom IF:** a short adventure set in a shack or DXpedition —
+    "You are in a cramped tent on a Pacific atoll. To the north, a KX3 and a log. To the
+    south, a dipole that needs trimming. The cluster shows a new multiplier on 17m." The
+    game world rewards ham knowledge (proper prosigns, band plans, contest protocol) and
+    the copy skill simultaneously. Could be built with a minimal custom IF engine rather
+    than a full interpreter.
+  - **Parser over keyer**: the command parser can be lenient — `N` for `NORTH`, `GET`
+    for `TAKE`, etc. — so abbreviating like a ham feels natural rather than like a bug.
+  - See also: [AI-powered IF engine](#ai-chatbot--dynamic-qso-simulator) below — an LLM
+    as the IF narrator is an obvious and exciting mashup.
+
+- **AI chatbot / dynamic QSO simulator.** Mode 4 (QSO Simulator) is planned with a
+  scripted bot. Replacing the script with an LLM call makes every ragchew unique and
+  genuinely conversational — the AI plays a ham with a callsign, location, rig, antenna,
+  and opinions. Design notes:
+  - The AI's *output* is piped through the Morse engine just like any other text source.
+    From the audio engine's perspective, nothing changes.
+  - The AI should stay in character: use proper ham prosigns (`BT`, `AR`, `KN`, `SK`,
+    `=`), realistic Q-codes, and plausible signal reports. A well-written system prompt
+    plus a few example exchanges should get this right.
+  - **Difficulty control via persona**: a slow ragchewer ("hi om, first time on 40m, just
+    got my ticket") vs. a fast contester ("5NN ID TU") gives a natural difficulty axis
+    without touching the WPM setting.
+  - **AI as contest opponent**: the same idea applies to contest mode — instead of a
+    fixed caller pool, an LLM generates callsigns, sections, and exchange variations
+    dynamically, making the contest feel less predictable after many repetitions.
+  - **AI + IF mashup**: use an LLM as the IF engine for the text adventure mode above —
+    prompt it to run a ham-radio adventure, respond to your keyed commands in CW, and
+    maintain a consistent game world. No Zork interpreter needed; the AI improvises.
+  - Privacy / cost note: LLM calls require an API key and network access, breaking the
+    "no backend" constraint. The cleanest path is a user-supplied API key stored in
+    `localStorage` — keeps the app serverless, puts the cost on the operator. Fallback to
+    scripted mode when no key is configured.
+- **VBand integration / interoperability.** [VBand](https://hamradio.solutions/vband/) is
+  a browser-based live CW platform — users send Morse via keyboard or USB keyer to shared
+  channels and hear other operators in real time. It has a QSOBot for solo practice and
+  supports public/private channels. There's no public API, so deep integration isn't on
+  the table, but several meaningful touchpoints are realistic:
+  - **Shared keyer hardware (most valuable, zero API needed).** VBand uses the same USB
+    keyer hardware (WinKeyer, Mortty, straight-key-via-TRS adapters) that MorseGames
+    wants to support. If both apps support Web Serial, a user can train in MorseGames and
+    then plug the same key into VBand without rewiring anything. Keyer support in
+    MorseGames becomes a force multiplier: it unlocks VBand, N1MM, and real radio use
+    simultaneously.
+  - **"Ready for VBand" progression milestone.** MorseGames trains copy; VBand is where
+    you practice live sending with real humans. That's a natural pipeline. At a
+    meaningful Koch level (e.g. full alphabet + numbers at 15 WPM effective), surface a
+    prompt: "You're ready to try a live QSO — open VBand's practice channel." Frames
+    VBand as the *graduation target*, not a competitor.
+  - **VBand-speed presets.** VBand exchanges happen at real-world speeds (typically
+    15–25 WPM). Expose named difficulty presets in MorseGames settings keyed to VBand
+    readiness: "VBand casual (15 WPM)", "VBand contest (20 WPM)", "VBand fast (25 WPM)".
+    Gives beginners a concrete target to aim for.
+  - **Club warm-up mode.** Before a scheduled club VBand session, run a timed MorseGames
+    warm-up: 10 minutes of Random Run or Word Wrangler, then a "your session starts in X
+    minutes" countdown with a link to the club's private VBand channel. Prep tool, not
+    an integration.
+  - **Browser companion extension (longer term).** A lightweight browser extension
+    injected into a VBand session could add: copy-assist scrollback (full decoded text
+    history beyond what VBand shows), per-character miss tracking, and a post-session
+    accuracy summary — all reading VBand's own decoded-text DOM, no API required. The
+    extension would be a separate project but shares MorseGames' stats schema so progress
+    rolls up in one place.
+  - **What VBand already does well (don't duplicate).** Live multi-user channels, real
+    human QSOs, QSOBot, the social/club layer. MorseGames should position itself as the
+    *trainer* you use before VBand, not a replacement for live on-air practice.
+
 - **Search & Pounce** contest style — Run is the v1 style; S&P comes later. The core
   mechanic is a **frequency dial across the 40m CW segment**: tuning shifts each station's
   audio pitch like a real receiver (so pitch becomes a *consequence* of where you're
