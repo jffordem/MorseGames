@@ -2,6 +2,7 @@ import "./styles.css";
 import { RandomRunMode } from "./modes/random-run";
 import { WordWranglerMode } from "./modes/word-wrangler";
 import { ReadingMode } from "./modes/reading";
+import { AdventureMode } from "./modes/adventure";
 
 const root = document.getElementById("mode-root") as HTMLElement;
 const tabs = document.getElementById("tabs") as HTMLElement;
@@ -27,6 +28,12 @@ function activate(tab: string): void {
     }
     case "reading": {
       const mode = new ReadingMode(root);
+      mode.mount();
+      current = mode;
+      break;
+    }
+    case "adventure": {
+      const mode = new AdventureMode(root);
       mode.mount();
       current = mode;
       break;

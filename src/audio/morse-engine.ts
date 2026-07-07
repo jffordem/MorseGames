@@ -285,6 +285,97 @@ export class MorseEngine {
     };
   }
 
+  /**
+   * A warm mains hum that rises as the set powers up — a low 60 Hz tone with a
+   * 120 Hz harmonic, pitch and volume climbing as it "spins up," then settling
+   * out. Resolves when the hum finishes.
+   */
+  async playPowerHum(durationMs = 1300): Promise<void> {
+    await this.resume();
+    if (!this.ctx || !this.master) return;
+
+    const durS = durationMs / 1000;
+    const start = this.ctx.currentTime + 0.02;
+    const end = start + durS;
+
+    const gain = this.ctx.createGain();
+    gain.connect(this.master);
+
+    const osc1 = this.ctx.createOscillator();
+    osc1.type = "sine";
+    const osc2 = this.ctx.createOscillator();
+    osc2.type = "sine";
+    const h2 = this.ctx.createGain();
+    h2.gain.value = 0.4; // 120 Hz harmonic, quieter
+
+    osc1.connect(gain);
+    osc2.connect(h2);
+    h2.connect(gain);
+
+    // Pitch climbs as the set spins up.
+    osc1.frequency.setValueAtTime(46, start);
+    osc1.frequency.linearRampToValueAtTime(60, start + 0.55);
+    osc2.frequency.setValueAtTime(92, start);
+    osc2.frequency.linearRampToValueAtTime(120, start + 0.55);
+
+    // Volume rises, holds, then settles out.
+    gain.gain.setValueAtTime(0, start);
+    gain.gain.linearRampToValueAtTime(0.13, start + 0.4);
+    gain.gain.setValueAtTime(0.13, Math.max(start + 0.4, end - 0.45));
+    gain.gain.linearRampToValueAtTime(0, end);
+
+    osc1.start(start);
+    osc2.start(start);
+    osc1.stop(end + 0.02);
+    osc2.stop(end + 0.02);
+
+    await delay(durationMs);
+  }
+
+  /**
+   * Play a burst of band "static" — filtered white noise, the sound of an
+   * empty/wrong frequency. Used when the operator hasn't tuned to the station
+   * that's transmitting. Resolves when the burst finishes.
+   */
+  async playStatic(durationMs = 900): Promise<void> {
+    await this.resume();
+    if (!this.ctx || !this.master) return;
+
+    const durS = durationMs / 1000;
+    const start = this.ctx.currentTime + 0.02;
+
+    // White-noise buffer.
+    const frames = Math.max(1, Math.floor(this.ctx.sampleRate * durS));
+    const buffer = this.ctx.createBuffer(1, frames, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < frames; i++) data[i] = Math.random() * 2 - 1;
+
+    const src = this.ctx.createBufferSource();
+    src.buffer = buffer;
+
+    // Bandpass so it reads as receiver hiss rather than harsh white noise.
+    const bp = this.ctx.createBiquadFilter();
+    bp.type = "bandpass";
+    bp.frequency.value = 1200;
+    bp.Q.value = 0.6;
+
+    const gain = this.ctx.createGain();
+    src.connect(bp);
+    bp.connect(gain);
+    gain.connect(this.master);
+
+    const end = start + durS;
+    gain.gain.setValueAtTime(0, start);
+    gain.gain.linearRampToValueAtTime(0.16, start + 0.04);
+    gain.gain.setValueAtTime(0.16, Math.max(start + 0.04, end - 0.06));
+    gain.gain.linearRampToValueAtTime(0, end);
+
+    src.start(start);
+    src.stop(end + 0.02);
+
+    await delay(durationMs);
+  }
+
   /** Schedule one tone burst with click-free attack/release envelope. */
   private scheduleTone(startTime: number, durationS: number): void {
     if (!this.ctx || !this.master) return;
