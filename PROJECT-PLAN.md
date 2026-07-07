@@ -323,6 +323,196 @@ Score the way a contester thinks, not raw keystrokes:
   finds new contacts. Open "realistic vs. actually fun" questions are collected under
   [Questions for Hams](#questions-for-hams) — to be settled with experienced operators
   before this is built.
+- **Adaptive difficulty in Word Wrangler (weak-character biasing).** Quietly track
+  which characters trip you up and bias the next word toward them, so practice
+  self-targets your weak spots without any manual setup. Design worked out during
+  brainstorming:
+  - **Localize the error, don't just flag the whole word.** Replays are a weak, diffuse
+    signal (you replay the entire word). Misses are far sharper *if* you diff the guess
+    against the target: typing `FEAF` for `LEAF` says you substituted **F for L** at a
+    specific position — a *directional* confusion, not just "L is hard." Use a cheap
+    edit-distance alignment on submit to attribute the error to the right character(s).
+  - **Model it as a confusion matrix, not a difficulty scalar.** `confusions[heard][typed]`
+    carries strictly more information than a per-char score and enables drilling the
+    *pair*. Notably, the operator's own trouble pairs — **L/F, Q/Y, W/G** — are all Morse
+    **reversal pairs** (`·—··`↔`··—·`, `——·—`↔`—·——`, `·——`↔`——·`): the ear grabs the
+    right dots/dashes but scrambles their order. A classic failure mode worth targeting
+    directly. Ties into the existing [Confusion pairs](#stats--scoring-philosophy) idea.
+  - **Decaying score (EWMA), not raw counts** — so a character you've since conquered
+    fades out and stops being over-drilled. Recovery matters as much as detection; the
+    bias should self-heal.
+  - **Soft, weighted selection.** In `pick()`, weight each candidate word by
+    `1 + Σ(problem-score of its letters)` and sample weighted-random. Problematic words
+    float toward the top of the draw but everything stays reachable, so variety survives
+    and it never becomes a monotonous "LFLF" grind. Cap the multiplier; keep a floor of
+    ~30% pure-random draws so it stays *quiet*, as intended.
+  - **Confusion-pair payoff:** once L↔F is known, the highest-value words to serve are
+    **minimal pairs** where mishearing still spells a plausible word, forcing you to
+    actually resolve the pattern — a targeted drill a generic difficulty score can't
+    produce.
+  - **Optional gentle readout** in the session summary ("your ear is mixing L↔F") — turns
+    invisible adaptation into visible progress. Could be a toggle.
+  - **Build in two phases:** (1) persist Word Wrangler results into `CharStats`
+    (plumbing already exists but is unused by this mode — only Random Run writes to it),
+    add a decaying difficulty score, and weight `pick()`; (2) add the confusion matrix +
+    minimal-pair drilling. **Design the phase-1 storage schema up front to hold the
+    confusion matrix** so phase 2 needs no migration.
+- **Build the "music sense" of Morse (fluency over lookup-table decoding).** A club
+  elmer describes Morse as *music* — the fast path is letting sounds become words
+  (gestalt rhythm recognition), the dead-end is picturing dits/dahs and matching a
+  lookup table (serial decoding, hard ceiling ~15–20 WPM). These enhancements are all
+  aimed at killing the lookup habit and rewarding the reflex that replaces it:
+  - **Recognition latency as a first-class metric (the keystone).** Accuracy can't tell
+    the two paths apart — you can be 100% accurate and still be *slowly* looking each
+    letter up. Latency exposes it: a lookup delay grows with character complexity (you
+    hesitate on Q/Z, breeze through E/T); fluency is flat and fast regardless. Timestamp
+    end-of-sound → keypress, surface **median recognition time** in the HUD next to
+    accuracy, and keep a **per-character latency profile**. Characters that are
+    *slow-but-accurate* are the ones still trapped in the lookup table — invisible to the
+    accuracy heatmap. Also feeds the parked adaptive-biasing feature a second signal
+    (bias toward slow-but-correct, not just missed).
+    - **Reflex mode (optional):** a response window a beat or two after the sound — answer
+      in time or it's a miss. Nothing kills counting faster than having no time to count.
+  - **Rhythm call-and-response (tap it back).** Play a character; instead of typing the
+    letter, the user **taps its rhythm on the spacebar** (short = dit, long = dah), scored
+    against the engine's dit/dah/spacing model. It's "clap back the rhythm" from a music
+    classroom: trains the internal rhythmic template directly, has *nothing* to do with
+    letter names (so the lookup table can't game it), and sits on top of the parked
+    keyer-input work as zero-hardware sending practice.
+  - **Learn phrases as licks, not spellings.** Extend Word Wrangler's word-gestalt idea to
+    ham radio's high-frequency fixed phrases — `CQ`, `DE`, `73`, `599`, `TU`, `ES`, `RST`,
+    `QRZ`, common call-sign fragments — drilled as single sound units. A fluent op hears
+    these as one sound, never as letters. Builds a vocabulary of instantly-recognized
+    phrases (the CW equivalent of a musician's licks) that leads into head-copy (mode 5),
+    the "playing by ear" endgame. Could ship as a Word Wrangler word-list.
+  - **Kill the dit-dah crutch (app-wide principle).** Never present dots-and-dashes as the
+    *primary* representation — every rendered `·—··` reinforces the lookup table. Represent
+    characters by **sound** and by **letter**, not by symbol. Musician-friendly exception:
+    where a reference is genuinely needed (post-miss reveal, cheat sheet), render the
+    character in **rhythmic notation** — dit as an eighth note, dah as a dotted quarter
+    (the 3:1 ratio is exact), beamed into the character's shape. Reframes the mental model
+    from "code to decrypt" to "rhythm to feel."
+  - **Timing tactics that force the musical mode.**
+    - **Character-speed floor** — counting is only *possible* below ~15 WPM char speed.
+      Nudge/gently-lock char speed high while Farnsworth spacing carries the comfort, with
+      a one-line explanation. The engine's dual-speed model already supports this.
+    - **Progressive compression toward prosody** — as accuracy holds, quietly shrink
+      Farnsworth spacing (not char speed) so letters flow into words and words into
+      phrases. The "music" emerges as inter-character gaps tighten toward speech-like
+      phrasing.
+    - **Optional metronome priming** — a faint underlying pulse the Morse rides on, so
+      spacing is perceived as musical beats. Easy to A/B.
+  - **Suggested sequencing:** latency tracking first (small; upgrades every existing mode
+    and the adaptive feature), then rhythm tap-back (boldest new mode), with the
+    dit-dah/rhythm-notation principle adopted as a cheap guardrail throughout.
+- **Create RPG-style eagerness to practice (fighting the "peripheral hobby" problem).**
+  Adult hobbyists have free time in *minutes, not hours*, and self-paced practice loses
+  the four things that made immersive learning (e.g. high-school music) work: **massed
+  time**, **legible progress**, **an ensemble**, and **a conductor** ("no — back to
+  measure 40!"). RPGs create quest-to-quest eagerness precisely by nailing all four: the
+  next step is always smaller than your appetite for it, progress is a bar that visibly
+  fills, a party is counting on you, and a quest log removes the burden of deciding what
+  to do next. Reframe worth holding onto: the scattered-minutes condition isn't a
+  handicap — **spaced repetition beats massed practice for retention**, so well-delivered
+  daily minutes build CW *faster* than a monthly grind. Design to the periphery instead of
+  fighting it.
+  - **An assigning coach — the "conductor" (keystone).** The biggest tax on an adult
+    hobbyist isn't the practice, it's *deciding what to do with 7 free minutes* — decision
+    fatigue kills the session before it starts. Build an opinionated coach that, on open,
+    diagnoses from the latency + confusion data (see the two features above) and assigns a
+    concrete, bite-sized objective: "Your L/F confusion crept back and your Q is
+    slow-but-accurate — 4-minute drill, go." And the "back to measure 40" part: on a flub
+    it **loops you back immediately** (redo it now, N clean reps, *then* release) —
+    deliberate practice, not passive exposure. Solitary self-pacing can never provide this
+    itself. **This is only as good as its diagnostics — it, the adaptive biasing, and the
+    latency metric are really one system.**
+  - **Atomic unit = minutes, not sessions.** Ship the **Daily Set**: a 3–5 minute,
+    fully-completable, always-different assignment with a clear finish line and a reward.
+    Completable-in-one-sitting is the whole point — it fits real free time and it *ends*,
+    which is what makes you willing to start. Then weaponize the unschedulable minutes:
+    **micro-drills / ambient practice** (a one-word widget; a notification that *is* a
+    30-second drill), and **the appointment** — a fixed-time daily challenge gives a reason
+    to open the app *today specifically*, the thing self-paced activity fatally lacks.
+  - **Make progress legible — a character sheet.** Diffuse progress is invisible progress.
+    **Speed-at-90% is your level** (already the honest headline number — surface it with a
+    climbing graph). **Retiring a weakness is a defeated enemy** — "you now own the letter
+    Q," celebrated, made earnable by the confusion/latency data. **Always show the
+    almost-full bar** — the next unlock and how close it is (Koch levels are already an XP
+    track; dress them as one).
+  - **Manufacture the ensemble — via the club (HPBARC).** Can't recreate a band room solo,
+    but the club is a real band. Beyond the parked shared-seed daily challenge: **co-op,
+    not just leaderboard** — a club **Field Day total** everyone contributes QSOs toward, a
+    shared bar the group fills (your reps matter to the group = the marching-band feeling);
+    **shared daily seed** compared at the meeting (bounded, social, high-visibility — fits
+    the club energy rubric); **the elmer as conductor** — a mentor sees your dashboard and
+    lobs a challenge (the human "back to measure 40," lands harder than any algorithm);
+    **VBand as the live gig** (already the parked graduation target — the performance the
+    practice is *for*).
+  - **The eagerness layer (RPG spice on top).** Once the structure exists, cheap tricks
+    manufacture anticipation: **cliffhangers** (end a QSO-sim/IF session mid-story so you
+    want to come back), **variable rewards, tastefully** (a rare special caller — a famous
+    call, a Pacific DXpedition — surfaces occasionally), and **skill-gated unlocks** (new
+    contest, band, or cosmetic "rig" earned by hitting a speed; curiosity as fuel).
+  - **Suggested keystone:** the assigning coach + the 3-minute Daily Set are the pair that
+    converts "ugh, what do I even do" into "the app already knows, go." Everything else
+    amplifies those two.
+- **Morse-driven adventures / mission campaign (games where copying *matters*).** Inspired
+  by Steam's *Sub Morse* but not sniping its IP — build adventures where the player must
+  decode a message, understand it, and take the right action toward a mission goal. The
+  worry that "realistic scenarios feel limited" is backwards: the scarce resource isn't
+  scenarios, it's **diegetic reasons Morse is the only channel** — and once catalogued,
+  the level space explodes (history supplies a dozen; sci-fi adds more).
+  - **The "why is Morse forced?" generator (this *is* the level generator):**
+    1. **Equipment failure** — voice radio dead, but CW / a bare wire punches through
+       ("when all else fails, CW" — slow reliable mode beats noise and low power).
+    2. **Forced silence** — POW tap code, resistance cells, a sub rigged for silent running.
+    3. **Light-only** — Aldis lamp, aircraft nav lights, lighthouse, heliograph / signal
+       mirror. *Visual* Morse — a genuinely different skill from audio copy.
+    4. **Sound-through-a-medium** — tapping on a hull, pipe, prison wall, earthquake rubble.
+    5. **Covert / low-bandwidth** — a beacon, numbers-station transmission, a probe that
+       only speaks Morse.
+    6. **Distance & power** — weak-signal survival where only slow CW survives the fade.
+  - **What makes it a game, not a drill (three mechanics):**
+    - **Bidirectional** — don't just copy, *send back correctly* (reuses the planned
+      sidetone/keyer echo; "decode the order, key the right acknowledgment").
+    - **Semantic consequence** — message content must change what you *do*. Reusable
+      action-verbs: **plot** (coordinates → mark a chart), **route** (damage report → send
+      the right crew), **choose** (intel → pick a branch), **relay** (copy then re-key
+      onward exactly; errors compound), **authenticate** (challenge → correct counter-sign).
+      Mis-copy should **fail forward** (wrong action + visible consequence), not hard-wall.
+    - **A diegetic clock** — contest-mode speed/accuracy tension wrapped in story stakes:
+      the signal is *fading*, the search plane's *pass window* closes, air is *running
+      out*, the DF truck is *triangulating you*. This is the RPG-eagerness hook made
+      dramatic.
+  - **Concept anthology (cheapest-first; all pure browser + Web Audio, no backend):**
+    - **Coast station / lighthouse keeper** — ships call in distress; copy position + nature
+      of emergency, plot it, dispatch rescue, warn of hazards. *Contest mode reskinned with
+      stakes* — escalating traffic = free rate pressure. Cheapest first build (engine
+      already exists). Titanic-operator resonance.
+    - **Rubble rescue (tap code)** — decode knocks through debris (survivors, injuries, air
+      left) → triage and allocate; tap back reassurance. Audio is just *knocks* (trivial,
+      evocative); air supply = natural clock.
+    - **Aldis lamp at night (visual Morse)** — ship-to-ship under radio silence; the
+      **screen flashes** the message, you read *light* Morse and flash back. One-line
+      brightness pulse to render, but a *fresh skill* nothing else trains and visually
+      striking — a real differentiator vs. audio-only trainers and *Sub Morse*.
+    - **Clandestine operator** — best tension mechanic (DF-truck countdown), campaign-ready.
+      Full design deep-dive lives in [MORSE-GAMES.md](MORSE-GAMES.md).
+    - **Downed aircraft / SAR** — pilot flashes a signal mirror / nav lights to a search
+      plane before it passes, or SAR coordinator coaxes a fading beacon for position +
+      medical status. Clean time-pressure loop from either seat.
+    - **Relay net** — you're the operator *in the middle*: copy inbound, re-key onward
+      exactly; fidelity is the game. Natural bridge to a **club co-op** mode (a real relay
+      net passing a message down a human chain).
+  - **Recommended shape:** an **anthology campaign on one engine** — loop is always
+    *receive → comprehend → act → consequence*; each mission swaps a forced-Morse reason, an
+    action-verb, and a clock. Cheapest path to lots of content; reuses the parked IF /
+    AI-narrator ideas (an LLM could generate mission text and grade freeform actions, but
+    scripted vignettes work without it). First three to prototype: **Coast Station**
+    (proves the semantic loop on the existing engine), **Aldis Lamp** (cheap *wow*, new
+    visual skill), **Clandestine** (best tension, campaign template). Differentiate from
+    *Sub Morse* by leaning into coordination/rescue and the visual/light channel rather than
+    combat.
 - **Strict scoring mode** — real-ARRL-style penalties for busted QSOs, as a toggle.
 - **Club angle** — shared daily-challenge seed; compare scores at a meeting.
   Fits the "social, bounded, high-visibility" energy rubric.
