@@ -413,21 +413,66 @@ main {
   border-radius: 12px;
 }
 /* Color temperature stands in for time of day; should advance with beats
-   (dawn → noon → dusk). Static "dawn" tint for now — see MORSE-GAMES.md. */
-.adventure.dawn {
+   (dawn → noon → dusk). Static "dawn" tint for now — see MORSE-GAMES.md.
+   Shared with .adventure-intro so the transition card and the shack read as
+   the same lit room, not two different places. */
+.adventure.dawn,
+.adventure-intro.dawn {
   background: linear-gradient(180deg, rgba(255, 176, 102, 0.07), rgba(79, 195, 247, 0.02));
 }
-.adventure.morning {
+.adventure.morning,
+.adventure-intro.morning {
   background: linear-gradient(180deg, rgba(255, 214, 140, 0.06), rgba(255, 255, 255, 0.02));
 }
-.adventure.noon {
+.adventure.noon,
+.adventure-intro.noon {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
 }
-.adventure.afternoon {
+.adventure.afternoon,
+.adventure-intro.afternoon {
   background: linear-gradient(180deg, rgba(255, 196, 120, 0.06), rgba(255, 176, 102, 0.03));
 }
-.adventure.dusk {
+.adventure.dusk,
+.adventure-intro.dusk {
   background: linear-gradient(180deg, rgba(255, 138, 101, 0.08), rgba(38, 50, 90, 0.12));
+}
+
+/* Intro / transition card — the "light flip" cold open before the shack. */
+.adventure-intro {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  margin-top: 1rem;
+  padding: 2rem 1rem;
+  border-radius: 16px;
+}
+.intro-card {
+  max-width: 480px;
+  text-align: center;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 2rem 1.6rem;
+}
+.intro-tag {
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.16em;
+  color: var(--muted);
+  margin-bottom: 0.6rem;
+}
+.intro-title {
+  margin: 0 0 1rem;
+  font-size: 1.8rem;
+  letter-spacing: 0.14em;
+  color: var(--accent);
+}
+.intro-copy {
+  margin: 0 0 1.4rem;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--text);
 }
 .shack-panel {
   background: var(--panel);

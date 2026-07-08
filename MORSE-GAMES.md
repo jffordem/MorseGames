@@ -266,6 +266,30 @@ Additional world-building — several of these resolve open threads.
   strategy layer, echoing the coast-station coordinator role, and keeps the game evolving
   rather than grinding. Rank is the meta-progression currency: it gates missions,
   difficulty, and eventually the strategic view.
+  - **Enlisted ceiling & the Technician track — grounded in research (2026-07-07).** The
+    real WWII US Army enlisted ladder, ascending: Private → Private First Class → Corporal →
+    Sergeant → Staff Sergeant → Technical Sergeant → First Sergeant / Master Sergeant (top,
+    tied). Alongside it ran the **Technician grades** (T/5, T/4, T/3 — created Jan. 1942),
+    paid at Corporal/Sergeant/Staff Sergeant rates but *without* command authority — real
+    soldiers griped about the distinction (same pay, "not real stripes"; the insignia didn't
+    even differ until Sept. 1942). **Adopted as GOOSE's advancement track**: fits a solo
+    specialist better than command NCO ranks, and hands the humility theme to the rank
+    system itself — not really a sergeant, just good with a key.
+    - **Real precedent, same setting.** Corporal Frank Nash, on an Army Air Corps
+      signals-construction detachment sent to Guadalcanal, volunteered to stay and operate
+      solo for coastwatcher **Reg Evans** (see Easter eggs below) in the Blackett Strait /
+      Kolombangara area — this demo's own setting. Not just plausible; it happened, in the
+      same place, doing the same job.
+    - **"No brass out here" is GI folklore, not literal setting fact.** The real Coastwatcher
+      officers (Evans, Read, Mason, Clemens) held actual commissions and were
+      forward-deployed themselves — the genuine exception that proves how dangerous the work
+      was. Bill/KEN/GOOSE stay a simplified, fictionalized American chain rather than a model
+      of the real joint Allied command structure, so the grumbling is honest soldier's-eye
+      perception, not a rule the fiction has to defend. Sample line: *"We're sleeping on
+      bug-infested cots while the brass is on the big island with ceiling fans and beer."*
+    - Sources:
+      [US Army enlisted rank insignia of WWII](https://en.wikipedia.org/wiki/United_States_Army_enlisted_rank_insignia_of_World_War_II),
+      [Coast Watchers in the Solomons](https://warfarehistorynetwork.com/article/coast-watchers-in-the-solomons/).
 - **Messages from home (pacing & character).** Interleave personal letters between tense
   field missions — a **low-pressure, no-DF-timer, slower, warmer copy** that acts as a
   palate cleanser and honors the interruptibility pillar (a calm capsule you can always
@@ -275,10 +299,20 @@ Additional world-building — several of these resolve open threads.
 - **Onboarding — a stateside training base as a real place with real stakes (Act 1).** Not
   skipped, but not a sterile HL1 *Hazard Course* either. The HL2 *Train Station* lesson is
   "no *sterile* place," not "no base" — so the base is a legitimate, dramatic first act.
+  - **Location: Camp Murphy, Florida (2026-07-07).** A real WWII Signal Corps school,
+    remote South Florida backcountry near Stuart/Jupiter (today's Jonathan Dickinson State
+    Park) — genuinely about as alien to most inland trainees as anywhere stateside, so the
+    "never traveled" induction shock starts before he ever reaches the Pacific. **One
+    deliberate liberty:** the real Camp Murphy trained radar operators specifically, not
+    general CW/radio operators (that was mainly Fort Monmouth, NJ — not Southern); using it
+    here for a CW trainee is a small, acknowledged creative license for a real, atmospheric
+    Southern setting, not a claim about its actual wartime curriculum.
   Key insight: **a training base *licenses* the repetition skill-building needs** — "of
-  course you drill for weeks at boot camp" — so iteration feels *earned*, not grindy. This
-  is the natural home for the **Koch ramp** (characters, prosigns, brevity codes, the
-  send/receive loop). Two goals run in parallel and keep it from being an empty tutorial:
+  course you drill for weeks at boot camp" — so iteration feels *earned*, not grindy. Opens
+  on the induction-shock beat — see **the operator**'s "never traveled" note below for the
+  sample cold-open voice. This is the natural home for the **Koch ramp** (characters,
+  prosigns, brevity codes, the send/receive loop). Two goals run in parallel and keep it
+  from being an empty tutorial:
   1. **Primary — get shipped out:** reach the skill bar (the Koch / prosign / brevity-code
      mastery gate = the graduation mechanic). This is a **genuine competency gate** — say,
      *all characters + a ~5–7 WPM floor* (tunable) — not a formality: if you can't copy at a
@@ -317,6 +351,12 @@ Additional world-building — several of these resolve open threads.
   - **Send reports** — the DF-timer send loop.
   - **React to threats** — relocate, go silent, evade.
   - **Request supplies** — send a requisition; resource management (battery, food, parts).
+    Signal Corps background pays off here (2026-07-07): the labor is physical, not just
+    administrative — hacking a path up from the beach, hauling jerry cans, antenna work.
+    Sample line: *"We hacked a path up from the beach, my shoulders still sore from jerry
+    cans. How much gas do we need, anyway?!"* Closes the loop with Bill's own generator-fuel
+    grumbling (see the enlisted-ceiling note above) — he worries about supply upstream,
+    GOOSE does the hauling downstream.
   - **Messages from home / pining** — the emotional beats above.
 
   A mission = a sequence assembled from this kit + a clock + stakes. This *is* the
@@ -374,6 +414,28 @@ Additional world-building — several of these resolve open threads.
     player forward through history.
   - **Handle real loss with care** — dramatize the courage and the stakes, never
     trivialize the cost.
+  - **Avoid the escort-mission feel — reality is already on our side (2026-07-07).** A
+    protect/escort objective risks the classic frustration of a fragile, failable charge.
+    Milestone missions dodge this for free: the historical outcome is fixed (Munda's strip
+    really did get built), so there's no jeopardy to invent around whether the "escort"
+    survives — failure can only ever be personal (a busted report, a close call, more risk
+    to GOOSE), never the macro-outcome. Keep it that way deliberately: scope failure
+    feedback to the player's own performance, and let the known-good ending carry the
+    payoff ("we contributed, in some real way") instead of manufactured suspense. Applies
+    to every milestone mission, not just this one.
+  - **Milestone mission seed — protecting the Munda Seabees (2026-07-07).** The New
+    Georgia / Munda posting's milestone beat. GOOSE misreads an HQ ask as "they want an
+    airstrip" — exhausted, assuming he and the scouts are somehow expected to hack one out
+    of the jungle by hand (see the "how much chopping does that take?!" line under the
+    mission-element kit above). The reveal recontextualizes it: the real strip is already
+    being built, fast and dangerous, by the 47th/63rd Naval Construction Battalions — the
+    actual Munda airfield, built in roughly five days (Aug. 8–12, 1943) under continued
+    risk. GOOSE's real job was never the chopping; it's watching the sky over a runway
+    that's brutally exposed mid-construction — early warning for the Seabees' heroic,
+    unglamorous work. The comedic misconception (personal labor) giving way to real awe
+    (someone else's genuine feat, and a real reason his watch matters) is the beat — per
+    the **Forrest Gump restraint** above, GOOSE supports and protects; the Seabees do the
+    actual, heroic thing.
 - **Level control — self-paced navigation (Portal-style, with one twist).** Missions are
   capsules, so let the player move through the plot at their own pace with simple
   **previous / replay / next** controls — the lightweight, in-context form of the islands
@@ -438,6 +500,128 @@ Additional world-building — several of these resolve open threads.
   player button, or it quietly defeats the earned-forward gate (distinct from the deliberate,
   *warned* in-fiction "jump ahead").
 
+## Campaign structure & pacing
+
+How missions string into an arc — resolves the former "campaign structure" open thread.
+
+- **Four tiers, one clock model promoted up at each level.** **Campaign** (the whole
+  Father Goose arc) → **Posting** (an island — a chapter) → **Day** (a capsule, ~5–10
+  min — the tier the Kolombangara demo proves) → **Beat** (a sked or generated event).
+- **Scope target: ~20 missions across ~4–6 postings** (Portal-scale as a length
+  reference only, not a mechanic — no "undo the campaign" twist). Roughly 3–5 days per
+  posting.
+- **Postings are authored mini-arcs**, not open-ended grinds: arrival → routine days →
+  a milestone beat → a crisis / RELOCATE. Targeting 3–5 days keeps each one a real
+  three-act shape rather than padding.
+- **Two clocks, same trick as the single-day light model, one tier up.** Per-day **DF
+  heat** resets each morning (diegetically: you went to ground overnight). Per-posting
+  **suspicion** persists across the whole posting and moves slower. Play clean → you get
+  the full authored arc (letters from home, the milestone beat, the works). Play
+  loud/reckless → suspicion climbs faster → RELOCATE fires early → the arc compresses
+  and you miss content. Skill directly shapes *pacing*, not just pass/fail.
+- **Escalation on two axes, both diegetic, no arbitrary difficulty slider:**
+  - *Within* a posting — enemy WPM, DF close-rate, and sked frequency creep day over
+    day: "the net's hot, they've noticed you."
+  - *Across* postings — the real Solomons geography supplies the big jumps (WPM floor,
+    threat archetype, codebook chapter) for free; see the historical spine below.
+- **Rank ties in only at posting transitions**, never mid-posting micro-leveling:
+  promotion = new posting = next act of the Father Goose arc, one number doing three
+  jobs. **Important causal split:** relocation-by-danger (the RELOCATE order — the
+  historically honest reason a Coastwatcher moved) and promotion-by-merit (a game
+  abstraction layered on top) are kept as *separate triggers*. Letting "you leveled up,
+  here's a new island" cause the move would cheapen what was actually a survival story.
+- **Calendar-as-montage — don't play every day.** A posting spans real months, but the
+  player only plays the handful of days worth dramatizing. Date-stamp each mission like
+  a diary entry ("Kolombangara — Day 14") and let the calendar skip irregular amounts
+  between missions — weeks during a quiet stretch, dense during a historically hot one.
+  Implies the routine missions happened off-screen without needing to build or play
+  them; this is exactly how real Coastwatcher memoirs read (a highlight reel, not a log
+  of every day), so it's free authenticity, not a shortcut that costs believability.
+- **A loose historical spine (anchor, not a rigid schedule):** Guadalcanal (Aug 1942 –
+  Feb 1943; air-raid warnings; Clemens/Vouza) → New Georgia / Munda (Jun–Aug 1943;
+  milestone mission — protecting the Seabees building Munda airfield, see **Real history
+  as milestone missions** below) → Kolombangara / Blackett Strait (Aug 1943; PT-109 — the
+  existing demo's setting) →
+  Bougainville (1943; Read & Mason's warnings and eventual compromise/evacuation) →
+  the Bougainville invasion (Nov 1943) as a finale-adjacent beat. ~15 months of real
+  chronology, compressed by the calendar device into ~20 capsules — selection, not
+  invention.
+- **Mission allocation draft (2026-07-07)** — a concrete first pass at distributing
+  missions across the spine, following two principles: Guadalcanal runs long (stability,
+  skill-building, promotion-driven exit) while Bougainville splits into two short,
+  **relocate**-driven postings (frequent forced movement as danger rises) — so the *type*
+  of transition (earned promotion vs. forced relocation) becomes a legible signal of rising
+  danger on top of the WPM/DF numbers. The Yamamoto-shootdown scuttlebutt (see Easter eggs
+  above) lives in the Feb–Jun 1943 gap between Guadalcanal and Munda as a transition-screen
+  aside, not a mission of its own — chronologically it predates Munda. Training is a
+  prologue outside the historical spine (see **Onboarding** above), not counted toward the
+  field-mission total.
+
+  | Posting | Day | Focus (kit emphasis) | Notes |
+  |---|---|---|---|
+  | Stateside training (prologue) | 1 | Induction shock | "Never traveled" cold open; Andy's first invective |
+  | | 2 | Koch ramp grind | Sam's "it's like music, but I don't hear it" aside; FMJ echo |
+  | | 3 | Graduation / orders | Competency gate cleared; Andy left behind for good; ship out |
+  | Guadalcanal | 1 | Control frequency, Decode messages | Cold open — first sked, still shaky |
+  | | 2 | Decode / Send, routine | Daily rhythm sets in; Cactus Air Force overhead as ambient flavor |
+  | | 3 | Send reports (spot) | First real sighting report, drilled clean |
+  | | 4 | **Milestone: Decode + React to threats** | Warning → the planes overhead scramble in time because of you |
+  | | 5 | Messages from home | First letter — the pining beat, a breather |
+  | | 6 | React to threats | First real scare — a patrol close call, survivable |
+  | | 7 | Sign-off | **Promotion** (Bill); boat to New Georgia — "squinting at the sun" |
+  | New Georgia / Munda | 1 | Request supplies | Arrival; jerry cans, hacked paths |
+  | | 2 | Decode (HQ's ask) | Airstrip misconception builds |
+  | | 3 | **Milestone: React to threats** | Reveal — Seabees are building it; real job is watching the sky |
+  | | 4 | Sign-off | Strip finished; **Promotion** |
+  | Kolombangara | 1 | Control frequency | Light arrival card — existing intro/cold-open |
+  | | 2 | **Full worked example** | The built demo day |
+  | | 3 | Decode (peripheral) | JFK/PT-109 rescue heard on the net |
+  | | 4 | Sign-off | **Promotion** |
+  | Bougainville (posting 1) | 1 | React to threats | Arrival already tense |
+  | | 2 | React to threats | **Relocate** — forced |
+  | Bougainville (posting 2) | 1 | React to threats | New spot, tenser still |
+  | | 2 | React to threats / home | **Relocate** again — echoes Read & Mason |
+  | Bougainville invasion (finale) | 1 | Decode (coordinator shift?) | Last full field day |
+  | | 2 | — | The invasion itself, Nov 1943 |
+
+  24 missions total (3 training + 21 field) — a draft scaffold for future mission writing,
+  not locked content.
+
+## The transition screen
+
+The between-capsule beat. It's where prev/replay/next live (per **Level control**
+above), and — per a 2026-07-07 design session — where topical *and* emotional
+stage-setting exposition happens before a mission's operational briefing.
+
+- **Two weights, one component.** **Light flip** (day → day, same posting): fast — a
+  tally, the light cue settling, then the controls. **Heavy beat** (posting →
+  posting): slower and rarer — a calendar card (place, date), the promotion/relocation
+  narrated in diary voice, a codebook-chapter tease. Same screen, content density
+  scales with what actually changed.
+- **Staging channel — reuse, don't invent.** Emotional staging rides the existing
+  "reveal by noticing" diary-voice channel (the same one behind the Notes panel and the
+  colonial-exposition technique) — demonstrated by this exchange's "Bill handed me
+  Sergeant bars... I hope Captain Bligh doesn't forget where I am" vignette. Physical
+  staging is a small wordless anchor (a map pin nudging, a light/season swatch) — the
+  same "light is both clock and progress bar" trick, promoted a tier.
+- **Skippability is free.** Follows the replay rule already specified for level
+  control: first visit shows the transition in full; replaying a reached day/posting
+  collapses it. No separate skip system needed.
+- **Look & feel: UI overlay, not a literal diegetic object.** No rendered desk/map to
+  click around — just the dark-panel/cyan palette reused so it reads as the same room.
+  Cheapest option, deliberately chosen given solo-dev scope ("just you, me, and
+  VS Code") — settles part of the **Immersive UI language** open thread below (the
+  between-capsule chrome specifically; the in-play shack's own visual direction is
+  still open).
+- **Implemented in the demo.** `adventure.ts`'s `buildIntro()` / `beginShack()`: a
+  light-flip cold-open card ("Station GOOSE — Kolombangara · Day 14" + a short
+  scene-setting paragraph + "Begin the watch") shown before the four-quadrant shack,
+  sharing the day/light-tint CSS classes (`.adventure-intro.dawn` etc.) with the shack
+  so both views read as the same lit room. It deliberately overlaps in content with the
+  shack's own Briefing panel — accepted on the theory that most players skip ahead to
+  the operational detail anyway, and first-time redundancy reinforces rather than
+  bores.
+
 ## The operator (character design)
 
 Design intent for the player-character — deliberately light on hard biography so the player
@@ -463,10 +647,102 @@ can *inhabit* him, but specific in **sensibility**.
 - **Everyman-specific.** A specific *sensibility* (rhythmic, observant, quietly homesick for
   the music he set down), light on hard facts — so the player inhabits him while still feeling
   a person. Fits the reluctant-hero *Father Goose* tone.
+- **Never traveled — the induction shock (a concrete biographical anchor).** One hard fact
+  layered onto the otherwise-light biography: he'd never left home before. Boot camp, then
+  specialist (radio) school, drops him somewhere far away almost overnight — period-honest
+  (most WWII draftees hadn't traveled) and it does double duty: the fish-out-of-water beat
+  that opens Act 1, and the reluctant-hero anxiety planted in *his own voice* rather than
+  narration. Sample register (2026-07-07): *"Never traveled, and suddenly I'm in another
+  state entirely for training — boot camp, then specialist school. Like they can't wait to
+  send me out there. Not so sure I'm ready."* This is the training base's natural cold-open
+  voice — the Act 1 mirror of the Kolombangara intro card (see **The transition screen**
+  above): same light-flip pattern, different door.
+- **Travel telegraphs the landlubber — pace it by felt-time, not clock-time (2026-07-07).**
+  Fast modern transport (a flight to Pearl Harbor) can compress to a line — long by his own
+  reckoning, but over almost as soon as it registers, so it doesn't earn page-time. Slow
+  transport (the interminable boat legs between postings) is where to dwell: seasickness,
+  sun-glare "too painful to look at, too bright to ignore," a horizon that never moves. The
+  asymmetry — the flight felt long, then paled next to one day on the water — *is* the
+  characterization of a man who's never been anywhere, so prose should linger where his body
+  does, not where the calendar does. Template register: the "three days of squinting at the
+  sun" line from the Bill/tugboat transition vignette (see **The transition screen** above) —
+  reuse that register for every slow-boat leg still to come.
+- **Travel novelty decays with the arc — let the blur itself carry the growth
+  (2026-07-07).** Early on, travel is novel, exciting, apprehensive, and earns the dwelling
+  described above. By the back half of the campaign, the islands should start to blur for
+  him — "aching white beaches and swaying palm trees," a fatigue-flattened sameness —
+  because that numbing *is* the growth, shown rather than stated, per **reveal by
+  noticing** below. Craft payoff: once his own travel-writing goes generic, the
+  *differences* between postings (terrain, threat, real history) have to carry the signal
+  instead — free motivation to keep those specific rather than padding with more scenery.
+  Rough arc marker: the point his travel prose goes flat is about the point he's stopped
+  being green.
+- **Sea legs redirect the travel-focus: inward → outward and forward (2026-07-07).** Early
+  boat travel is somatic and inward — his own body fills the frame (seasickness, sun-glare,
+  misery, per above). Once he's got his "sea legs," the same slow ride frees up attention
+  for two new things instead of just going blank: the *people* aboard — transient shipboard
+  relationships, someone he shares a rail and a smoke with and never sees again, a different
+  texture of connection than the *recurring* net regulars (KEN, a fist you'd know anywhere)
+  he's building elsewhere — and *forward-looking practical competence*, small field wisdom
+  accreting with experience. Sample line: *"I packed an extra pillow this time, instead of a
+  towel. You're always damp, but waking with a crick in your neck is worse than sweat."*
+  Works because it's concrete and un-narrated — the same "accretes from small, consistent
+  details" technique the doc already uses for backstory, aimed at competence instead.
+- **The invisibility test (a standing craft standard, 2026-07-07).** If a player notices the
+  green-to-seasoned shift happening, that's a sign something overplayed its hand, not a job
+  well done — per Coco Chanel's "dress shabbily and they notice the dress; dress
+  impeccably and they notice the woman." Applies to every accreting-detail device on this
+  page (backstory, competence, the colonial-exposition double-cringe, the travel arc above):
+  the craft should disappear into the character, not announce itself. Where we can't be
+  impeccable, at least be honest about the gap rather than papering over it with exposition.
 - **Delivery caveats.** No flashback cutscenes (they break the single-room immersion and the
   show-don't-tell rule); keep the music metaphor as *flavor in his noticing*, not constant
   winking; let the deferred life live implicitly in the **letters from home** (a bandmate, a
   director, a scholarship held open).
+
+## Cast of characters
+
+A small, deliberately minimal roster (2026-07-07) — see **Cast of characters & locations**
+in Open threads below for what's still unfilled (locations, and whether any other stateside
+faces are worth naming).
+
+- **Andy ("Handy Andy") — the stateside instructor.** Boot camp, then radio/specialist
+  school; the one who drills the Koch ramp in. Appears across the **2–3 training-level
+  transitions** that open the campaign (a deliberate *Full Metal Jacket* echo) via
+  in-character invectives — see **the invisibility test** above: the repetition should
+  feel earned, not narrated at the player. **Left behind for good once you ship out** — a
+  clean one-act character, never recurs. Distinct from Bill below; don't conflate them.
+- **Sam — a fellow trainee, deliberately throwaway.** No arc, just one or two memorable
+  lines rather than a subplot — cheaper and truer to the vanity-project scope than a fuller
+  foil would be. Carries the lookup-table-vs-music-sense theme (PROJECT-PLAN's "music
+  sense" section) in a single aside instead of a subplot: *"He keeps saying it's like
+  music, but I just don't hear it."* Whether Sam resurfaces later (a letter, a name that
+  comes up) is open — fine to leave him behind entirely, in keeping with "throwaway."
+- **Bill — KEN's boss at HQ.** Not the stateside instructor, not KEN itself — the harried
+  senior NCO actually running the coastwatcher network's logistics (no brass — see the
+  enlisted rank ceiling below; he's the top of who's actually out here), stretched too thin
+  for any of this, who handles promotions and relocations personally anyway because the
+  field operators are the reason the desk exists. Source of the earlier transition vignette
+  ("Bill handed me Sergeant bars... I hope Captain Bligh doesn't forget where I am").
+  **Recurs across the whole campaign** at posting transitions — see **The transition
+  screen** above for where he shows up (the "heavy beat").
+- **KEN — the net-control callsign, not necessarily a person.** The day-to-day voice on the
+  key that GOOSE actually works skeds with; Bill sits above it, not behind it, so KEN can
+  stay a generic station identity (plausibly rotating operators on a real net-control desk)
+  without needing its own individuated character — unless a future need (a recurring fist,
+  per the cameo **Method** below) makes individuating it worthwhile.
+- **The Bill ↔ KEN inversion — a relationship arc, not just two characters (2026-07-07).**
+  Early on, Bill feels like the one running things — he's the rank, the human voice behind
+  orders — while KEN is just impersonal chatter you copy off the key. As the campaign goes
+  on, that flips: KEN becomes the daily relationship, the fist you'd know anywhere (per the
+  cameo **Method** below), while Bill recedes into unglamorous logistics — scrounging gas
+  for the generators and toilet paper for the latrine, present but no longer the emotional
+  center. Per **the invisibility test** above, play this through frequency and texture of
+  contact, not narration: more daily KEN traffic carrying real character (fist quirks, small
+  asides inside otherwise prosign-strict exchanges), Bill's appearances thinning to
+  administrative, faintly absurd grumbling. The shift mirrors the operator's own arc — a
+  green recruit is naturally awed by rank; a seasoned one bonds with whoever's actually on
+  the line with him every day.
 
 ## Easter eggs / historical cameos
 
@@ -527,6 +803,18 @@ figure. The names here are for our reference, not necessarily what the player ev
   - **Reg Evans** + island scouts **Biuku Gasa** and **Eroni Kumana** — the actual heroes of
     the JFK rescue (see the Kennedy note); the on-the-ground rescuers were the islander
     scouts, with Evans coordinating by radio.
+  - **The bounty-and-loyalty dynamic — real and Solomons-specific (2026-07-07).** The
+    Japanese put a real, documented $100 bounty on a coastwatcher known as "Snow"; a local
+    chief, **Pellissi**, talked would-be bounty hunters out of collecting it. Solid grounding
+    for a scout-loyalty beat ("they're offering good money for you — I don't need it that
+    bad") without borrowing Tweed's story or Guam's geography at all. Treat GOOSE's own
+    version as fictional (everyday tier, not a Method cameo) — too little verified detail on
+    "Snow" himself to cameo him responsibly.
+  - **Caution: Donald Kennedy (a real New Georgia coastwatcher) is not the Kennedy family.**
+    Ran his own guerrilla operation and once arranged a single handoff of 20 Allied and 20
+    Japanese pilots. Same surname, same general area as the Kennedy-brothers Easter egg
+    above — easy to conflate by accident, so keep them clearly distinct in future writing.
+    A real cameo candidate in his own right if wanted later.
 - **The Navajo Code Talkers (thematic heart).** Marines who used spoken Navajo as an
   unbreakable code, first deployed at Guadalcanal and through the Solomons. Spoken, not
   Morse — but a game *about secure battlefield communication* honoring them is deeply
@@ -542,14 +830,51 @@ figure. The names here are for our reference, not necessarily what the player ev
     poker operation ("Nick's Snack Shack"). Folds neatly into the **request-supplies**
     mission element as a wry, card-playing supply officer named Dick.
 - **Adjacent theaters — use only with correct geography.** **Lee Marvin** (Marine, wounded
-  at Saipan — *Central* Pacific) and **Rod Serling** (paratrooper in the Philippines —
-  *Southwest* Pacific): great names, but keep them off a Solomons island.
+  at Saipan — *Central* Pacific), **Rod Serling** (paratrooper in the Philippines —
+  *Southwest* Pacific), and **George Tweed** (Navy radioman who evaded Japanese capture on
+  Guam for ~2.5 years, sheltered by Chamorro islanders at real cost to them — *Marianas*,
+  not Solomons; considered and set aside 2026-07-07): great, resonant stories — Tweed's
+  especially, a real precedent for the "lone radio operator kept alive by islanders who pay
+  for it" throughline — but keep them off a Solomons island. Worth revisiting only if the
+  campaign's geography ever expands. **Holds even for an oblique, name-only mention** — "my
+  buddy George" still places him in the Solomons, which he never was; use the dynamic he
+  represents (see the bounty-and-loyalty note in Easter eggs below), not his name.
 - **Brass as flavor, not comrades.** A relayed order "from Admiral Halsey" (or Nimitz) is
   fine texture; too senior to be ancillary characters.
 
 **Top picks to actually build in:** Michener (perfect meta-fit), the Code Talkers (thematic
 heart), and Nixon-at-the-Snack-Shack (ties straight into a mission mechanic) — alongside
 Jack as the in-world Kennedy anchor.
+
+**Candidate cameos — teed up, not committed (2026-07-07).** Researched and verified, but
+deliberately not assigned to a specific mission — per the "don't be heavy-handed" note, let
+these fall into place if a beat naturally wants them, and skip them otherwise.
+
+- **Operation Vengeance — the Yamamoto shootdown (18 Apr 1943, near Bougainville).** The
+  single best thematic fit in this list: US radio-intercept sites copied a Japanese naval
+  message (JN-25 cipher) giving Admiral Yamamoto's exact flight itinerary; codebreakers
+  decoded it, and 339th Fighter Squadron P-38s shot his flight down near Kahili,
+  Bougainville. It's a real, spectacular proof that radio interception decides outcomes —
+  the whole game's thesis, dramatized at the highest level. **Keep GOOSE radically
+  peripheral** — the actual codebreaking was classified work far above a lone coastwatcher;
+  this plays best as background scuttlebutt ("did you hear what they did to Yamamoto?")
+  reaching him well after the fact, not a mission he touches. Falls chronologically *before*
+  New Georgia/Munda in the spine — a transition-screen aside is a more natural home than a
+  mission of its own.
+- **The Cactus Air Force & Joe Foss (Guadalcanal, Aug–Dec 1942).** The celebrated air
+  defense of Henderson Field; Foss became the top-scoring Marine ace of the war (26 kills)
+  flying from it. Good "recognizable group" flavor for the Guadalcanal posting, the same
+  register as Black Sheep Squadron/Boyington later — a plane overhead, a name on the net,
+  never more than that.
+- **John Basilone (Guadalcanal, 25–26 Oct 1942).** Medal of Honor machine-gunner who held
+  the line at the Battle for Henderson Field; killed later at Iwo Jima (1945), outside this
+  story's window. Extremely well-documented and moving, but handle with the same care as
+  any real-loss beat — a namedrop should honor the record, not decorate it.
+
+Sources:
+[Operation Vengeance – H-Gram 018-2, Naval History and Heritage Command](https://www.history.navy.mil/about-us/leadership/director/directors-corner/h-grams/h-gram-018/h-018-2.html),
+[Cactus Air Force – Wikipedia](https://en.wikipedia.org/wiki/Cactus_Air_Force),
+[Joe Foss – Wikipedia](https://en.wikipedia.org/wiki/Joe_Foss).
 
 ## Worked example — the demo mission ("Kolombangara")
 
@@ -680,22 +1005,31 @@ persistence. Build & run via Docker (`docker compose up --build`, served on :408
 
 ## Open threads / to brainstorm next
 
-- **Campaign structure** — the *shape* now exists (rank arc, the element kit, the
-  *Father Goose* plot direction). Still to work out: how missions string into an arc, how
-  difficulty *and* story escalate together, and what a single 5-minute capsule looks like
-  beat-by-beat.
+- **Campaign structure** — *done:* see **Campaign structure & pacing** above (postings as
+  authored 3–5 day arcs, the heat/suspicion two-clock model, calendar-as-montage, rank tied
+  to posting transitions, a ~20-mission / ~4–6-posting scope target, and a loose historical
+  spine).
 - **Paper prototype of one mission** — *done:* see **Worked example — "Kolombangara"** above.
   Next step is to build/playtest that lean demo and find out if the loop is actually fun.
   Things it can't answer on paper: does the one-time tune feel satisfying or trivial, is
   HQ's answer-back the right cadence, and does the flash/bold cue read clearly.
+- **The transition screen** — *done:* see **The transition screen** above (light flip vs.
+  heavy beat, UI-overlay look, diary-voice staging, implemented as the demo's intro card).
+- **Cast of characters & locations (NPC roster)** — *in progress:* see the new **Cast of
+  characters** section above for the stateside trio (Andy, Sam, Bill) and KEN's clarified
+  status. Still needed: named recurring stations and their fists (per the **Method** in
+  Easter eggs below), named scouts with real presence (not just "the boys"), and named
+  locations along the historical spine above to give the calendar something concrete to
+  move through.
 - **Meta-progression detail** — direction settled (**rank**, with a role-shift to strategy
-  at high ranks). Still to pin down: what rank gates, and whether WPM ceiling / brevity
-  vocabulary / unlocked islands are separate tracks or all rolled into rank.
+  at high ranks; now also tied to posting transitions per Campaign structure above). Still
+  to pin down: what rank gates, and whether WPM ceiling / brevity vocabulary / unlocked
+  islands are separate tracks or all rolled into rank.
 - **Setting** — leaning **Coastwatcher-first with islands-as-difficulty**; SOE stays a
   possible later skin over the same engine. Confirm before building.
-- **Immersive UI language** — concrete visual direction for the radio-room aesthetic
-  (period set vs. modern), and the "immersive mode" chrome-hiding flag on the mode
-  contract.
+- **Immersive UI language** — the transition screen settled its own chrome (UI overlay, not
+  diegetic). Still open: concrete visual direction for the *in-play shack* itself (period set
+  vs. modern), and the "immersive mode" chrome-hiding flag on the mode contract.
 - **Other capsule concepts** — Coast Station, Aldis Lamp, Rubble Rescue, SAR (from the
   PROJECT-PLAN anthology) can each get a deep-dive section here. *Relay Net now has a design*
   — see **Level type — the relay net** above.

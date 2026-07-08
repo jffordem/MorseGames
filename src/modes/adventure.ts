@@ -232,6 +232,40 @@ export class AdventureMode {
   mount(): void {
     this.root.innerHTML = "";
     this.day = buildDay(); // this run's mix of skeds + generated sightings
+    this.root.appendChild(this.buildIntro());
+  }
+
+  unmount(): void {
+    this.engine.stop();
+  }
+
+  // ---- Intro / transition --------------------------------------------------
+
+  /** The "light flip" cold-open card: sets up the character and place before
+   *  the operational briefing appears. Its own view, swapped for the shack on
+   *  "Begin the watch" — see the transition-screen discussion in MORSE-GAMES.md. */
+  private buildIntro(): HTMLElement {
+    const view = el("section", "adventure-intro dawn");
+    const card = el("div", "intro-card");
+    card.appendChild(text("div", "intro-tag", "Kolombangara · Day 14"));
+    card.appendChild(text("h2", "intro-title", "Station GOOSE"));
+    card.appendChild(
+      text(
+        "p",
+        "intro-copy",
+        "Before dawn the Minnow put you ashore below the summit and slipped back " +
+          "out into the dark. The scouts had the set up the mountain track before " +
+          "your boots were dry. Another day on the ridge, watching the Slot."
+      )
+    );
+    card.appendChild(button("Begin the watch", "btn primary", () => this.beginShack()));
+    view.appendChild(card);
+    return view;
+  }
+
+  /** Flip from the intro card into the radio shack. */
+  private beginShack(): void {
+    this.root.innerHTML = "";
     this.elShack = el("section", "adventure dawn");
     this.elShack.append(
       this.buildBriefing(),
@@ -241,10 +275,6 @@ export class AdventureMode {
     );
     this.root.appendChild(this.elShack);
     this.refresh();
-  }
-
-  unmount(): void {
-    this.engine.stop();
   }
 
   // ---- Quadrants ----------------------------------------------------------
