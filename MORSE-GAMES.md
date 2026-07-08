@@ -265,7 +265,8 @@ Additional world-building — several of these resolve open threads.
   them strategically** — prioritize, coordinate, make the call. The endgame becomes a
   strategy layer, echoing the coast-station coordinator role, and keeps the game evolving
   rather than grinding. Rank is the meta-progression currency: it gates missions,
-  difficulty, and eventually the strategic view.
+  difficulty, and eventually the strategic view. **Concretely realized** as the Magic
+  Carpet coordination finale — see **Mission allocation draft** below.
   - **Enlisted ceiling & the Technician track — grounded in research (2026-07-07).** The
     real WWII US Army enlisted ladder, ascending: Private → Private First Class → Corporal →
     Sergeant → Staff Sergeant → Technical Sergeant → First Sergeant / Master Sergeant (top,
@@ -311,7 +312,9 @@ Additional world-building — several of these resolve open threads.
   course you drill for weeks at boot camp" — so iteration feels *earned*, not grindy. Opens
   on the induction-shock beat — see **the operator**'s "never traveled" note below for the
   sample cold-open voice. This is the natural home for the **Koch ramp** (characters,
-  prosigns, brevity codes, the send/receive loop). Two goals run in parallel and keep it
+  prosigns, brevity codes, the send/receive loop) and for drilling in the **authenticator
+  codes** (see **Level type — the relay net** below) early, as standing procedure rather
+  than a late-game twist. Two goals run in parallel and keep it
   from being an empty tutorial:
   1. **Primary — get shipped out:** reach the skill bar (the Koch / prosign / brevity-code
      mastery gate = the graduation mechanic). This is a **genuine competency gate** — say,
@@ -486,6 +489,74 @@ Additional world-building — several of these resolve open threads.
     `AR` (end of message), plus `QSL`/`R`. Grade on **routing (correct TO/FROM) + body
     fidelity**; fail forward with clear feedback (a misrouted message simply never reaches
     KEN). Realises the parked **Relay net** concept, is the mission-context form of the
+  - **Authenticator codes — catching an impostor without touching the engine
+    (2026-07-07).** Real and grounded on both sides: Japanese radio operators really did
+    break onto Allied circuits to imitate friendly traffic ("KO" deception, used in the
+    Solomons naval battles); the real Allied countermeasure was a paper authenticator
+    table — a challenge/response codeword pair, changed periodically, that a genuine
+    station knows and an impostor (or someone working from a stale/captured list) doesn't.
+    Pure text and copy discipline — no audio "fist" simulation needed, which would have
+    meant perturbing an engine whose whole design pillar is exact timing.
+    - **Drilled in early, not sprung late — until it's reflex.** Goes into the codebook
+      during **stateside training** (Andy drills it alongside prosigns and brevity codes —
+      see Onboarding above and the mission-allocation table's training row 2), repeated
+      enough in the training capsules that the player is **inured** to it by the time it
+      matters: check the table, send QSL with the response in the same breath, don't think
+      about it. Standing procedure by the field, not a twist mechanic bolted on.
+    - **A hard rule, not flavor:** a message that fails the current authenticator — wrong
+      code, or a stale one — must not be relayed or acted on, full stop. This is what
+      "can't listen with half an ear" means mechanically: fluency lets you stop
+      sounding-out letters, but it should never let you stop consciously checking trust.
+    - **One combined transmission, not a round-trip (2026-07-07, implemented).** Dropping
+      the proword would break the mechanism — "I AUTHENTICATE" is what makes the reply
+      unambiguous as *the* authentication response rather than a stray digit — but nothing
+      requires it to be its own separate exchange. `KEN DE GOOSE QSL I AUTHENTICATE 7 K`
+      completes the sked in one transmission, the same way this net already stacks
+      multiple prowords into a single message elsewhere. Real accuracy, minimum tedium.
+    - **Delivered via the mission briefing, not a separate reference (2026-07-07).** The
+      *current* valid code lives in the day's Briefing panel text (the existing upper-left
+      panel in the shack — see the Kolombangara worked example above), issued as part of
+      HQ's daily orders — plausible on its own terms, since real authenticator tables were
+      genuinely distributed via periodic orders. The codebook holds the standing procedure
+      (how authentication works, learned once); the briefing holds the day's specific
+      instance (what the code actually is right now). This gives the "most players will
+      skip ahead" overlap noted in **The transition screen** above real teeth: skipping the
+      briefing isn't just redundant anymore, it's the one habit that gets you fooled.
+    - **Must be generated, not fixed (2026-07-07) — same pattern as the spotter sightings.**
+      If the code were static, a player replaying the level would already know it and the
+      whole "you have to listen" point would evaporate on the second playthrough. Generate
+      it fresh per mission instance, the same way sightings are randomized (see the
+      Kolombangara worked example above) — so replay masters the *habit* of checking, not a
+      memorized value, consistent with **Level control**'s "every replay is a fresh
+      instance" rule above.
+    - **Rule-based flexible parsing, not AI (2026-07-07) — a reusable pattern.** Grading
+      free-typed player transmissions needs to feel forgiving without being fuzzy, and
+      without reaching for an LLM call the "no backend" architecture doesn't want anyway.
+      The answer that fell out of building this: **tokenize into words, then match on
+      tokens, not raw substrings.** A bare `msg.includes("...")` is either too rigid
+      (an exact-string check like `msg === "R"` rejects a perfectly realistic `KEN DE
+      GOOSE R K`) or, for single letters, too loose (a naive `.includes("R")` would false-
+      match inside any word containing the letter). Tokenizing first fixes both: checking
+      `words.includes("R")` matches the whole word anywhere in the message; checking a
+      **token sequence** (e.g., `["I", "AUTHENTICATE", code]` appearing consecutively)
+      matches a multi-word phrase regardless of spacing or where it lands in the message.
+      Fully deterministic, no judgment calls — just "do these words appear, in this order."
+      Reuse this pattern anywhere else free-typed player text needs grading (relay-net
+      copy fidelity, future report fields), rather than special-casing more exact-string
+      checks or reaching for AI.
+    - **The sked frequency is generated the same way (2026-07-07, implemented).** Real
+      SOI documents bundled call signs, frequencies, *and* authentication into one
+      periodically-changing package — so randomizing the target frequency per mission
+      (a multiple of 5 kHz, comfortably inside the dial) isn't a new idea, it's the same
+      one applied to the other value that document actually carried. Delivered the same
+      way too: only the Briefing panel's prose states today's number — no status line or
+      codebook entry gives it away, so tuning in requires reading it fresh every mission,
+      same as the authenticator table.
+    - **Possible tie to the decline arcs above:** a late-campaign near-miss — GOOSE, worn
+      down by the field-companion and Evelyn declines, almost skips or fumbles a check he'd
+      have caught clean back at Guadalcanal — would give that emotional exhaustion real
+      operational stakes, not just social ones. Worth considering for a Bougainville
+      posting specifically, given the danger already concentrated there; not committed.
     callsign/pileup drill (PROJECT-PLAN mode 3), and steps toward the high-rank "coordinate a
     network" role.
 - **Progress persistence & recovery (durable save + admin controls).** Unlocking only means
@@ -560,7 +631,7 @@ How missions string into an arc — resolves the former "campaign structure" ope
   | Posting | Day | Focus (kit emphasis) | Notes |
   |---|---|---|---|
   | Stateside training (prologue) | 1 | Induction shock | "Never traveled" cold open; Andy's first invective |
-  | | 2 | Koch ramp grind | Sam's "it's like music, but I don't hear it" aside; FMJ echo |
+  | | 2 | Koch ramp grind | Sam's "it's like music, but I don't hear it" aside; FMJ echo; authenticator drills repeat until reflex |
   | | 3 | Graduation / orders | Competency gate cleared; Andy left behind for good; ship out |
   | Guadalcanal | 1 | Control frequency, Decode messages | Cold open — first sked, still shaky |
   | | 2 | Decode / Send, routine | Daily rhythm sets in; Cactus Air Force overhead as ambient flavor |
@@ -581,11 +652,47 @@ How missions string into an arc — resolves the former "campaign structure" ope
   | | 2 | React to threats | **Relocate** — forced |
   | Bougainville (posting 2) | 1 | React to threats | New spot, tenser still |
   | | 2 | React to threats / home | **Relocate** again — echoes Read & Mason |
-  | Bougainville invasion (finale) | 1 | Decode (coordinator shift?) | Last full field day |
+  | Bougainville invasion | 1 | Decode | Last full field day |
   | | 2 | — | The invasion itself, Nov 1943 |
+  | Magic Carpet coordination (true finale) | 1 | **Coordinator role — the relay net, at scale** | Big calendar skip (~20 months) to mid/late 1945; see below |
 
-  24 missions total (3 training + 21 field) — a draft scaffold for future mission writing,
+  25 missions total (3 training + 22 field) — a draft scaffold for future mission writing,
   not locked content.
+
+  **The true finale — Magic Carpet coordination (2026-07-07).** Answers "what does the
+  rank-driven coordinator role shift actually look like to play?" (see **Rank as levels**
+  above) with a real historical anchor: **Operation Magic Carpet**, the real 1945–46 mass
+  repatriation already used for Bill's epilogue arc. Reached by a large calendar-as-montage
+  skip from the Bougainville invasion — no need to build out two more years of intervening
+  content, the same device already justifies the gap.
+  - **The payback structure.** GOOSE left home a green kid who needed Andy to drill him,
+    Aaron/Pita/Tione to keep him alive, and Bill to promote and reassign him. This mission
+    inverts it: GOOSE is now the one running a **relay net at scale** — the existing Relay
+    Net level type (TO DE FROM addressing, correct routing, body fidelity) reused for
+    real, higher stakes — prioritizing and routing traffic for an operation defined by real
+    scarcity (limited transport capacity, ships needing refurbishment, departures
+    coordinated across scattered global locations). Arrived green, leaves making sure
+    other soldiers get home safely — the same verb triad (receive/send/intercept),
+    now aimed at care instead of survival.
+  - **Honor history first, Easter eggs second — checked, and none forced.** Researched
+    specifically for a credible real-person or unit tie-in to Magic Carpet's
+    communications/coordination side; nothing documented enough turned up to cameo
+    responsibly. Per the instruction that started this note, that's a reason to leave it
+    alone rather than invent one — the real operation's scale and chaos carry the weight
+    on their own.
+  - **The Easter egg that isn't a stretch: Bill's own ship, in GOOSE's own traffic.** No
+    external cameo needed — GOOSE, now coordinating, ends up routing a message that's
+    unmistakably Bill's ship checking in. Closes the whole-game relationship arc (see the
+    Bill ↔ KEN inversion above) by inverting it one more time: GOOSE now does for Bill what
+    KEN's net once did for him.
+  - **Mirrors Bill's own "brass only once it's safe" irony** (see the enlisted-ceiling note
+    above): if GOOSE gets any final procedural bump — his highest Technician grade, say —
+    it happens here, for the safe, homeward job, once there's no danger left to be modest
+    about. **The concrete callback (2026-07-07):** reuse the exact "ceiling fans and beer"
+    line from the enlisted-ceiling rule, now aimed at GOOSE himself — a quiet beat where he
+    notices, without saying it to anyone, that he's become the guy with them. Subtle on
+    purpose — most players won't clock it, and that's fine; the ones who do get a joke that
+    plays across the whole timeline instead of a moment that has to explain itself.
 
 ## The transition screen
 
@@ -729,8 +836,90 @@ faces are worth naming).
 - **KEN — the net-control callsign, not necessarily a person.** The day-to-day voice on the
   key that GOOSE actually works skeds with; Bill sits above it, not behind it, so KEN can
   stay a generic station identity (plausibly rotating operators on a real net-control desk)
-  without needing its own individuated character — unless a future need (a recurring fist,
-  per the cameo **Method** below) makes individuating it worthwhile.
+  without needing its own individuated character. **A "fist" was considered and dropped
+  (2026-07-07)** for detecting an impostor on the net — it would mean deliberately
+  perturbing the engine's exact-timing delivery, which fights the design pillar rather than
+  serving it. See **Authenticator codes**, extending **Level type — the relay net** below,
+  for the text-based answer instead.
+- **Pita — the scout who actually keeps GOOSE alive and informed (2026-07-07).** Carries
+  the set up the mountain track, barefoot, in the dark (see the Kolombangara NOTES text);
+  brings runner reports; reads the coast — tide, reef break, wind — the way GOOSE reads
+  rhythm. That parallel *is* the relationship, not a speech: two men who each hear
+  something the other initially can't, recognizing a fellow professional once they notice
+  it. Young (matching the real Gasa/Kumana precedent — teenagers and young men did this
+  work), quick, wry, and unsettlingly unbothered by danger GOOSE still flinches from.
+- **Tione — a second named scout, deliberately not a solo "chosen one."** Older, steadier;
+  the one who actually handles the "twist tobacco and promises" settling-up with HQ, wry
+  about the arrangement in a way he never says straight out. Naming two, not one, is
+  deliberate — the point of "I write their names in the log" is that "the boys" was always
+  a group of real individuals, not a single elevated exception standing in for the rest.
+- **Distinct from the real cameos below.** Pita and Tione are fictional — not meant to be
+  confused with or stand in for Jacob Vouza, Biuku Gasa, or Eroni Kumana (see Easter eggs
+  below), who stay real, rare, and tied to their own specific documented events. This is
+  exactly the "swap to a fictional name" allowance the cameo Method already makes for
+  GOOSE's everyday scouts.
+- **A concrete beat for "the log doesn't ask":** the moment GOOSE actually writes Pita's
+  and Tione's names in the log, on the page, once — not narrated after the fact in the
+  NOTES text but played as a real, small beat. Candidate placement: the Kolombangara
+  sign-off/promotion transition, so leaving the island is also the first time their names
+  appear anywhere but his own head.
+- **The field-companion arc: starts strong, peters out — its own cringe (2026-07-07).** Not
+  a flaw to fix but a deliberate structural mirror of GOOSE's slide into colonial habit and
+  emotional exhaustion — a *third* layer of cringe stacked on the existing double-cringe (we
+  don't just wince at the era; we wince watching a character we like fail a test he'd been
+  quietly passing). Maps directly onto the mission-allocation table above:
+  - **Guadalcanal (the long posting) — the gold standard.** Introduce **Aaron**, GOOSE's
+    Guadalcanal-side scout/contact — a real friendship, properly earned, because for once
+    there's *time*: Aaron teaches him the terrain and something of his own life, and GOOSE
+    learns his name without having to try. This is the bar every later posting fails to
+    clear, deliberately.
+  - **Munda — the first crack, task-focused.** Attentive but transactional; the milestone
+    crisis (protecting the Seabees) eats the bandwidth a real friendship would need. No
+    fully realized companion needed here — the *absence* of one is the point.
+  - **Kolombangara — the asymmetry.** Already written above, reframed rather than rewritten:
+    Pita gets the full relationship (the tide/rhythm parallel); Tione is acknowledged but
+    not fully *seen* — "the one who handles the settling-up," not someone GOOSE bonds with
+    the way he does Pita. That existing asymmetry *is* the first real crack.
+  - **Bougainville, posting 1 — the name he's not sure of.** Shorter posting, higher danger;
+    GOOSE catches a name but isn't fully certain he's got it right, and it's never
+    corrected on the page — no time, and if he's honest, not quite the will left either.
+  - **Bougainville, posting 2 — no name at all.** The terminal point: GOOSE doesn't ask,
+    defaults to "the boy" — the exact collective diminutive the whole thread had been
+    quietly resisting since "the log doesn't ask." Play the regression as exhaustion, not
+    malice — that's what makes it land as tragedy instead of villainy.
+  - **Payoff for the epilogue's open scout-log thread:** this is what makes "leave it
+    honestly unresolved" (see Epilogue above) the right call instead of a vague gesture —
+    the log itself should read uneven on the page: Aaron's name full and easy, Pita's warm,
+    Tione's correct but thin, one Bougainville name uncertain, one missing outright. GOOSE
+    can *notice* this in the epilogue — a flicker of self-awareness, not a redemption arc —
+    without the game resolving it for him.
+- **Evelyn — the girl back home; starts strong, runs out of gas (2026-07-07).** Real effort
+  at first: she works V-mail's standardized form and the officer-censor's blackout lines
+  like a puzzle to keep him anywhere close to informed, chasing him across postings with
+  letters that arrive weeks late and half cut. Ties to the deferred-musician backstory as
+  a detail that accretes rather than gets stated outright — maybe she's the one who used
+  to sing while he kept time. Then, over the campaign, she stops. **Deliberately never
+  explained** — a fog-of-war ambiguity, not a plot point to resolve: did she meet someone
+  else, get sick, just run out of whatever it takes to sustain a solo correspondence
+  across years and an ocean? GOOSE never gets a clean answer, which is the honest version
+  of what a lot of real wartime relationships actually did.
+- **GOOSE doesn't know how to grieve it — so the game doesn't show him grieving it.** Per
+  the invisibility test above, this isn't a dramatized breakdown scene. It shows up
+  sideways: the **"Messages from home" kit element** (see the mission-element kit above)
+  quietly stops delivering personal letters and starts filling the same slot with routine
+  **wartime news bulletins from other theatres** instead — impersonal, mass-broadcast,
+  addressed to no one. The player feels the substitution before GOOSE would ever say it
+  out loud.
+- **A second, matched decline — cross-reference the field-companion arc above.** Same
+  emotional exhaustion, cutting the other direction: forward, into field companions he
+  stops fully seeing; backward, into a home connection going quiet he can't process. GOOSE
+  is hollowed out from both ends at once, and neither line is ever spoken aloud — it's
+  just the "Messages from home" slot changing character and the scout log going uneven,
+  side by side.
+- **Reframes the Epilogue's "a few years and miles late" line** (see Epilogue above):
+  "hopes of love" there isn't a reunion with Evelyn — it's GOOSE having to start over,
+  hopeful but a little unmoored, wondering who he'll even connect with back home after
+  all this.
 - **The Bill ↔ KEN inversion — a relationship arc, not just two characters (2026-07-07).**
   Early on, Bill feels like the one running things — he's the rank, the human voice behind
   orders — while KEN is just impersonal chatter you copy off the key. As the campaign goes
@@ -752,7 +941,9 @@ everything off. Mechanically, this is where full backward traversal opens — ev
 free to replay, no earn-it-forward gate left to defend (see **Level control** above).
 
 - **GOOSE comes home — a few years and miles late.** College aspirations, hopes of love,
-  life, and happiness, picked back up rather than delivered on schedule. The **G.I. Bill**
+  life, and happiness — not picked back up where he left them (some of what he left, like
+  Evelyn's letters, per **Cast of characters** above, simply isn't there to return to),
+  but pursued fresh anyway. The **G.I. Bill**
   (Servicemen's Readjustment Act, 1944 — real, funded both tuition and zero-down home
   loans for returning veterans) reopens the door the deferred-musician backstory left
   ajar. Play his optimism wry, not solemn — the same hopeful naivety that got him through
@@ -1053,12 +1244,14 @@ persistence. Build & run via Docker (`docker compose up --build`, served on :408
   HQ's answer-back the right cadence, and does the flash/bold cue read clearly.
 - **The transition screen** — *done:* see **The transition screen** above (light flip vs.
   heavy beat, UI-overlay look, diary-voice staging, implemented as the demo's intro card).
-- **Cast of characters & locations (NPC roster)** — *in progress:* see the new **Cast of
-  characters** section above for the stateside trio (Andy, Sam, Bill) and KEN's clarified
-  status. Still needed: named recurring stations and their fists (per the **Method** in
-  Easter eggs below), named scouts with real presence (not just "the boys"), and named
-  locations along the historical spine above to give the calendar something concrete to
-  move through.
+- **Cast of characters & locations (NPC roster)** — *in progress:* see **Cast of
+  characters** above for the stateside trio (Andy, Sam, Bill), KEN's clarified status,
+  **Pita and Tione** (Kolombangara), **Aaron** (Guadalcanal), the field-companion decline
+  arc, and now **Evelyn** (the girl back home) with its matched home-front decline arc.
+  Still needed: whether Sam also writes/resurfaces as a correspondent (open — Evelyn's
+  arc doesn't resolve this), a one-scene face for the Munda Seabees, voices for the
+  endgame coordinator role, named recurring stations and their fists (per the **Method**
+  in Easter eggs below), and named locations along the historical spine above.
 - **Meta-progression detail** — direction settled (**rank**, with a role-shift to strategy
   at high ranks; now also tied to posting transitions per Campaign structure above). Still
   to pin down: what rank gates, and whether WPM ceiling / brevity vocabulary / unlocked
