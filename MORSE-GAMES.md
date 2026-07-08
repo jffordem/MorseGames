@@ -297,6 +297,25 @@ Additional world-building — several of these resolve open threads.
   break out of). They build character and stakes (family, a sweetheart), pay off the
   "pining for home" beat, and carry the emotional reward that makes the danger *matter*.
   Occasionally two-way: copy a letter, key a short reply home.
+- **Period pop-culture texture — Americana flavor (2026-07-08).** As missions, notes, and
+  backstory get written, feel free to sprinkle in real, dated-to-the-era Americana for
+  immersion — Captain America comics, big-league baseball (teams, players, box scores),
+  home-front brand names like Ovaltine, radio serials, swing bands. Cheap, evocative texture
+  that costs nothing to add and makes the period feel lived-in rather than researched.
+  - **Natural homes for it:** the letters-from-home beat above (a kid brother's comic-book
+    haul, a box score clipped from the paper), the Notes panel's accretive backstory device
+    (see **The operator**'s "reveal by noticing" — a rhythm/music-minded protagonist might
+    notice a radio drummer or a ballpark organ before he notices anything tactical), and
+    transition-screen diary asides.
+  - **Lower stakes than the real-person Method.** The **Method** and **Real history as
+    milestone missions** guardrails above exist because naming real people/units carries an
+    ethics weight and demands verified accuracy. Products, comics, and ballclubs don't
+    carry that same weight — use them freely as flavor, not as rare, careful cameos.
+  - **One guardrail: keep it dated to the mission's actual moment.** The Solomons spine runs
+    Aug 1942 → late 1943 (see **Campaign structure & pacing** below); a reference should be
+    plausible for *that* month, not just "the '40s" in general (e.g. Captain America Comics
+    launched March 1941, so it's fair game throughout, but a specific comic-book storyline
+    or a specific pennant race should check its real date against the scene's).
 - **Onboarding — a stateside training base as a real place with real stakes (Act 1).** Not
   skipped, but not a sterile HL1 *Hazard Course* either. The HL2 *Train Station* lesson is
   "no *sterile* place," not "no base" — so the base is a legitimate, dramatic first act.
@@ -559,6 +578,65 @@ Additional world-building — several of these resolve open threads.
       posting specifically, given the danger already concentrated there; not committed.
     callsign/pileup drill (PROJECT-PLAN mode 3), and steps toward the high-rank "coordinate a
     network" role.
+  - **QRZ — catching a dropped identification (2026-07-08, implemented).** A player
+    note off the built Kolombangara demo: nothing currently stops a report going out
+    without its addressing — e.g. `BOMBER NR 6 CSE NW` instead of `KEN DE GOOSE BOMBER NR 6
+    CSE NW K`. Real net discipline has an exact answer for this: **QRZ** ("who is calling
+    me?"), the real Q-code an operator sends back when a transmission arrives with no clear
+    TO/DE/FROM. Same family as the authenticator-codes idea above — catch a specific,
+    named net-discipline lapse mechanically, not just render the header as flavor text.
+    - **The check:** before parsing an outbound transmission for its content (report
+      fields, QSL, etc.), confirm it leads with `KEN DE GOOSE`. Missing it → KEN replies
+      `QRZ K` instead of processing the message; the report isn't graded or acknowledged
+      until the player resends properly addressed. A nudge, not a hard fail — same spirit
+      as `AGN?` and the authenticator retry loop.
+    - **Applies wherever the player transmits to KEN** — spot reports (the case that
+      surfaced it) and sked acknowledgements alike, for the same reason the authenticator
+      check landed on "first contact each day": one rule, applied consistently, beats a
+      special case per message type.
+    - **Add `QRZ` to the codebook's Prowords group**, alongside `AGN`/`QSL`/`QRT`/`QRU`.
+    - **Implementation shape:** the same token-sequence pattern already used for the
+      authenticator and report-field checks in `adventure.ts` —
+      `includesSequence(words, [HQ_CALL, "DE", MY_CALL])` — gates the existing parsing in
+      `transmit()`, so no new grading machinery is needed.
+  - **Soft tells before the hard check — rogue-transmission suspicion (2026-07-08,
+    brainstorm, not yet designed in detail).** The authenticator table above is the *hard*
+    impostor check — deliberate, pass/fail, once per contact. This idea is the *soft* layer
+    above it: narrative cues that let an attentive player suspect a transmission is bogus
+    before (or instead of) a failed authenticator — catching an impostor by *paying
+    attention*, not just by the mechanical gate.
+    - **The status line as a suspicion meter.** The line above the transmit control that
+      normally narrates mechanical state (`KEN is transmitting…`) gets repurposed, on a
+      flagged rogue message, to voice the operator's unease instead — e.g. a transmission
+      that abruptly demands GOOSE's position might read *"That didn't sound like KEN's
+      fist, and how would he not know where I am? Should I reauthenticate?"* Same channel
+      already used for status/flavor text; no new UI needed.
+    - **Two independent tells, kept separate so detection is skill-based, not a coin
+      flip:**
+      - **The fist.** Reuses the recurring-station "fist" idea (see **The fist as a
+        recurring clue** below) as an impersonation tell, not just a cameo Easter egg — an
+        unfamiliar rhythm on a familiar call. **Stays textual/diegetic** — the operator's
+        own noticing, voiced in the status line — rather than an actual audio-timing
+        change, which preserves the exact reason the authenticator design avoided
+        simulating fists in the first place (perturbing an engine whose whole pillar is
+        exact timing; see **Authenticator codes** above).
+      - **Content mismatches.** A request for information the real KEN would already have
+        (GOOSE's position, already on file), an order that's tactically nonsensical or out
+        of character, wrong prosign/word choice, misspellings, or a tone/mood that doesn't
+        fit the situation (panic where routine is expected, or the reverse). Checkable the
+        same rule-based way as the rest of net traffic — see **Rule-based flexible
+        parsing, not AI** above — no AI judgment needed to flag a wrong prosign or a fact a
+        genuine KEN wouldn't need to ask for.
+    - **Player agency, real stakes.** A noticed tell should let the player *act* — challenge
+      with a fresh `AUTHENTICATE` rather than trust the `QSL`, echoing the **moral
+      branching via petitioners** P,P device above. Missing a rogue transmission (or
+      over-trusting one) can escalate to a genuine mission-failure beat — a compromised
+      position, a forced rescue — fitting the **roguelike "run" framing** pillar (lose the
+      run, keep the accumulated experience, replay) rather than a soft fail state.
+    - **Open:** how often a rogue transmission should appear (rare surprise vs. a
+      recurring mechanic once introduced), whether it's tied to a specific posting/mission
+      (a natural fit for a milestone or the Bougainville postings, given the rising-danger
+      theme already established there), and the exact shape of the failure/rescue beat.
 - **Progress persistence & recovery (durable save + admin controls).** Unlocking only means
   something if it survives a refresh, so unlocks, rank/XP, story flags, and per-level bests
   must persist — **versioned, namespaced `localStorage`** (`morse-games.*`), the version so
@@ -728,6 +806,13 @@ stage-setting exposition happens before a mission's operational briefing.
   shack's own Briefing panel — accepted on the theory that most players skip ahead to
   the operational detail anyway, and first-time redundancy reinforces rather than
   bores.
+- **The loop now closes (2026-07-08, implemented).** `showOutro()` swaps the shack for a
+  dusk-toned card in the same style as the intro (day tally + "Replay the day"), and
+  `resetRun()` regenerates a fresh run — new sightings, authenticator table, and sked
+  frequency, the same "every replay is a fresh instance" guarantee as **Level control**
+  above — and returns to the intro card. End of day → transition screen → replay, the
+  same beat the campaign's day-to-day flow will eventually use, proved out on this one
+  mission.
 
 ## The operator (character design)
 
@@ -806,6 +891,33 @@ can *inhabit* him, but specific in **sensibility**.
   show-don't-tell rule); keep the music metaphor as *flavor in his noticing*, not constant
   winking; let the deferred life live implicitly in the **letters from home** (a bandmate, a
   director, a scholarship held open).
+- **A small vice arc: cigarettes (2026-07-08).** A three-beat character thread built on the
+  ration economy that's already period-real and already touched on elsewhere in this doc
+  (the shipboard "rail and a smoke" line above, the scouts' "twist tobacco" pay in the
+  Kolombangara notes). **Deliberately narrative texture, not a gameplay system** — no
+  stamina stat, no mission penalty tied to whether he smokes; it lives entirely in the
+  accreting-detail channels already established (Notes panel asides, letters home,
+  transition-screen diary voice), per **reveal by *noticing*** and the **invisibility
+  test** above.
+  - **Act 1 — indifferent, and a little pleased with himself.** He doesn't smoke, and
+    treats his ration as a trade good — extra chocolate, a favor, a better bunk — small,
+    period-honest camp economy that doubles as an early "sharper than he lets on" beat.
+  - **A field beat — giving in.** Somewhere in the long, hot, empty hours of a shack with
+    nothing to do (the same "waiting" texture the ambient mission clock already leans on),
+    he starts smoking — no drama, just boredom and nerves finding an outlet, told in a
+    single offhand diary line rather than announced.
+  - **A later beat — quitting.** After enough marches up ridges with a heavy set on
+    somebody's back, he notices how much harder the climbing has gotten and quits — a
+    quiet, physical, non-preachy reason. The payoff is a noticing detail (winded on a slope
+    he wouldn't have thought twice about before), never a stated moral or a mechanical
+    penalty.
+  - **Optional connective tissue:** the existing "shares a rail and a smoke with" shipboard
+    line (see **Sea legs redirect the travel-focus** above) can double as the moment he
+    first takes one up, giving the arc a concrete opening beat instead of an abstract one.
+  - **Not gated to a specific posting.** Unlike the field-companion/Evelyn decline arcs,
+    this doesn't need a fixed slot on the mission-allocation table — it can accrete across
+    whichever Notes/letters beats get written, the same low-commitment way as the
+    travel-competence details above.
 
 ## Cast of characters
 
@@ -996,7 +1108,8 @@ details happen to line up.
   individually recognizable — "I'd know his fist anywhere." A recurring station with a
   distinctive fist rewards the attentive player across missions and ties straight into the
   music-sense / rhythm-recognition thread in PROJECT-PLAN. A signature fist can *be* the
-  easter egg — no words required.
+  easter egg — no words required. **Also reused as an impersonation tell** — see **Soft
+  tells before the hard check** under Authenticator codes above.
 - **Accuracy over cleverness (the non-negotiable).** Use real, documented callsigns where
   they exist; otherwise period-plausible ones. Only *verifiable* detail — **never fabricate
   quotes, actions, or history to make a cameo land, and never pander.** Keep them peripheral
@@ -1188,7 +1301,7 @@ felt:**
 2. **Runner — a *generated* aircraft sighting (OBSERVE → ENCODE → SEND + directed
    answer-back).** The call appears in the notes and the transmit control flashes — e.g.
    *"The headland: six bombers, high, heading east."* Encode from the codebook
-   (`GOOSE DE KEN ACFT NR 6 BOMBER HI CSE E K`); the report is validated against the facts and
+   (`KEN DE GOOSE ACFT NR 6 BOMBER HI CSE E K`); the report is validated against the facts and
    **HQ asks (directed) for anything missing/wrong** (`GOOSE DE KEN NR CSE K`) until every
    fact is right. Different every run. [morning]
 3. **1030 sked — KEN heads-up (RECEIVE + ack).** *"ACFT EXPECTED MIDDAY — WATCH CLOSE."*
@@ -1196,7 +1309,7 @@ felt:**
 4. **1200 — the payload — a *generated* convoy (big report; light: harsh noon).** *"Four
    destroyers in the strait, running down the Slot."* High-value report; the power decision
    bites (crank up for a clean first copy — exactly what lights up the DF — vs. stay quiet
-   and risk a fill). Get every fact right (`GOOSE DE KEN CONVOY 4 DD CSE SE K`). [noon]
+   and risk a fill). Get every fact right (`KEN DE GOOSE CONVOY 4 DD CSE SE K`). [noon]
 5. **1500 sked — KEN acknowledges the convoy (RECEIVE + ack).** *"QSL CONVOY TU — MAINTAIN
    WATCH."* Ties the sked back to what you reported. Copy and `QSL`. [afternoon]
 6. **1800 sked — sign-off (RECEIVE + ack → end of day).** *"QRT AT DUSK GN."* Copy, `QSL`,

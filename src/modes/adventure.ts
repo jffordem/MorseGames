@@ -279,6 +279,7 @@ export class AdventureMode {
   private elStartBtn!: HTMLButtonElement;
   private elSkedBtn!: HTMLButtonElement;
   private elShowTextBtn!: HTMLButtonElement;
+  private elContinueBtn!: HTMLButtonElement;
   private elTxRow!: HTMLElement;
   private elTxInput!: HTMLInputElement;
   private elTxBtn!: HTMLButtonElement;
@@ -296,15 +297,33 @@ export class AdventureMode {
   }
 
   mount(): void {
-    this.root.innerHTML = "";
-    this.authTable = makeAuthTable(); // generated fresh — see the authenticator note above
-    this.hqFreqKhz = makeHqFreqKhz(); // generated fresh — same SOI logic as the auth table
-    this.day = buildDay(this.authTable[0].challenge); // this run's mix of skeds + generated sightings
-    this.root.appendChild(this.buildIntro());
+    this.resetRun();
   }
 
   unmount(): void {
     this.engine.stop();
+  }
+
+  /** (Re)start a fresh run: reset all per-day state, generate a new day (new
+   *  sightings, authenticator table, sked frequency), and return to the intro
+   *  card. Used both by mount() and by "Replay the day" on the outro screen —
+   *  see the transition-screen / Replay discussion in MORSE-GAMES.md. */
+  private resetRun(): void {
+    this.phase = "cold";
+    this.playing = false;
+    this.freqKhz = 4200;
+    this.power = 3;
+    this.txCount = 0;
+    this.showText = false;
+    this.clock = "—";
+    this.traffic = [];
+    this.evtIx = 0;
+    this.need = [];
+    this.authTable = makeAuthTable(); // generated fresh — see the authenticator note above
+    this.hqFreqKhz = makeHqFreqKhz(); // generated fresh — same SOI logic as the auth table
+    this.day = buildDay(this.authTable[0].challenge); // this run's mix of skeds + generated sightings
+    this.root.innerHTML = "";
+    this.root.appendChild(this.buildIntro());
   }
 
   // ---- Intro / transition --------------------------------------------------
@@ -418,7 +437,9 @@ export class AdventureMode {
     this.elSkedBtn = button("♪ Take the 0600 sked", "btn", () => void this.receiveSked());
     this.elSkedBtn.disabled = true;
     this.elShowTextBtn = button("Show Text: Off", "btn ghost", () => this.toggleText());
-    controls.append(this.elStartBtn, this.elSkedBtn, this.elShowTextBtn);
+    this.elContinueBtn = button("→ Log off", "btn primary", () => this.showOutro());
+    this.elContinueBtn.hidden = true;
+    controls.append(this.elStartBtn, this.elSkedBtn, this.elShowTextBtn, this.elContinueBtn);
     panel.appendChild(controls);
 
     // Transmit
@@ -435,8 +456,8 @@ export class AdventureMode {
       }
     });
     this.elTxBtn = button("▶ Transmit", "btn", () => void this.transmit(this.elTxInput.value));
-    this.elAgnBtn = button("AGN?", "btn ghost", () => void this.transmit("AGN?"));
-    this.elQslBtn = button("QSL", "btn ghost", () => void this.transmit("QSL"));
+    this.elAgnBtn = button("AGN?", "btn ghost", () => void this.transmit(`${HQ_CALL} DE ${MY_CALL} AGN K`));
+    this.elQslBtn = button("QSL", "btn ghost", () => void this.transmit(`${HQ_CALL} DE ${MY_CALL} QSL K`));
     this.elTxRow.append(this.elTxInput, this.elTxBtn, this.elAgnBtn, this.elQslBtn);
     panel.appendChild(this.elTxRow);
 
@@ -471,6 +492,7 @@ export class AdventureMode {
           ["ES", "and"],
           ["AGN", "say again"],
           ["QSL", "acknowledged"],
+          ["QRZ", "who is calling me? — you dropped your ID"],
           ["QRT", "shut down / go silent"],
           ["QRU", "nothing heard / anything for me?"],
           ["TU", "thanks"],
@@ -584,6 +606,29 @@ export class AdventureMode {
     this.refresh();
   }
 
+  /** Close the loop: swap the shack for a dusk-toned transition card — the same
+   *  "light flip" beat as the intro, per MORSE-GAMES.md's transition-screen
+   *  design — with the day's tally and a Replay control back into a fresh run. */
+  private showOutro(): void {
+    const tally = `Skeds & sightings: ${this.day.length} · Transmissions sent: ${this.txCount}.`;
+    this.root.innerHTML = "";
+    const view = el("section", "adventure-intro dusk");
+    const card = el("div", "intro-card");
+    card.appendChild(text("div", "intro-tag", "Kolombangara · Day 14 — complete"));
+    card.appendChild(text("h2", "intro-title", "Set's down for the night"));
+    card.appendChild(
+      text(
+        "p",
+        "intro-copy",
+        `${tally} Another day on the ridge, logged and quiet. Tomorrow the Slot will be ` +
+          "watching back."
+      )
+    );
+    card.appendChild(button("Replay the day", "btn primary", () => this.resetRun()));
+    view.appendChild(card);
+    this.root.appendChild(view);
+  }
+
   private setScene(light: string, clock: string): void {
     this.clock = clock;
     this.elShack.className = `adventure ${light}`;
@@ -600,6 +645,16 @@ export class AdventureMode {
 
     const isAgn = msg.includes("AGN");
     const e = this.day[this.evtIx];
+
+    // Every transmission to KEN must lead with proper addressing (KEN DE GOOSE).
+    // Drop it and KEN doesn't know who's calling — real net discipline, and a real
+    // Q-code for it: QRZ. Nudge, not a hard fail — resend with the preamble.
+    if (!includesSequence(tokenizeWords(msg), [HQ_CALL, "DE", MY_CALL])) {
+      await this.hqSend(`${MY_CALL} DE ${HQ_CALL} QRZ K`);
+      this.setStatus(`${HQ_CALL} doesn't know who that was — lead with ${HQ_CALL} DE ${MY_CALL}.`);
+      this.refresh();
+      return;
+    }
 
     if (this.phase === "sked" && e.kind === "sked" && this.evtIx === 0) {
       // First contact of the day: QSL and the authenticator reply must arrive together.
@@ -745,6 +800,7 @@ export class AdventureMode {
           : `${this.power}`;
 
     this.elSkedBtn.disabled = !(this.phase === "onair" && this.evtIx === 0 && !this.playing);
+    this.elContinueBtn.hidden = this.phase !== "done";
 
     const tx = this.txEnabled;
     this.elTxInput.disabled = !tx;
