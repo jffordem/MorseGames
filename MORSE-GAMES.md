@@ -744,6 +744,44 @@ faces are worth naming).
   green recruit is naturally awed by rank; a seasoned one bonds with whoever's actually on
   the line with him every day.
 
+## Epilogue
+
+The campaign's closing beat (2026-07-07). Per **the invisibility test** above: understate,
+undercut with a joke, and leave at least one thread honestly unresolved rather than tying
+everything off. Mechanically, this is where full backward traversal opens — every level
+free to replay, no earn-it-forward gate left to defend (see **Level control** above).
+
+- **GOOSE comes home — a few years and miles late.** College aspirations, hopes of love,
+  life, and happiness, picked back up rather than delivered on schedule. The **G.I. Bill**
+  (Servicemen's Readjustment Act, 1944 — real, funded both tuition and zero-down home
+  loans for returning veterans) reopens the door the deferred-musician backstory left
+  ajar. Play his optimism wry, not solemn — the same hopeful naivety that got him through
+  basic training, now aimed at paperwork instead of a codebook.
+- **Bill doesn't get to go home yet.** He's the one ferrying everyone else back —
+  **Operation Magic Carpet** (real: the 1945–46 mass repatriation, hundreds of Liberty and
+  Victory ships and even converted carriers with tiered bunks welded into the hangar
+  decks, badly overcrowded, running on canned food and hot-bunk schedules). Same job he's
+  always had — other people's safety and comfort, never his own — just at the largest
+  scale of the whole war.
+- **The payoff for the enlisted-ceiling rule above:** the brass that stayed comfortable
+  while Bill did the real work all campaign finally makes him an officer — but only now,
+  for the safe, homeward-bound job, once there's no danger left to be modest about.
+  Vindication and a small insult in the same gesture; play it dry, not triumphant.
+- **Bill's actual ending: he retires and teaches Driver's Ed.** Drawn from a real family
+  story — a great-uncle who served in the Navy, survived Pearl Harbor, ferried troops home
+  after the war, was made an officer to keep him in it, and retired to teach high-school
+  Driver's Ed. It's the whole character in miniature — patient, watchful, responsible for
+  getting people where they're going safely, just at a much lower speed limit — and it's
+  funny rather than solemn, which is exactly what keeps it from tipping into sap. Closing
+  image: Bill, mild and unhurried, telling a bored teenager to check their mirrors.
+- **Still open, not yet chosen:** a KEN beat that breaks radio format once; whether the
+  scout-log thread ("I still write their names — the log still doesn't ask") gets an
+  epilogue line at all, and if so, deliberately left unresolved rather than given false
+  closure (see the colonial-exposition guardrails in the worked example above); a wry
+  rank/mustering-out coda; and a tie-off (or deliberate non-tie-off) for the optional Act 1
+  mystery thread. Whatever else lands here, **end on a callback joke, not the sentiment
+  itself** — that's the actual mechanism that keeps this reading as warm rather than sappy.
+
 ## Easter eggs / historical cameos
 
 Optional, non-required flavor: real people who served in the South Pacific, folded in so a
