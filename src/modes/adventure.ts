@@ -14,26 +14,45 @@
 // heading), so no two runs are alike. Inbound HQ traffic is Morse you copy; runners
 // arrive as text; your sends go out as Morse sidetone. Light walks dawn→dusk across
 // the timeline. Retransmissions bump a danger readout, kept LOW this mission.
+//
+// First contact each day is CHALLENGED (AUTHENTICATE / I AUTHENTICATE — real WWII
+// Signal Operating Instructions prowords). The briefing prints today's authenticator
+// table, generated fresh per mission; KEN's 0600 orders carry a live challenge from
+// that table, and your QSL must carry "I AUTHENTICATE <code>" in the same
+// transmission before KEN will log it. See MORSE-GAMES.md's "Authenticator codes"
+// note for the design rationale.
 
 import { MorseEngine } from "../audio/morse-engine";
 import { loadSettings, Settings } from "../stats/storage";
 
 const HQ_CALL = "KEN"; // net control (HQ)
 const MY_CALL = "GOOSE"; // this station
-const HQ_FREQ_KHZ = 4610; // the sked frequency that raises HQ
 const FREQ_MIN = 4000;
 const FREQ_MAX = 5200;
 const ON_FREQ_KHZ = 15; // within this window, HQ is readable
 
-const ORDERS = `${MY_CALL} DE ${HQ_CALL} WATCH SLOT RPT ALL SHIPPING ES ACFT K`;
 const SPOT_ACK = `${MY_CALL} DE ${HQ_CALL} QSL K`; // HQ's ack of a completed report
 
+/** Today's sked frequency — generated fresh per mission, same SOI logic as the
+ *  authenticator table (real Signal Operating Instructions bundled call signs,
+ *  frequencies, and authentication together, and all changed periodically). A
+ *  multiple of 5 kHz, comfortably inside the dial so the on-freq window never
+ *  clips an edge. */
+function makeHqFreqKhz(): number {
+  const lo = 4200,
+    hi = 5000;
+  return lo + 5 * randInt(0, (hi - lo) / 5);
+}
+
 // Exact demo text — see the "Kolombangara" worked example in MORSE-GAMES.md.
-const BRIEFING =
-  "STATION GOOSE — Kolombangara. Put ashore by the Minnow before dawn. OP on the " +
-  "summit; watch Blackett Strait and the Slot. Report shipping and aircraft to HQ " +
-  "(KEN) on 4610 kHz; skeds 0600 / 1200 / 1800. Minimum power — there's a DF launch " +
-  "working these islands.";
+function briefingText(hqFreqKhz: number): string {
+  return (
+    "STATION GOOSE — Kolombangara. Put ashore by the Minnow before dawn. OP on the " +
+    "summit; watch Blackett Strait and the Slot. Report shipping and aircraft to HQ " +
+    `(KEN) on ${hqFreqKhz} kHz; skeds 0600 / 1200 / 1800. Minimum power — there's a DF launch ` +
+    "working these islands."
+  );
+}
 const NOTES =
   "Day 14. The set weighs a hundred pounds and I didn't carry it. The scouts did — " +
   "up the mountain track in the dark, barefoot, while I looked after the chronometer " +
@@ -119,11 +138,54 @@ function makeShipSighting(): Sighting {
   return { category: "SHIP", count, type, dir, prose };
 }
 
+// ---- Authenticator table ---------------------------------------------------
+// Real WWII Signal Operating Instructions issued authenticator tables that changed
+// periodically; AUTHENTICATE / I AUTHENTICATE are the real prowords (the station
+// challenged replies with the group paired to the one it was given). Demo
+// simplification: one small table, generated fresh per mission, and only the day's
+// first contact is challenged — real practice authenticated per contact, not per
+// message. Letters avoid K/Q/R, which already mean something else in this net.
+
+const AUTH_CHALLENGES = ["B", "D", "F", "H", "J", "L", "M", "N", "P", "S", "T", "V", "W", "X", "Y", "Z"];
+
+interface AuthPair {
+  challenge: string;
+  response: string;
+}
+
+function makeAuthTable(): AuthPair[] {
+  const letters = [...AUTH_CHALLENGES];
+  const table: AuthPair[] = [];
+  for (let i = 0; i < 3; i++) {
+    const idx = Math.floor(Math.random() * letters.length);
+    const challenge = letters.splice(idx, 1)[0];
+    table.push({ challenge, response: String(randInt(0, 9)) });
+  }
+  return table;
+}
+
 function requiredFields(s: Sighting): string[] {
   return s.category === "ACFT" ? ["count", "type", "alt", "dir"] : ["count", "type", "dir"];
 }
 function tokenize(msg: string): Set<string> {
-  return new Set(msg.toUpperCase().split(/[^A-Z0-9]+/).filter(Boolean));
+  return new Set(tokenizeWords(msg));
+}
+/** Ordered words, for phrase/sequence checks (unlike the Set above, order survives). */
+function tokenizeWords(msg: string): string[] {
+  return msg.toUpperCase().split(/[^A-Z0-9]+/).filter(Boolean);
+}
+/** Rule-based "flexible but not fuzzy" phrase match: true if `seq` appears as
+ *  consecutive words anywhere in `tokens` — tolerates extra spacing, surrounding
+ *  prowords, and position in the message without needing an exact substring or
+ *  any AI judgment call. */
+function includesSequence(tokens: string[], seq: string[]): boolean {
+  outer: for (let i = 0; i <= tokens.length - seq.length; i++) {
+    for (let j = 0; j < seq.length; j++) {
+      if (tokens[i + j] !== seq[j]) continue outer;
+    }
+    return true;
+  }
+  return false;
 }
 function fieldSatisfied(field: string, s: Sighting, tk: Set<string>): boolean {
   switch (field) {
@@ -146,14 +208,16 @@ type DayEvent =
   | { kind: "sked"; clock: string; light: string; msg: string; prompt: string; final?: boolean }
   | { kind: "spot"; clock: string; light: string; sighting: Sighting };
 
-function buildDay(): DayEvent[] {
+function buildDay(authChallenge: string): DayEvent[] {
   return [
     {
       kind: "sked",
       clock: "0600",
       light: "dawn",
-      msg: ORDERS,
-      prompt: "Copy your orders, then acknowledge (QSL) — or AGN? to hear them again.",
+      msg: `${MY_CALL} DE ${HQ_CALL} WATCH SLOT RPT ALL SHIPPING ES ACFT AUTHENTICATE ${authChallenge} K`,
+      prompt:
+        "Copy your orders and the authenticator challenge. Check today's table, then " +
+        "send QSL I AUTHENTICATE <code> together — or AGN? to hear it again.",
     },
     { kind: "spot", clock: "0800", light: "morning", sighting: makeAircraftSighting() },
     {
@@ -200,6 +264,8 @@ export class AdventureMode {
   private day: DayEvent[] = [];
   private evtIx = 0;
   private need: string[] = []; // report fields still outstanding for the current spot
+  private authTable: AuthPair[] = []; // today's authenticator table; [0] is live
+  private hqFreqKhz = 0; // today's sked frequency, generated fresh in mount()
 
   // element refs
   private elShack!: HTMLElement;
@@ -231,7 +297,9 @@ export class AdventureMode {
 
   mount(): void {
     this.root.innerHTML = "";
-    this.day = buildDay(); // this run's mix of skeds + generated sightings
+    this.authTable = makeAuthTable(); // generated fresh — see the authenticator note above
+    this.hqFreqKhz = makeHqFreqKhz(); // generated fresh — same SOI logic as the auth table
+    this.day = buildDay(this.authTable[0].challenge); // this run's mix of skeds + generated sightings
     this.root.appendChild(this.buildIntro());
   }
 
@@ -283,7 +351,15 @@ export class AdventureMode {
     const panel = el("div", "shack-panel shack-briefing");
     panel.appendChild(text("h2", "shack-title", "Station GOOSE — Kolombangara"));
     panel.appendChild(text("div", "shack-label", "Briefing"));
-    panel.appendChild(text("p", "brief", BRIEFING));
+    panel.appendChild(text("p", "brief", briefingText(this.hqFreqKhz)));
+    panel.appendChild(text("div", "shack-label", "Authenticator (today) — SOI table"));
+    const authGrid = el("div", "codebook");
+    for (const { challenge, response } of this.authTable) {
+      const row = el("div", "codebook-row");
+      row.append(text("span", "code-k", challenge), text("span", "code-v", `→ ${response}`));
+      authGrid.appendChild(row);
+    }
+    panel.appendChild(authGrid);
     panel.appendChild(text("div", "shack-label", "Notes"));
     panel.appendChild(text("p", "notes", NOTES));
     this.elNotesFeed = el("div", "notes-feed"); // spotter runners land here
@@ -381,7 +457,7 @@ export class AdventureMode {
       {
         title: "Callsigns & dial",
         entries: [
-          ["4610", `${HQ_CALL} — day sked (kHz)`],
+          ["sked freq", `${HQ_CALL}'s day sked (kHz) — today's is in the Briefing, not fixed`],
           [HQ_CALL, "HQ / net control"],
           [MY_CALL, "you (this station)"],
         ],
@@ -399,6 +475,8 @@ export class AdventureMode {
           ["QRU", "nothing heard / anything for me?"],
           ["TU", "thanks"],
           ["GN", "good night"],
+          ["AUTHENTICATE", "reply to the challenge that follows"],
+          ["I AUTHENTICATE", "the group that follows is my reply"],
         ],
       },
       {
@@ -442,7 +520,7 @@ export class AdventureMode {
   // ---- Beat driver --------------------------------------------------------
 
   private get onFreq(): boolean {
-    return Math.abs(this.freqKhz - HQ_FREQ_KHZ) <= ON_FREQ_KHZ;
+    return Math.abs(this.freqKhz - this.hqFreqKhz) <= ON_FREQ_KHZ;
   }
 
   private async start(): Promise<void> {
@@ -453,7 +531,7 @@ export class AdventureMode {
     await this.engine.playPowerHum();
     this.phase = "onair";
     this.setScene("dawn", "0600");
-    this.setStatus(`Set's warm. Tune to ${HQ_CALL} on ${HQ_FREQ_KHZ} kHz, then take the 0600 sked.`);
+    this.setStatus(`Set's warm. Check the briefing for today's sked frequency, then take the 0600 sked.`);
     this.refresh();
   }
 
@@ -463,8 +541,8 @@ export class AdventureMode {
     const e = this.day[0];
     if (e.kind !== "sked") return;
     this.setScene(e.light, e.clock);
-    // No "on frequency" hint: the briefing says 4610. Off the dial you get static
-    // and stay put; tune it right and the sked comes through.
+    // No "on frequency" hint: the briefing has today's frequency. Off the dial you
+    // get static and stay put; tune it right and the sked comes through.
     if (await this.hqSend(e.msg)) {
       this.phase = "sked";
       this.setStatus(e.prompt);
@@ -523,9 +601,32 @@ export class AdventureMode {
     const isAgn = msg.includes("AGN");
     const e = this.day[this.evtIx];
 
-    if (this.phase === "sked" && e.kind === "sked") {
+    if (this.phase === "sked" && e.kind === "sked" && this.evtIx === 0) {
+      // First contact of the day: QSL and the authenticator reply must arrive together.
+      // Token-based, not exact-string: tolerates real message variation (extra
+      // spacing, surrounding prowords, either order) without needing AI judgment.
+      const live = this.authTable[0];
+      const words = tokenizeWords(msg);
+      const hasQsl = words.includes("QSL") || words.includes("R");
+      const hasAuth = includesSequence(words, ["I", "AUTHENTICATE", live.response]);
+      if (isAgn) {
+        await this.hqSend(e.msg);
+      } else if (hasQsl && hasAuth) {
+        await this.advance();
+      } else if (hasAuth) {
+        this.setStatus("Authenticated — now add QSL to the same transmission to complete the sked.");
+      } else if (hasQsl) {
+        await this.hqSend(`${MY_CALL} DE ${HQ_CALL} AUTHENTICATE ${live.challenge} K`);
+        this.setStatus(
+          `${HQ_CALL} won't log that without authentication — send QSL I AUTHENTICATE <code>, together.`
+        );
+      } else {
+        this.setStatus("Check the authenticator table, then send QSL I AUTHENTICATE <code>, or AGN? for a repeat.");
+      }
+    } else if (this.phase === "sked" && e.kind === "sked") {
+      const words = tokenizeWords(msg);
       if (isAgn) await this.hqSend(e.msg);
-      else if (msg.includes("QSL") || msg === "R") {
+      else if (words.includes("QSL") || words.includes("R")) {
         if (e.final) this.enterDone();
         else await this.advance();
       } else this.setStatus(`Send QSL to acknowledge ${HQ_CALL}, or AGN? for a repeat.`);
@@ -554,7 +655,7 @@ export class AdventureMode {
 
   // ---- Audio + log helpers ------------------------------------------------
 
-  /** Play an inbound HQ message — but only if the dial is actually on 4610.
+  /** Play an inbound HQ message — but only if the dial is actually on today's freq.
    *  Off frequency you get static and a nudge back to the briefing; recover by
    *  tuning correctly and sending AGN?. Returns whether it came through. */
   private async hqSend(msg: string): Promise<boolean> {
