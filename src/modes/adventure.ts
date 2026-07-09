@@ -29,7 +29,7 @@ const HQ_CALL = "KEN"; // net control (HQ)
 const MY_CALL = "GOOSE"; // this station
 const FREQ_MIN = 4000;
 const FREQ_MAX = 5200;
-const ON_FREQ_KHZ = 15; // within this window, HQ is readable
+const ON_FREQ_KHZ = 5; // within this window, HQ is readable — one grid step, so the readout actually matches the briefing
 const FREQ_SETTLE_MS = 700; // dwell time on a steady frequency before static/the sked fires
 
 const SPOT_ACK = `${MY_CALL} DE ${HQ_CALL} QSL K`; // HQ's ack of a completed report
@@ -269,6 +269,7 @@ export class AdventureMode {
   private liveAuthIdx = 0; // which row of authTable KEN actually challenges with, randomized per run
   private hqFreqKhz = 0; // today's sked frequency, generated fresh in mount()
   private freqSettleTimer: ReturnType<typeof setTimeout> | null = null;
+  private freqSettleMissed = false; // a knob change landed while audio was playing and got dropped; re-check once it ends
 
   // element refs
   private elShack!: HTMLElement;
@@ -315,6 +316,7 @@ export class AdventureMode {
    *  see the transition-screen / Replay discussion in MORSE-GAMES.md. */
   private resetRun(): void {
     this.clearFreqSettle();
+    this.freqSettleMissed = false;
     this.phase = "cold";
     this.playing = false;
     this.freqKhz = 4200;
@@ -681,7 +683,15 @@ export class AdventureMode {
    *  while they're actively spinning the knob. */
   private scheduleFreqSettle(): void {
     this.clearFreqSettle();
-    if (this.phase !== "onair" || this.evtIx !== 0 || this.playing) return;
+    if (this.phase !== "onair" || this.evtIx !== 0) return;
+    if (this.playing) {
+      // Audio's already mid-playback (from an earlier check) — a timer
+      // scheduled now would just find `playing` still true and no-op when it
+      // fires. Remember to re-check once that playback actually ends instead
+      // of silently dropping this change.
+      this.freqSettleMissed = true;
+      return;
+    }
     this.freqSettleTimer = setTimeout(() => {
       this.freqSettleTimer = null;
       void this.trySked0();
@@ -833,12 +843,13 @@ export class AdventureMode {
 
   // ---- Audio + log helpers ------------------------------------------------
 
-  /** Play an inbound HQ message — but only if the dial is actually on today's freq.
-   *  Off frequency you get static and a nudge back to the briefing; recover by
-   *  tuning correctly and sending AGN?. Returns whether it came through. */
+  /** Play an inbound HQ message — but only if the dial is actually on today's
+   *  freq. Off frequency before it even starts, you get one burst of static.
+   *  Once it's underway, drifting off mutes it and retuning restarts it from
+   *  the top (see the playback loop below) — the dial matters for the whole
+   *  message, not just the moment it begins. Returns whether it came through. */
   private async hqSend(msg: string): Promise<boolean> {
     if (!this.onFreq) {
-      const dialedAt = this.freqKhz;
       this.playing = true;
       this.addTraffic("log", "static — off frequency");
       this.setStatus(`Only static on ${this.freqKhz} kHz — nothing readable. Check the briefing and set the dial.`);
@@ -846,20 +857,59 @@ export class AdventureMode {
       await this.engine.playStatic(900);
       this.playing = false;
       this.refresh();
-      // If the player kept tuning during the static, re-judge the new spot;
-      // otherwise leave it at one burst rather than looping forever.
-      if (this.freqKhz !== dialedAt) this.scheduleFreqSettle();
+      this.recheckIfFreqChangedWhilePlaying();
       return false;
     }
     this.playing = true;
-    this.setStatus(`♪ ${HQ_CALL} is sending…`);
-    this.refresh();
     this.addTraffic("ken", msg);
     await this.engine.primeOutput(300);
-    await this.engine.playString(msg);
+
+    // Live-monitored playback: drifting off frequency mid-message mutes it
+    // immediately (a real signal doesn't wait for you to finish the word),
+    // and retuning starts it over from the top rather than resuming mid-
+    // character — you re-found the station, you didn't rewind it.
+    for (;;) {
+      this.setStatus(`♪ ${HQ_CALL} is sending…`);
+      this.refresh();
+      let droppedOut = false;
+      await this.engine.playString(msg, {
+        isCancelled: () => {
+          if (this.onFreq) return false;
+          droppedOut = true;
+          return true;
+        },
+      });
+      if (!droppedOut) break;
+      this.engine.stop();
+      this.setStatus(`Signal's fading — you drifted off ${HQ_CALL}'s frequency. Retune to pick it back up.`);
+      this.refresh();
+      await this.waitUntilOnFreq();
+    }
+
     this.playing = false;
     this.refresh();
+    this.recheckIfFreqChangedWhilePlaying();
     return true;
+  }
+
+  private waitUntilOnFreq(): Promise<void> {
+    return new Promise((resolve) => {
+      const poll = () => {
+        if (this.onFreq) resolve();
+        else setTimeout(poll, 150);
+      };
+      poll();
+    });
+  }
+
+  /** A knob change that landed while this playback was running got dropped
+   *  by scheduleFreqSettle()'s `playing` guard — pick it up now, rather than
+   *  leaving the player tuned in (or out) with nothing ever re-checking it. */
+  private recheckIfFreqChangedWhilePlaying(): void {
+    if (this.freqSettleMissed) {
+      this.freqSettleMissed = false;
+      this.scheduleFreqSettle();
+    }
   }
 
   private async playSelf(msg: string): Promise<void> {
@@ -977,9 +1027,26 @@ function button(label: string, className: string, onClick: () => void): HTMLButt
   return b;
 }
 
-/** A rotary knob — drag (or arrow keys / wheel) to sweep `value` across
- *  [min, max] over a 270° arc, like a control on a real set. Snaps to
- *  `step` and fires `onChange` only when the value actually moves. */
+const DEG_PER_DETENT = 8; // rotation quantum for the encoder simulation below
+const KEY_FLICK_DEG = 8; // cosmetic pointer nudge per keypress/wheel tick, independent of DEG_PER_DETENT
+const BASE_UNIT_DIVISOR = 3; // each detent is worth step/3 at rest — several must accumulate to tick one grid step
+
+/** Real VFO knobs are encoders, not potentiometers: they spin freely (no
+ *  mechanical stop) and firmware accelerates the step size the faster you
+ *  turn — a quick spin crosses the band in a couple of turns, a slow nudge
+ *  moves one step at a time. `dtMs` is the time since the previous detent
+ *  (drag), keypress, or wheel tick; shorter gaps mean faster input. */
+function accelMultiplier(dtMs: number): number {
+  if (dtMs > 220) return 1;
+  if (dtMs > 100) return 1;
+  if (dtMs > 45) return 2;
+  return 5;
+}
+
+/** An encoder-style rotary knob — drag, arrow keys, or the wheel all turn
+ *  it. The knob face spins freely and has no absolute position; `value`
+ *  ([min, max], snapped to `step`) is a separate accumulator driven by how
+ *  fast you're turning it, via accelMultiplier() above. */
 function buildKnob(
   min: number,
   max: number,
@@ -988,10 +1055,12 @@ function buildKnob(
   onChange: (v: number) => void,
   opts: { size?: "lg" | "sm"; ariaLabel?: string } = {}
 ): { el: HTMLElement; setDisabled: (disabled: boolean) => void } {
-  const arc = 270; // sweep from -135° (min) to +135° (max)
-  const half = arc / 2;
   let current = value;
+  let raw = value; // continuous, unsnapped position — preserves sub-step progress between ticks
   let disabled = false;
+  let visualDeg = 0; // cosmetic, unbounded — how far the knob has visually spun
+  let lastActionTime = 0; // for accelMultiplier()
+  const baseUnit = step / BASE_UNIT_DIVISOR; // value per detent at rest
 
   const wrap = el("div", "knob");
   const face = el("div", opts.size === "sm" ? "knob-face knob-face--sm" : "knob-face");
@@ -1004,41 +1073,62 @@ function buildKnob(
   face.appendChild(pointer);
   wrap.appendChild(face);
 
-  function angleFor(v: number): number {
-    return -half + ((v - min) / (max - min)) * arc;
+  function renderPointer(): void {
+    pointer.style.transform = `translate(-50%, -100%) rotate(${visualDeg}deg)`;
   }
-  function render(): void {
-    pointer.style.transform = `translate(-50%, -100%) rotate(${angleFor(current)}deg)`;
-    face.setAttribute("aria-valuenow", String(current));
-  }
-  function commit(v: number): void {
-    const snapped = Math.min(max, Math.max(min, Math.round(v / step) * step));
+  function applyDelta(rawDelta: number): void {
+    raw = Math.min(max, Math.max(min, raw + rawDelta));
+    const snapped = Math.round(raw / step) * step;
     if (snapped === current) return;
     current = snapped;
-    render();
+    face.setAttribute("aria-valuenow", String(current));
     onChange(current);
   }
-  function angleFromPointer(e: PointerEvent): number {
+  /** One discrete action (a detent, a keypress, a wheel tick) — looks up
+   *  how long it's been since the last one to decide how big a jump this
+   *  one is worth. Several slow detents accumulate (via `raw`) before the
+   *  displayed value ticks over one grid step; fast ones cross several. */
+  function act(direction: 1 | -1, steps: number): void {
+    const now = performance.now();
+    const dt = lastActionTime ? now - lastActionTime : Infinity;
+    lastActionTime = now;
+    applyDelta(direction * baseUnit * steps * accelMultiplier(dt));
+  }
+  function rawAngle(e: PointerEvent): number {
     const rect = face.getBoundingClientRect();
     const dx = e.clientX - (rect.left + rect.width / 2);
     const dy = e.clientY - (rect.top + rect.height / 2);
-    const deg = (Math.atan2(dx, -dy) * 180) / Math.PI; // 0° = up, clockwise-positive
-    return Math.min(half, Math.max(-half, deg));
-  }
-  function valueFromAngle(deg: number): number {
-    return min + ((deg + half) / arc) * (max - min);
+    return (Math.atan2(dx, -dy) * 180) / Math.PI; // 0° = up, clockwise-positive
   }
 
+  let lastAngle = 0;
+  let pendingDeg = 0;
   face.addEventListener("pointerdown", (e) => {
     if (disabled) return;
     e.preventDefault();
     face.focus();
     face.setPointerCapture(e.pointerId);
     face.classList.add("dragging");
-    commit(valueFromAngle(angleFromPointer(e)));
+    lastAngle = rawAngle(e);
+    pendingDeg = 0;
   });
   face.addEventListener("pointermove", (e) => {
-    if (!disabled && face.classList.contains("dragging")) commit(valueFromAngle(angleFromPointer(e)));
+    if (disabled || !face.classList.contains("dragging")) return;
+    const angle = rawAngle(e);
+    let dAngle = angle - lastAngle;
+    while (dAngle > 180) dAngle -= 360;
+    while (dAngle < -180) dAngle += 360;
+    lastAngle = angle;
+
+    visualDeg += dAngle;
+    renderPointer();
+
+    pendingDeg += dAngle;
+    const detents = Math.trunc(pendingDeg / DEG_PER_DETENT);
+    if (detents !== 0) {
+      pendingDeg -= detents * DEG_PER_DETENT;
+      act(detents > 0 ? 1 : -1, Math.abs(detents));
+    }
   });
   const endDrag = (e: PointerEvent) => {
     face.classList.remove("dragging");
@@ -1048,19 +1138,26 @@ function buildKnob(
   face.addEventListener("pointercancel", endDrag);
   face.addEventListener("keydown", (e) => {
     if (disabled) return;
-    const big = step * 10;
     if (e.key === "ArrowUp" || e.key === "ArrowRight") {
       e.preventDefault();
-      commit(current + step);
+      visualDeg += KEY_FLICK_DEG;
+      renderPointer();
+      act(1, 1);
     } else if (e.key === "ArrowDown" || e.key === "ArrowLeft") {
       e.preventDefault();
-      commit(current - step);
+      visualDeg -= KEY_FLICK_DEG;
+      renderPointer();
+      act(-1, 1);
     } else if (e.key === "PageUp") {
       e.preventDefault();
-      commit(current + big);
+      visualDeg += KEY_FLICK_DEG * 5;
+      renderPointer();
+      applyDelta(step * 10); // an explicit big jump, not accelerated
     } else if (e.key === "PageDown") {
       e.preventDefault();
-      commit(current - big);
+      visualDeg -= KEY_FLICK_DEG * 5;
+      renderPointer();
+      applyDelta(-step * 10);
     }
   });
   face.addEventListener(
@@ -1068,7 +1165,9 @@ function buildKnob(
     (e) => {
       if (disabled) return;
       e.preventDefault();
-      commit(current + (e.deltaY < 0 ? step : -step));
+      visualDeg += e.deltaY < 0 ? KEY_FLICK_DEG : -KEY_FLICK_DEG;
+      renderPointer();
+      act(e.deltaY < 0 ? 1 : -1, 1);
     },
     { passive: false }
   );
@@ -1079,6 +1178,7 @@ function buildKnob(
     face.classList.toggle("knob-disabled", d);
   }
 
-  render();
+  face.setAttribute("aria-valuenow", String(current));
+  renderPointer();
   return { el: wrap, setDisabled };
 }
