@@ -29,7 +29,8 @@ const HQ_CALL = "KEN"; // net control (HQ)
 const MY_CALL = "GOOSE"; // this station
 const FREQ_MIN = 4000;
 const FREQ_MAX = 5200;
-const ON_FREQ_KHZ = 15; // within this window, HQ is readable
+const ON_FREQ_KHZ = 5; // within this window, HQ is readable — one grid step, so the readout actually matches the briefing
+const FREQ_SETTLE_MS = 700; // dwell time on a steady frequency before static/the sked fires
 
 const SPOT_ACK = `${MY_CALL} DE ${HQ_CALL} QSL K`; // HQ's ack of a completed report
 
@@ -256,7 +257,7 @@ export class AdventureMode {
   private phase: Phase = "cold";
   private playing = false;
   private freqKhz = 4200; // start off-frequency so tuning is the first task
-  private power = 3; // 1..10; low = quiet/faint, high = strong/exposed
+  private power = 10; // watts, 0..100; low = quiet/faint, high = strong/exposed
   private txCount = 0;
   private showText = false; // "plot mode": reveal inbound HQ traffic as text
   private clock = "—";
@@ -264,8 +265,11 @@ export class AdventureMode {
   private day: DayEvent[] = [];
   private evtIx = 0;
   private need: string[] = []; // report fields still outstanding for the current spot
-  private authTable: AuthPair[] = []; // today's authenticator table; [0] is live
+  private authTable: AuthPair[] = []; // today's authenticator table
+  private liveAuthIdx = 0; // which row of authTable KEN actually challenges with, randomized per run
   private hqFreqKhz = 0; // today's sked frequency, generated fresh in mount()
+  private freqSettleTimer: ReturnType<typeof setTimeout> | null = null;
+  private freqSettleMissed = false; // a knob change landed while audio was playing and got dropped; re-check once it ends
 
   // element refs
   private elShack!: HTMLElement;
@@ -273,18 +277,19 @@ export class AdventureMode {
   private elDay!: HTMLElement;
   private elFreqOut!: HTMLElement;
   private elPowerOut!: HTMLElement;
+  private elDials!: HTMLElement;
+  private setKnobDisabled!: (disabled: boolean) => void;
+  private setPowerKnobDisabled!: (disabled: boolean) => void;
   private elNotesFeed!: HTMLElement;
   private elTraffic!: HTMLElement;
   private elDanger!: HTMLElement;
   private elStartBtn!: HTMLButtonElement;
-  private elSkedBtn!: HTMLButtonElement;
   private elShowTextBtn!: HTMLButtonElement;
   private elContinueBtn!: HTMLButtonElement;
   private elTxRow!: HTMLElement;
   private elTxInput!: HTMLInputElement;
   private elTxBtn!: HTMLButtonElement;
-  private elAgnBtn!: HTMLButtonElement;
-  private elQslBtn!: HTMLButtonElement;
+  private elNotepad!: HTMLTextAreaElement;
 
   constructor(root: HTMLElement) {
     this.root = root;
@@ -302,6 +307,7 @@ export class AdventureMode {
 
   unmount(): void {
     this.engine.stop();
+    this.clearFreqSettle();
   }
 
   /** (Re)start a fresh run: reset all per-day state, generate a new day (new
@@ -309,10 +315,12 @@ export class AdventureMode {
    *  card. Used both by mount() and by "Replay the day" on the outro screen —
    *  see the transition-screen / Replay discussion in MORSE-GAMES.md. */
   private resetRun(): void {
+    this.clearFreqSettle();
+    this.freqSettleMissed = false;
     this.phase = "cold";
     this.playing = false;
     this.freqKhz = 4200;
-    this.power = 3;
+    this.power = 10;
     this.txCount = 0;
     this.showText = false;
     this.clock = "—";
@@ -320,8 +328,9 @@ export class AdventureMode {
     this.evtIx = 0;
     this.need = [];
     this.authTable = makeAuthTable(); // generated fresh — see the authenticator note above
+    this.liveAuthIdx = randInt(0, this.authTable.length - 1); // which row KEN actually challenges with
     this.hqFreqKhz = makeHqFreqKhz(); // generated fresh — same SOI logic as the auth table
-    this.day = buildDay(this.authTable[0].challenge); // this run's mix of skeds + generated sightings
+    this.day = buildDay(this.authTable[this.liveAuthIdx].challenge); // this run's mix of skeds + generated sightings
     this.root.innerHTML = "";
     this.root.appendChild(this.buildIntro());
   }
@@ -356,8 +365,8 @@ export class AdventureMode {
     this.elShack = el("section", "adventure dawn");
     this.elShack.append(
       this.buildBriefing(),
-      this.buildNotepad(),
       this.buildRadio(),
+      this.buildNotepad(),
       this.buildCodebook()
     );
     this.root.appendChild(this.elShack);
@@ -372,7 +381,7 @@ export class AdventureMode {
     panel.appendChild(text("div", "shack-label", "Briefing"));
     panel.appendChild(text("p", "brief", briefingText(this.hqFreqKhz)));
     panel.appendChild(text("div", "shack-label", "Authenticator (today) — SOI table"));
-    const authGrid = el("div", "codebook");
+    const authGrid = el("div", "codebook codebook--single");
     for (const { challenge, response } of this.authTable) {
       const row = el("div", "codebook-row");
       row.append(text("span", "code-k", challenge), text("span", "code-v", `→ ${response}`));
@@ -395,6 +404,7 @@ export class AdventureMode {
     ta.spellcheck = false;
     ta.placeholder = "type what you copy…";
     panel.appendChild(ta);
+    this.elNotepad = ta;
     return panel;
   }
 
@@ -409,38 +419,69 @@ export class AdventureMode {
     this.elStatus = text("div", "shack-status", "Warm up the set to begin.");
     panel.appendChild(this.elStatus);
 
-    // Frequency dial
-    const freqRow = el("div", "dial-row");
-    freqRow.appendChild(text("span", "dial-name", "Frequency"));
-    const freq = rangeInput(FREQ_MIN, FREQ_MAX, 5, this.freqKhz, (v) => {
-      this.freqKhz = v;
-      this.refresh();
-    });
-    this.elFreqOut = text("span", "dial-value", "");
-    freqRow.append(freq, this.elFreqOut);
-    panel.appendChild(freqRow);
-
-    // Power dial
-    const powRow = el("div", "dial-row");
-    powRow.appendChild(text("span", "dial-name", "Power"));
-    const pow = rangeInput(1, 10, 1, this.power, (v) => {
-      this.power = v;
-      this.refresh();
-    });
-    this.elPowerOut = text("span", "dial-value", "");
-    powRow.append(pow, this.elPowerOut);
-    panel.appendChild(powRow);
-
-    // Controls
+    // Controls — Power comes first: it's the master switch, highlighted while
+    // everything else is cold, and gates the dials below until warmed up.
     const controls = el("div", "shack-controls");
-    this.elStartBtn = button("⏻ Warm up the set", "btn primary", () => void this.start());
-    this.elSkedBtn = button("♪ Take the 0600 sked", "btn", () => void this.receiveSked());
-    this.elSkedBtn.disabled = true;
+    this.elStartBtn = button("⏻", "btn primary btn-power power-glow", () => void this.start());
+    this.elStartBtn.setAttribute("aria-label", "Power");
+    this.elStartBtn.title = "Power on the set";
     this.elShowTextBtn = button("Show Text: Off", "btn ghost", () => this.toggleText());
     this.elContinueBtn = button("→ Log off", "btn primary", () => this.showOutro());
     this.elContinueBtn.hidden = true;
-    controls.append(this.elStartBtn, this.elSkedBtn, this.elShowTextBtn, this.elContinueBtn);
+    controls.append(this.elStartBtn, this.elShowTextBtn, this.elContinueBtn);
     panel.appendChild(controls);
+
+    // Dials — Frequency (big, left) and TX Power (small, right), side by
+    // side like the tuning + volume knobs on a real set. Cold (dimmed,
+    // unresponsive) until Power warms the set up; see refresh().
+    this.elDials = el("div", "shack-dials cold");
+    const dialsRow = el("div", "dials-row");
+
+    const freqRow = el("div", "knob-row");
+    const { el: freqKnobEl, setDisabled: setKnobDisabled } = buildKnob(
+      FREQ_MIN,
+      FREQ_MAX,
+      5,
+      this.freqKhz,
+      (v) => {
+        this.freqKhz = v;
+        this.scheduleFreqSettle();
+        this.refresh();
+      },
+      { size: "lg", ariaLabel: "Frequency" }
+    );
+    this.setKnobDisabled = setKnobDisabled;
+    const freqReadout = el("div", "knob-readout");
+    freqReadout.appendChild(text("span", "dial-name", "Frequency"));
+    this.elFreqOut = text("div", "dial-value knob-value", "");
+    freqReadout.appendChild(this.elFreqOut);
+    freqRow.append(freqKnobEl, freqReadout);
+    dialsRow.appendChild(freqRow);
+
+    const powRow = el("div", "knob-row knob-row--sm");
+    const { el: powKnobEl, setDisabled: setPowerKnobDisabled } = buildKnob(
+      0,
+      100,
+      1,
+      this.power,
+      (v) => {
+        this.power = v;
+        const hint = this.powerHint(v);
+        if (hint) this.setStatus(hint);
+        this.refresh();
+      },
+      { size: "sm", ariaLabel: "TX Power" }
+    );
+    this.setPowerKnobDisabled = setPowerKnobDisabled;
+    const powReadout = el("div", "knob-readout knob-readout--right");
+    powReadout.appendChild(text("span", "dial-name", "TX Power"));
+    this.elPowerOut = text("div", "dial-value knob-value", "");
+    powReadout.appendChild(this.elPowerOut);
+    powRow.append(powReadout, powKnobEl);
+    dialsRow.appendChild(powRow);
+
+    this.elDials.appendChild(dialsRow);
+    panel.appendChild(this.elDials);
 
     // Transmit
     this.elTxRow = el("div", "tx-row");
@@ -452,13 +493,17 @@ export class AdventureMode {
     this.elTxInput.addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
         e.preventDefault();
-        void this.transmit(this.elTxInput.value);
+        const msg = this.elTxInput.value;
+        this.focusNotepad();
+        void this.transmit(msg);
       }
     });
-    this.elTxBtn = button("▶ Transmit", "btn", () => void this.transmit(this.elTxInput.value));
-    this.elAgnBtn = button("AGN?", "btn ghost", () => void this.transmit(`${HQ_CALL} DE ${MY_CALL} AGN K`));
-    this.elQslBtn = button("QSL", "btn ghost", () => void this.transmit(`${HQ_CALL} DE ${MY_CALL} QSL K`));
-    this.elTxRow.append(this.elTxInput, this.elTxBtn, this.elAgnBtn, this.elQslBtn);
+    this.elTxBtn = button("▶ Transmit", "btn", () => {
+      const msg = this.elTxInput.value;
+      this.focusNotepad();
+      void this.transmit(msg);
+    });
+    this.elTxRow.append(this.elTxInput, this.elTxBtn);
     panel.appendChild(this.elTxRow);
 
     this.elDanger = text("div", "danger", "");
@@ -474,8 +519,9 @@ export class AdventureMode {
     const panel = el("div", "shack-panel shack-codebook");
     panel.appendChild(text("div", "shack-label", "Codebook (since bootcamp)"));
 
-    const groups: { title: string; entries: [string, string][] }[] = [
+    const groups: { id: string; title: string; entries: [string, string][] }[] = [
       {
+        id: "callsigns",
         title: "Callsigns & dial",
         entries: [
           ["sked freq", `${HQ_CALL}'s day sked (kHz) — today's is in the Briefing, not fixed`],
@@ -484,6 +530,7 @@ export class AdventureMode {
         ],
       },
       {
+        id: "prowords",
         title: "Prowords",
         entries: [
           ["DE", "this is / from"],
@@ -502,6 +549,7 @@ export class AdventureMode {
         ],
       },
       {
+        id: "contacts",
         title: "Contacts (what you saw)",
         entries: [
           ["ACFT", "aircraft"],
@@ -514,6 +562,7 @@ export class AdventureMode {
         ],
       },
       {
+        id: "report",
         title: "Report details (what HQ asks for)",
         entries: [
           ["NR", "number — how many"],
@@ -526,16 +575,68 @@ export class AdventureMode {
       },
     ];
 
+    // Quick-jump to a group — everything stays on the page (no tabs hiding
+    // content), this just scrolls. Matters once more groups pile up.
+    const nav = el("div", "codebook-nav");
     for (const g of groups) {
-      panel.appendChild(text("div", "code-group", g.title));
+      const link = document.createElement("a");
+      link.href = `#codebook-${g.id}`;
+      link.className = "codebook-nav-link";
+      link.textContent = g.title;
+      link.addEventListener("click", (e) => {
+        e.preventDefault();
+        document.getElementById(`codebook-${g.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+      nav.appendChild(link);
+    }
+    panel.appendChild(nav);
+
+    // Live search — filters rows by code or meaning as the codebook grows,
+    // instead of burying entries behind tabs.
+    const searchRow = el("div", "codebook-search-row");
+    const search = document.createElement("input");
+    search.type = "search";
+    search.className = "codebook-search";
+    search.spellcheck = false;
+    search.placeholder = "Search codes or meanings…";
+    const searchCount = text("span", "codebook-search-count", "");
+    searchRow.append(search, searchCount);
+    panel.appendChild(searchRow);
+
+    const groupEls: { header: HTMLElement; grid: HTMLElement; rows: { row: HTMLElement; haystack: string }[] }[] = [];
+    for (const g of groups) {
+      const header = text("div", "code-group", g.title);
+      header.id = `codebook-${g.id}`;
+      panel.appendChild(header);
       const grid = el("div", "codebook");
+      const rows: { row: HTMLElement; haystack: string }[] = [];
       for (const [k, v] of g.entries) {
         const row = el("div", "codebook-row");
         row.append(text("span", "code-k", k), text("span", "code-v", v));
         grid.appendChild(row);
+        rows.push({ row, haystack: `${k} ${v}`.toLowerCase() });
       }
       panel.appendChild(grid);
+      groupEls.push({ header, grid, rows });
     }
+
+    search.addEventListener("input", () => {
+      const q = search.value.trim().toLowerCase();
+      let visibleTotal = 0;
+      for (const { header, grid, rows } of groupEls) {
+        let visibleInGroup = 0;
+        for (const { row, haystack } of rows) {
+          const match = !q || haystack.includes(q);
+          row.style.display = match ? "" : "none";
+          if (match) visibleInGroup++;
+        }
+        header.style.display = visibleInGroup === 0 ? "none" : "";
+        grid.style.display = visibleInGroup === 0 ? "none" : "";
+        visibleTotal += visibleInGroup;
+      }
+      searchCount.textContent = q ? `${visibleTotal} match${visibleTotal === 1 ? "" : "es"}` : "";
+    });
+
     return panel;
   }
 
@@ -548,28 +649,60 @@ export class AdventureMode {
   private async start(): Promise<void> {
     await this.engine.resume();
     this.elStartBtn.disabled = true;
-    this.elStartBtn.textContent = "⏻ Set warmed up";
+    this.elStartBtn.classList.remove("power-glow");
+    this.elStartBtn.classList.add("power-on");
     this.setStatus("The set hums to life…");
     await this.engine.playPowerHum();
     this.phase = "onair";
     this.setScene("dawn", "0600");
-    this.setStatus(`Set's warm. Check the briefing for today's sked frequency, then take the 0600 sked.`);
+    this.setStatus("Set's warm — spin the dial to today's sked frequency (see the briefing).");
     this.refresh();
+    this.scheduleFreqSettle();
   }
 
-  /** The player deliberately guards the 0600 sked (event 0) after tuning. */
-  private async receiveSked(): Promise<void> {
+  /** Fires once the dial has held still for FREQ_SETTLE_MS — see
+   *  scheduleFreqSettle(). No "on frequency" hint: the briefing has today's
+   *  frequency. Off the dial, dwelling gets you static; tune it right and,
+   *  after a beat (like you sat down just as the traffic started), the 0600
+   *  sked comes through on its own. */
+  private async trySked0(): Promise<void> {
     if (this.phase !== "onair" || this.evtIx !== 0 || this.playing) return;
     const e = this.day[0];
     if (e.kind !== "sked") return;
     this.setScene(e.light, e.clock);
-    // No "on frequency" hint: the briefing has today's frequency. Off the dial you
-    // get static and stay put; tune it right and the sked comes through.
+    if (this.onFreq) this.focusNotepad();
     if (await this.hqSend(e.msg)) {
       this.phase = "sked";
       this.setStatus(e.prompt);
     }
     this.refresh();
+  }
+
+  /** Debounce the frequency dial: only judge it once the player has left it
+   *  alone for a moment, rather than reacting to every intermediate tick
+   *  while they're actively spinning the knob. */
+  private scheduleFreqSettle(): void {
+    this.clearFreqSettle();
+    if (this.phase !== "onair" || this.evtIx !== 0) return;
+    if (this.playing) {
+      // Audio's already mid-playback (from an earlier check) — a timer
+      // scheduled now would just find `playing` still true and no-op when it
+      // fires. Remember to re-check once that playback actually ends instead
+      // of silently dropping this change.
+      this.freqSettleMissed = true;
+      return;
+    }
+    this.freqSettleTimer = setTimeout(() => {
+      this.freqSettleTimer = null;
+      void this.trySked0();
+    }, FREQ_SETTLE_MS);
+  }
+
+  private clearFreqSettle(): void {
+    if (this.freqSettleTimer !== null) {
+      clearTimeout(this.freqSettleTimer);
+      this.freqSettleTimer = null;
+    }
   }
 
   /** Run the current timeline event: HQ calls (sked) or a runner arrives (spot). */
@@ -660,7 +793,7 @@ export class AdventureMode {
       // First contact of the day: QSL and the authenticator reply must arrive together.
       // Token-based, not exact-string: tolerates real message variation (extra
       // spacing, surrounding prowords, either order) without needing AI judgment.
-      const live = this.authTable[0];
+      const live = this.authTable[this.liveAuthIdx];
       const words = tokenizeWords(msg);
       const hasQsl = words.includes("QSL") || words.includes("R");
       const hasAuth = includesSequence(words, ["I", "AUTHENTICATE", live.response]);
@@ -710,9 +843,11 @@ export class AdventureMode {
 
   // ---- Audio + log helpers ------------------------------------------------
 
-  /** Play an inbound HQ message — but only if the dial is actually on today's freq.
-   *  Off frequency you get static and a nudge back to the briefing; recover by
-   *  tuning correctly and sending AGN?. Returns whether it came through. */
+  /** Play an inbound HQ message — but only if the dial is actually on today's
+   *  freq. Off frequency before it even starts, you get one burst of static.
+   *  Once it's underway, drifting off mutes it and retuning restarts it from
+   *  the top (see the playback loop below) — the dial matters for the whole
+   *  message, not just the moment it begins. Returns whether it came through. */
   private async hqSend(msg: string): Promise<boolean> {
     if (!this.onFreq) {
       this.playing = true;
@@ -722,17 +857,59 @@ export class AdventureMode {
       await this.engine.playStatic(900);
       this.playing = false;
       this.refresh();
+      this.recheckIfFreqChangedWhilePlaying();
       return false;
     }
     this.playing = true;
-    this.setStatus(`♪ ${HQ_CALL} is sending…`);
-    this.refresh();
     this.addTraffic("ken", msg);
     await this.engine.primeOutput(300);
-    await this.engine.playString(msg);
+
+    // Live-monitored playback: drifting off frequency mid-message mutes it
+    // immediately (a real signal doesn't wait for you to finish the word),
+    // and retuning starts it over from the top rather than resuming mid-
+    // character — you re-found the station, you didn't rewind it.
+    for (;;) {
+      this.setStatus(`♪ ${HQ_CALL} is sending…`);
+      this.refresh();
+      let droppedOut = false;
+      await this.engine.playString(msg, {
+        isCancelled: () => {
+          if (this.onFreq) return false;
+          droppedOut = true;
+          return true;
+        },
+      });
+      if (!droppedOut) break;
+      this.engine.stop();
+      this.setStatus(`Signal's fading — you drifted off ${HQ_CALL}'s frequency. Retune to pick it back up.`);
+      this.refresh();
+      await this.waitUntilOnFreq();
+    }
+
     this.playing = false;
     this.refresh();
+    this.recheckIfFreqChangedWhilePlaying();
     return true;
+  }
+
+  private waitUntilOnFreq(): Promise<void> {
+    return new Promise((resolve) => {
+      const poll = () => {
+        if (this.onFreq) resolve();
+        else setTimeout(poll, 150);
+      };
+      poll();
+    });
+  }
+
+  /** A knob change that landed while this playback was running got dropped
+   *  by scheduleFreqSettle()'s `playing` guard — pick it up now, rather than
+   *  leaving the player tuned in (or out) with nothing ever re-checking it. */
+  private recheckIfFreqChangedWhilePlaying(): void {
+    if (this.freqSettleMissed) {
+      this.freqSettleMissed = false;
+      this.scheduleFreqSettle();
+    }
   }
 
   private async playSelf(msg: string): Promise<void> {
@@ -786,27 +963,40 @@ export class AdventureMode {
     this.elNotesFeed.scrollTop = this.elNotesFeed.scrollHeight;
   }
 
+  private focusNotepad(): void {
+    this.elNotepad.focus();
+  }
+
+  /** Live commentary on the current TX power, surfaced in the status bar as
+   *  the player turns the knob — null in the unremarkable middle range, so
+   *  routine adjustments don't stomp the current mission directive. */
+  private powerHint(watts: number): string | null {
+    if (watts <= 30) return "Faint, but quiet.";
+    if (watts > 50) return "Dangerously high — likely to be triangulated.";
+    return null;
+  }
+
   private setStatus(s: string): void {
     this.elStatus.textContent = s;
+    this.elStatus.classList.remove("pulse");
+    void this.elStatus.offsetWidth; // restart the animation on repeated status changes
+    this.elStatus.classList.add("pulse");
   }
 
   private refresh(): void {
     this.elFreqOut.textContent = `${this.freqKhz} kHz`;
-    this.elPowerOut.textContent =
-      this.power <= 3
-        ? `${this.power} — faint, but quiet`
-        : this.power >= 8
-          ? `${this.power} — strong, but the DF will hear you`
-          : `${this.power}`;
+    this.elPowerOut.textContent = `${this.power} W`;
 
-    this.elSkedBtn.disabled = !(this.phase === "onair" && this.evtIx === 0 && !this.playing);
     this.elContinueBtn.hidden = this.phase !== "done";
+
+    const cold = this.phase === "cold";
+    this.elDials.classList.toggle("cold", cold);
+    this.setKnobDisabled(cold);
+    this.setPowerKnobDisabled(cold);
 
     const tx = this.txEnabled;
     this.elTxInput.disabled = !tx;
     this.elTxBtn.disabled = !tx;
-    this.elAgnBtn.disabled = !tx;
-    this.elQslBtn.disabled = !tx;
     this.elTxRow.classList.toggle("flash", tx);
 
     this.elDanger.textContent = this.txCount
@@ -837,19 +1027,158 @@ function button(label: string, className: string, onClick: () => void): HTMLButt
   return b;
 }
 
-function rangeInput(
+const DEG_PER_DETENT = 8; // rotation quantum for the encoder simulation below
+const KEY_FLICK_DEG = 8; // cosmetic pointer nudge per keypress/wheel tick, independent of DEG_PER_DETENT
+const BASE_UNIT_DIVISOR = 3; // each detent is worth step/3 at rest — several must accumulate to tick one grid step
+
+/** Real VFO knobs are encoders, not potentiometers: they spin freely (no
+ *  mechanical stop) and firmware accelerates the step size the faster you
+ *  turn — a quick spin crosses the band in a couple of turns, a slow nudge
+ *  moves one step at a time. `dtMs` is the time since the previous detent
+ *  (drag), keypress, or wheel tick; shorter gaps mean faster input. */
+function accelMultiplier(dtMs: number): number {
+  if (dtMs > 220) return 1;
+  if (dtMs > 100) return 1;
+  if (dtMs > 45) return 2;
+  return 5;
+}
+
+/** An encoder-style rotary knob — drag, arrow keys, or the wheel all turn
+ *  it. The knob face spins freely and has no absolute position; `value`
+ *  ([min, max], snapped to `step`) is a separate accumulator driven by how
+ *  fast you're turning it, via accelMultiplier() above. */
+function buildKnob(
   min: number,
   max: number,
   step: number,
   value: number,
-  onInput: (v: number) => void
-): HTMLInputElement {
-  const input = document.createElement("input");
-  input.type = "range";
-  input.min = String(min);
-  input.max = String(max);
-  input.step = String(step);
-  input.value = String(value);
-  input.addEventListener("input", () => onInput(Number(input.value)));
-  return input;
+  onChange: (v: number) => void,
+  opts: { size?: "lg" | "sm"; ariaLabel?: string } = {}
+): { el: HTMLElement; setDisabled: (disabled: boolean) => void } {
+  let current = value;
+  let raw = value; // continuous, unsnapped position — preserves sub-step progress between ticks
+  let disabled = false;
+  let visualDeg = 0; // cosmetic, unbounded — how far the knob has visually spun
+  let lastActionTime = 0; // for accelMultiplier()
+  const baseUnit = step / BASE_UNIT_DIVISOR; // value per detent at rest
+
+  const wrap = el("div", "knob");
+  const face = el("div", opts.size === "sm" ? "knob-face knob-face--sm" : "knob-face");
+  face.tabIndex = 0;
+  face.setAttribute("role", "slider");
+  face.setAttribute("aria-label", opts.ariaLabel ?? "Value");
+  face.setAttribute("aria-valuemin", String(min));
+  face.setAttribute("aria-valuemax", String(max));
+  const pointer = el("div", "knob-pointer");
+  face.appendChild(pointer);
+  wrap.appendChild(face);
+
+  function renderPointer(): void {
+    pointer.style.transform = `translate(-50%, -100%) rotate(${visualDeg}deg)`;
+  }
+  function applyDelta(rawDelta: number): void {
+    raw = Math.min(max, Math.max(min, raw + rawDelta));
+    const snapped = Math.round(raw / step) * step;
+    if (snapped === current) return;
+    current = snapped;
+    face.setAttribute("aria-valuenow", String(current));
+    onChange(current);
+  }
+  /** One discrete action (a detent, a keypress, a wheel tick) — looks up
+   *  how long it's been since the last one to decide how big a jump this
+   *  one is worth. Several slow detents accumulate (via `raw`) before the
+   *  displayed value ticks over one grid step; fast ones cross several. */
+  function act(direction: 1 | -1, steps: number): void {
+    const now = performance.now();
+    const dt = lastActionTime ? now - lastActionTime : Infinity;
+    lastActionTime = now;
+    applyDelta(direction * baseUnit * steps * accelMultiplier(dt));
+  }
+  function rawAngle(e: PointerEvent): number {
+    const rect = face.getBoundingClientRect();
+    const dx = e.clientX - (rect.left + rect.width / 2);
+    const dy = e.clientY - (rect.top + rect.height / 2);
+    return (Math.atan2(dx, -dy) * 180) / Math.PI; // 0° = up, clockwise-positive
+  }
+
+  let lastAngle = 0;
+  let pendingDeg = 0;
+  face.addEventListener("pointerdown", (e) => {
+    if (disabled) return;
+    e.preventDefault();
+    face.focus();
+    face.setPointerCapture(e.pointerId);
+    face.classList.add("dragging");
+    lastAngle = rawAngle(e);
+    pendingDeg = 0;
+  });
+  face.addEventListener("pointermove", (e) => {
+    if (disabled || !face.classList.contains("dragging")) return;
+    const angle = rawAngle(e);
+    let dAngle = angle - lastAngle;
+    while (dAngle > 180) dAngle -= 360;
+    while (dAngle < -180) dAngle += 360;
+    lastAngle = angle;
+
+    visualDeg += dAngle;
+    renderPointer();
+
+    pendingDeg += dAngle;
+    const detents = Math.trunc(pendingDeg / DEG_PER_DETENT);
+    if (detents !== 0) {
+      pendingDeg -= detents * DEG_PER_DETENT;
+      act(detents > 0 ? 1 : -1, Math.abs(detents));
+    }
+  });
+  const endDrag = (e: PointerEvent) => {
+    face.classList.remove("dragging");
+    if (face.hasPointerCapture(e.pointerId)) face.releasePointerCapture(e.pointerId);
+  };
+  face.addEventListener("pointerup", endDrag);
+  face.addEventListener("pointercancel", endDrag);
+  face.addEventListener("keydown", (e) => {
+    if (disabled) return;
+    if (e.key === "ArrowUp" || e.key === "ArrowRight") {
+      e.preventDefault();
+      visualDeg += KEY_FLICK_DEG;
+      renderPointer();
+      act(1, 1);
+    } else if (e.key === "ArrowDown" || e.key === "ArrowLeft") {
+      e.preventDefault();
+      visualDeg -= KEY_FLICK_DEG;
+      renderPointer();
+      act(-1, 1);
+    } else if (e.key === "PageUp") {
+      e.preventDefault();
+      visualDeg += KEY_FLICK_DEG * 5;
+      renderPointer();
+      applyDelta(step * 10); // an explicit big jump, not accelerated
+    } else if (e.key === "PageDown") {
+      e.preventDefault();
+      visualDeg -= KEY_FLICK_DEG * 5;
+      renderPointer();
+      applyDelta(-step * 10);
+    }
+  });
+  face.addEventListener(
+    "wheel",
+    (e) => {
+      if (disabled) return;
+      e.preventDefault();
+      visualDeg += e.deltaY < 0 ? KEY_FLICK_DEG : -KEY_FLICK_DEG;
+      renderPointer();
+      act(e.deltaY < 0 ? 1 : -1, 1);
+    },
+    { passive: false }
+  );
+
+  function setDisabled(d: boolean): void {
+    disabled = d;
+    face.tabIndex = d ? -1 : 0;
+    face.classList.toggle("knob-disabled", d);
+  }
+
+  face.setAttribute("aria-valuenow", String(current));
+  renderPointer();
+  return { el: wrap, setDisabled };
 }
