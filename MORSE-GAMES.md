@@ -336,8 +336,9 @@ Additional world-building — several of these resolve open threads.
   than a late-game twist. Two goals run in parallel and keep it
   from being an empty tutorial:
   1. **Primary — get shipped out:** reach the skill bar (the Koch / prosign / brevity-code
-     mastery gate = the graduation mechanic). This is a **genuine competency gate** — say,
-     *all characters + a ~5–7 WPM floor* (tunable) — not a formality: if you can't copy at a
+     mastery gate = the graduation mechanic). This is a **genuine competency gate** —
+     **full Koch character set + prosigns, at 7.5 WPM minimum** (locked, 2026-07-09; see
+     **Speed as the difficulty gate** below) — not a formality: if you can't copy at a
      basic clip you genuinely aren't ready for the field, so the gate protects you from a
      deep end that wouldn't be fun, and it lets every field mission safely *assume* a
      baseline. The elegant part: it makes fiction and pedagogy the *same thing* — **"ready
@@ -771,6 +772,59 @@ How missions string into an arc — resolves the former "campaign structure" ope
     notices, without saying it to anyone, that he's become the guy with them. Subtle on
     purpose — most players won't clock it, and that's fine; the ones who do get a joke that
     plays across the whole timeline instead of a moment that has to explain itself.
+
+## Speed as the difficulty gate — anti-frustration design across WPM transitions
+
+(2026-07-09) Every mission is structurally the same shape (HQ skeds + spotter reports);
+the thing that actually gates one level from the next is **copy speed**. That's already
+the doc's core pillar ("Koch speed = difficulty," islands-as-difficulty ⇒ rising WPM),
+but this section locks in the concrete decisions for how a WPM jump feels from the
+inside, so a real skill wall never reads as an unfair one.
+
+- **Field missions open at full Koch + 7.5 WPM minimum, not a slow ramp-in (locked).**
+  No field mission ever assumes fewer than the complete character set and prosigns, and
+  none run below 7.5 WPM — this is the graduation gate from **Onboarding** above, now a
+  concrete number rather than the earlier "~5–7 WPM (tunable)." Two reasons, both
+  load-bearing: **realism** (nobody ships an operative to the field without the full
+  set — a partial-character operator isn't a plausible soldier, it's a tutorial
+  fiction leaking into the world) and **felt accomplishment** (jumping from the 5 WPM
+  trainer baseline to 7.5 for the first field mission is itself a win the player can
+  feel, not just a number going up). The training-base competency gate is what makes
+  this honest rather than a difficulty cliff — see **Onboarding** above.
+- **Rejected: a fading/partial Show Text reveal.** Considered as a way to wean players
+  off plot-mode gradually across a transition — rejected as too easy; it would let a
+  player limp through a speed tier by reading instead of actually copying it, which
+  defeats the point of the gate. Show Text stays the binary on/off toggle it already is
+  ("plot mode" for following along, not a scaffold).
+- **The real anti-frustration tool is the notepad, not a text crutch.** The notepad
+  already exists as a live scratchpad, separate from Show Text's full reveal. The design
+  intent going forward: missions and HQ's framing should actively train players to
+  *keep writing fragments as they catch them* rather than freezing up waiting for a
+  clean full catch — a real technique working operators use ("copy behind," partial
+  words, filling gaps from context after the fact). A player who falls behind at a new
+  WPM tier should be able to catch a fragment, lose the thread, and pick back up
+  mid-message from what's already on the page — the recovery path is a skill the game
+  teaches, not a difficulty setting it lowers. Still TODO: the notepad isn't graded
+  against the sighting/message yet (see the worked-example section's TODO list) — worth
+  keeping in mind once it is, so grading rewards partial/fragmentary copy rather than
+  demanding a clean transcript.
+- **AGN cost scales with campaign progression, not just mission-to-mission
+  escalation.** AGN (repeat) should never be capped — a player can always retry their
+  way through a message they can't yet copy clean — but what it *costs* changes over the
+  campaign: cheap early (a generous safe-transmission budget while the player is still
+  finding their feet at a new tier), progressively more expensive later (the same
+  "ask again" that was free on Guadalcanal measurably eats into the budget by
+  Bougainville). This is a concrete tightening of the existing **two-clock model**
+  above (per-day DF heat, per-posting suspicion): the *budget* itself — how much
+  AGN/retransmission a posting can absorb before danger becomes real — should shrink
+  posting over posting, so identical player behavior (same number of retries) reads as
+  meaningfully riskier later in the campaign even though the player has gotten better.
+  Rewards mastery (a skilled player needs fewer retries, so the shrinking budget rarely
+  bites) without ever presenting a hard wall (the option to retry is always there, it
+  just costs more). **Not yet built** — today's danger readout is a flavor stub
+  (`Danger: low (this island)`, hardcoded regardless of `txCount`); this section is the
+  target design for whenever that gets wired up for real, not a description of current
+  behavior.
 
 ## The transition screen
 
