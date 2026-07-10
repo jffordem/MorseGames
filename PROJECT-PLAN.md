@@ -28,6 +28,79 @@ for the original concept.
 - Only thing that may want a server later: fetching Gutenberg texts for Reading mode.
   Pre-bundle a few works so the core stays serverless and offline-capable.
 
+## Deployment & hosting
+
+The app has zero server-side surface today (checked 2026-07-10: the only `fetch()` in
+the codebase is a same-origin static asset, not an API call) — every deploy target is
+just "serve a folder of static files over HTTPS." Given a small target audience (a
+hobby/club-scale readership, not a public product launch), any option below comfortably
+fits inside its free tier. Ranked by recommendation:
+
+1. **GitHub Pages (recommended default).** Zero AWS/cloud account needed at all, truly
+   free with no billing surface to monitor, and the repo is already on GitHub. Deploy is
+   a `vite build` + push of `dist/` (or a GitHub Actions workflow). *Con:* no custom
+   server config if that's ever needed (it won't be, per the point above); a
+   `username.github.io`-style URL unless a custom domain is attached (free either way).
+2. **Cloudflare Pages / Netlify (tied with GitHub Pages).** Same free-and-simple shape —
+   git-connected auto-deploy, generous free tiers, no billing-alarm vigilance required in
+   practice. *Con:* another third-party account to hold, no meaningful upside over GitHub
+   Pages for this project's needs.
+3. **AWS S3 + CloudFront.** The AWS-native equivalent, worth it only if there's a
+   specific reason to be on AWS (e.g. learning AWS, or folding this into other AWS
+   infrastructure). CloudFront's free tier (1 TB/month transfer, 10M requests/month) is
+   an *always-free* allowance, not a 12-month trial — S3 storage/requests for a
+   few-MB static site are negligible even past any trial period. *Con:* real setup
+   (bucket policy, origin access control, cache invalidation on deploy) versus a git
+   push; **requires a billing alarm/budget before publishing a link anywhere**, since AWS
+   free tier is "free up to a threshold, then billed," not a hard cap.
+4. **AWS Amplify Hosting.** A managed middle ground on AWS — git-push-to-deploy with
+   CI/CD, still has its own free tier. *Con:* still an AWS account with the same
+   billing-alarm caveat as #3, for a smaller convenience win than GitHub Pages already
+   provides for free.
+5. **Self-hosted Docker/nginx (not recommended for public hosting).** This is what
+   `docker compose up` already gives us for local dev/demo — good for that, but a public
+   deploy this way means a VPS with an ongoing cost and real maintenance burden (patching,
+   uptime) for a static site that doesn't need a server at all. Keep this as the local/dev
+   path, not the public one.
+
+**Standing guidance — deployability is a design constraint, not an afterthought.** Any
+future change that would require paid infrastructure, a persistent server process, or
+anything beyond static-file hosting to run (a real backend, a managed database, a paid
+third-party API the app depends on at runtime) is a **significant architectural
+decision** and should be flagged and discussed explicitly before being built — it's not
+something to slide in as an implementation detail of an otherwise-unrelated feature.
+Reading mode's "fetch remote texts" idea above is exactly the kind of thing to keep
+pre-bundled/static rather than reaching for a server, for this reason.
+
+**Standing guidance — no end-user data collection.** Don't add accounts, logins,
+server-side analytics/telemetry, session tracking, or any third-party script that
+reports on user behavior. The goal is a clean, simple claim: *this app does not collect
+or manage any end-user data*, full stop — aside from the hosting provider's own
+incidental, standard web-server access logs (outside the app's control, inherent to any
+static host, and not something the app itself generates or has access to).
+`localStorage` data (settings, stats, progress) never leaves the user's browser, and
+that should stay true for any new persistence need — if something ever seems to need
+server-side storage, that's a sign to reconsider the feature, not to add a backend.
+
+**Standing guidance — clear the working titles before public launch.** Before hosting
+this anywhere public, confirm the app's name ("Morse Games") and the game-mode brand
+name ("Morse Adventures," per `MORSE-GAMES.md`) aren't already registered trademarks for
+a similar product — a name collision is a trademark question, separate from the
+copyright/IP due-diligence already done on the *content* (see the 2026-07-10 session:
+checked against existing Morse-themed games like Submorse and the upcoming Morse Depths:
+WWII — no meaningful overlap found there, since neither shares this project's setting,
+cast, or campaign structure). This is a cheap, do-it-yourself check, not something that
+needs a lawyer unless a real conflict turns up:
+- **USPTO TESS** (the US trademark database, [tmsearch.uspto.gov](https://tmsearch.uspto.gov))
+  — search the exact phrase and close variants ("Morse Games," "MorseGames," "Morse
+  Adventures," "Morse Adventure").
+- **A plain marketplace/web sweep** — Steam, the App Store, Google Play, and a general
+  web search for the exact name plus "game" — catches an unregistered-but-actively-used
+  name a formal trademark search alone might miss.
+- If either name is already taken (registered or in active confusing use), don't ship
+  under it — come back and brainstorm alternatives together rather than risk a rename
+  after the fact.
+
 ## The timing engine (foundation — everything depends on it)
 
 This is the single most important pedagogical decision and must be right from day one:
