@@ -192,10 +192,24 @@ interface DialogueInput {
 // ---- Scenarios --------------------------------------------------------
 // A Scenario bundles everything about one playable "day" — cold-open copy,
 // briefing/notes text, and the event timeline — so AdventureMode can run any
-// of them off the same engine. Deliberately still hand-authored content (not
-// a generic mission DSL): the goal is just enough data-driving to hold two
-// days side by side without duplicating the engine, per the design note this
-// was built from.
+// of them off the same engine.
+//
+// INTENT (2026-07-09, revisit before reaching for JSON/YAML or a macro
+// language here): stay hand-authored TypeScript — a Scenario is a plain
+// object, its dynamic bits are plain functions/closures (briefing(),
+// buildTimeline(), the sighting generators) — not a generic mission DSL with
+// externalized data and a template/expression interpreter. The campaign's
+// planned scope is small and enumerable (~20-25 missions total, including
+// training, per MORSE-GAMES.md's mission-allocation draft), so the content
+// doesn't need an engine that outlives what we hand-write for it. Templating
+// this too early risks solving a "parse -> compute -> parse" problem we don't
+// have yet, at the cost of a rigid schema that can't express whatever the
+// next mission actually needs — i.e. painting ourselves into a corner on
+// mission variability by templatizing too early. TypeScript functions already
+// give real tooling (type-checking, autocomplete, refactors) that a string-
+// keyed data format would have to reinvent. Reconsider only if the scope
+// changes to something genuinely open-ended (a Zork-style engine meant to
+// outlive any specific authored content) rather than a bounded campaign.
 interface Scenario {
   id: string;
   dayTag: string; // e.g. "Kolombangara · Day 14" — shown on both transition cards
