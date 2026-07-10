@@ -474,6 +474,17 @@ main {
   line-height: 1.6;
   color: var(--text);
 }
+.intro-aside {
+  font-style: italic;
+  color: var(--muted);
+}
+.mission-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-top: 0.8rem;
+}
 .shack-panel {
   background: var(--panel);
   border: 1px solid var(--border);

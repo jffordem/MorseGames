@@ -24,6 +24,8 @@
 
 import { MorseEngine } from "../audio/morse-engine";
 import { loadSettings, Settings } from "../stats/storage";
+import { Rule, respond } from "../dialogue/engine";
+import { tokenize, tokenizeWords, includesSequence } from "../dialogue/tokens";
 
 const HQ_CALL = "KEN"; // net control (HQ)
 const MY_CALL = "GOOSE"; // this station
@@ -31,6 +33,7 @@ const FREQ_MIN = 4000;
 const FREQ_MAX = 5200;
 const ON_FREQ_KHZ = 5; // within this window, HQ is readable — one grid step, so the readout actually matches the briefing
 const FREQ_SETTLE_MS = 700; // dwell time on a steady frequency before static/the sked fires
+const CLOCK_TRANSITION_PAUSE_MS = 4000; // beat between events so the player notices the clock jump, not just a harried KEN
 
 const SPOT_ACK = `${MY_CALL} DE ${HQ_CALL} QSL K`; // HQ's ack of a completed report
 
@@ -44,24 +47,6 @@ function makeHqFreqKhz(): number {
     hi = 5000;
   return lo + 5 * randInt(0, (hi - lo) / 5);
 }
-
-// Exact demo text — see the "Kolombangara" worked example in MORSE-GAMES.md.
-function briefingText(hqFreqKhz: number): string {
-  return (
-    "STATION GOOSE — Kolombangara. Put ashore by the Minnow before dawn. OP on the " +
-    "summit; watch Blackett Strait and the Slot. Report shipping and aircraft to HQ " +
-    `(KEN) on ${hqFreqKhz} kHz; skeds 0600 / 1200 / 1800. Minimum power — there's a DF launch ` +
-    "working these islands."
-  );
-}
-const NOTES =
-  "Day 14. The set weighs a hundred pounds and I didn't carry it. The scouts did — " +
-  "up the mountain track in the dark, barefoot, while I looked after the chronometer " +
-  'and the coffee. HQ calls them "the boys" and settles up in twist tobacco and ' +
-  "promises. They work the far coast, where a man who's caught gets what they gave " +
-  "Vouza, and they go anyway — and come morning they grin at me like I'm the one " +
-  "doing them the favor. I've taken to writing their names in the log. The log " +
-  "doesn't ask.";
 
 // ---- Sighting generator ---------------------------------------------------
 
@@ -83,6 +68,7 @@ const TYPE_NAME: Record<string, string> = {
   FIGHTER: "fighter",
   DD: "destroyer",
   AK: "transport",
+  PT: "PT boat",
 };
 const DIR_WORD: Record<string, string> = {
   N: "north",
@@ -110,6 +96,9 @@ function pick<T>(a: T[]): T {
 }
 function randInt(lo: number, hi: number): number {
   return lo + Math.floor(Math.random() * (hi - lo + 1));
+}
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 function cap(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
@@ -156,37 +145,20 @@ interface AuthPair {
 
 function makeAuthTable(): AuthPair[] {
   const letters = [...AUTH_CHALLENGES];
+  const digits = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
   const table: AuthPair[] = [];
   for (let i = 0; i < 3; i++) {
-    const idx = Math.floor(Math.random() * letters.length);
-    const challenge = letters.splice(idx, 1)[0];
-    table.push({ challenge, response: String(randInt(0, 9)) });
+    const letterIdx = Math.floor(Math.random() * letters.length);
+    const challenge = letters.splice(letterIdx, 1)[0];
+    const digitIdx = Math.floor(Math.random() * digits.length);
+    const response = digits.splice(digitIdx, 1)[0];
+    table.push({ challenge, response });
   }
   return table;
 }
 
 function requiredFields(s: Sighting): string[] {
   return s.category === "ACFT" ? ["count", "type", "alt", "dir"] : ["count", "type", "dir"];
-}
-function tokenize(msg: string): Set<string> {
-  return new Set(tokenizeWords(msg));
-}
-/** Ordered words, for phrase/sequence checks (unlike the Set above, order survives). */
-function tokenizeWords(msg: string): string[] {
-  return msg.toUpperCase().split(/[^A-Z0-9]+/).filter(Boolean);
-}
-/** Rule-based "flexible but not fuzzy" phrase match: true if `seq` appears as
- *  consecutive words anywhere in `tokens` — tolerates extra spacing, surrounding
- *  prowords, and position in the message without needing an exact substring or
- *  any AI judgment call. */
-function includesSequence(tokens: string[], seq: string[]): boolean {
-  outer: for (let i = 0; i <= tokens.length - seq.length; i++) {
-    for (let j = 0; j < seq.length; j++) {
-      if (tokens[i + j] !== seq[j]) continue outer;
-    }
-    return true;
-  }
-  return false;
 }
 function fieldSatisfied(field: string, s: Sighting, tk: Set<string>): boolean {
   switch (field) {
@@ -209,8 +181,55 @@ type DayEvent =
   | { kind: "sked"; clock: string; light: string; msg: string; prompt: string; final?: boolean }
   | { kind: "spot"; clock: string; light: string; sighting: Sighting };
 
-function buildDay(authChallenge: string): DayEvent[] {
-  return [
+/** Built once per transmit() call and handed to the dialogue engine's rule table. */
+interface DialogueInput {
+  msg: string; // trimmed, uppercased raw transmission
+  words: string[]; // tokenizeWords(msg)
+  isAgn: boolean; // msg.includes("AGN") — a raw substring check, not token-based (see below)
+  tk: Set<string>; // tokenize(msg)
+}
+
+// ---- Scenarios --------------------------------------------------------
+// A Scenario bundles everything about one playable "day" — cold-open copy,
+// briefing/notes text, and the event timeline — so AdventureMode can run any
+// of them off the same engine. Deliberately still hand-authored content (not
+// a generic mission DSL): the goal is just enough data-driving to hold two
+// days side by side without duplicating the engine, per the design note this
+// was built from.
+interface Scenario {
+  id: string;
+  dayTag: string; // e.g. "Kolombangara · Day 14" — shown on both transition cards
+  introTitle: string; // h2 on the cold-open card
+  introCopy: string;
+  notes: string; // upper-left Notes panel text
+  briefing(hqFreqKhz: number): string; // upper-left Briefing panel text
+  buildTimeline(authChallenge: string): DayEvent[];
+  outroCopy: string; // sentence appended after the day's tally on the outro card
+  outroAside?: string; // shown only on this scenario's outro — a payoff beat
+}
+
+const KOLOMBANGARA_DAY14: Scenario = {
+  id: "kolombangara-14",
+  dayTag: "Kolombangara · Day 14",
+  introTitle: "Station GOOSE",
+  introCopy:
+    "Before dawn the Minnow put you ashore below the summit and slipped back " +
+    "out into the dark. The scouts had the set up the mountain track before " +
+    "your boots were dry. Another day on the ridge, watching the Slot.",
+  notes:
+    "Day 14. The set weighs a hundred pounds and I didn't carry it. The scouts did — " +
+    "up the mountain track in the dark, barefoot, while I looked after the chronometer " +
+    'and the coffee. HQ calls them "the boys" and settles up in twist tobacco and ' +
+    "promises. They work the far coast, where a man who's caught gets what they gave " +
+    "Vouza, and they go anyway — and come morning they grin at me like I'm the one " +
+    "doing them the favor. I've taken to writing their names in the log. The log " +
+    "doesn't ask.",
+  briefing: (hqFreqKhz) =>
+    "STATION GOOSE — Kolombangara. Put ashore by the Minnow before dawn. OP on the " +
+    "summit; watch Blackett Strait and the Slot. Report shipping and aircraft to HQ " +
+    `(KEN) on ${hqFreqKhz} kHz; skeds 0600 / 1200 / 1800. Minimum power — there's a DF launch ` +
+    "working these islands.",
+  buildTimeline: (authChallenge) => [
     {
       kind: "sked",
       clock: "0600",
@@ -244,8 +263,84 @@ function buildDay(authChallenge: string): DayEvent[] {
       prompt: "Copy the sign-off, then acknowledge (QSL).",
       final: true,
     },
-  ];
-}
+  ],
+  outroCopy: "Another day on the ridge, logged and quiet. Tomorrow the Slot will be watching back.",
+};
+
+/** The day's centerpiece — scripted, not generated, so the real hull number
+ *  lands the same way every run (see MORSE-GAMES.md's PT-109 note). The
+ *  report grades through the same requiredFields()/fieldSatisfied() path as
+ *  any other ship sighting; no new mechanic. */
+const PT109_SIGHTING: Sighting = {
+  category: "SHIP",
+  count: 1,
+  type: "PT",
+  dir: "SE",
+  prose:
+    "The boy is out of breath: wreckage off the reef, cut clean in two — a small one, " +
+    "hull number still showing through the char. One-oh-nine. Survivors, he thinks — " +
+    "washed up along the reef to the southeast.",
+};
+
+const KOLOMBANGARA_DAY3: Scenario = {
+  id: "kolombangara-3",
+  dayTag: "Kolombangara · Day 17",
+  introTitle: "Station GOOSE",
+  introCopy:
+    "Three quiet days since the last convoy report — routine skeds, routine light. Then, " +
+    "somewhere out past the point last night: a flash on the water, gone before the sound " +
+    "of it caught up. Nobody in the shack knows what it was yet.",
+  notes:
+    "Day 17. The boy came up the track before first light, quieter than usual. Something " +
+    "happened out past the reef last night — a flash, no gunfire after — but the coast " +
+    "hadn't sent word yet. Whatever it was, HQ will want to know the moment anyone does.",
+  briefing: (hqFreqKhz) =>
+    "STATION GOOSE — Kolombangara. Same OP, same watch: Blackett Strait and the Slot. " +
+    `Report shipping and aircraft to HQ (KEN) on ${hqFreqKhz} kHz; skeds 0600 / 1200 / 1800. ` +
+    "Minimum power — the DF launch hasn't gone anywhere.",
+  buildTimeline: (authChallenge) => [
+    {
+      kind: "sked",
+      clock: "0600",
+      light: "dawn",
+      msg: `${MY_CALL} DE ${HQ_CALL} WATCH SLOT RPT ALL SHIPPING ES ACFT AUTHENTICATE ${authChallenge} K`,
+      prompt:
+        "Copy your orders and the authenticator challenge. Check today's table, then " +
+        "send QSL I AUTHENTICATE <code> together — or AGN? to hear it again.",
+    },
+    { kind: "spot", clock: "0800", light: "morning", sighting: makeAircraftSighting() },
+    {
+      kind: "sked",
+      clock: "1030",
+      light: "morning",
+      msg: `${MY_CALL} DE ${HQ_CALL} RPT ANY WRECKAGE OR SURVIVORS STRAIT K`,
+      prompt: "Copy KEN's heads-up, then acknowledge (QSL).",
+    },
+    { kind: "spot", clock: "1200", light: "noon", sighting: PT109_SIGHTING },
+    {
+      kind: "sked",
+      clock: "1500",
+      light: "afternoon",
+      msg: `${MY_CALL} DE ${HQ_CALL} QSL RPT LOGGED MAINTAIN WATCH K`,
+      prompt: "Copy KEN, then acknowledge (QSL).",
+    },
+    {
+      kind: "sked",
+      clock: "1800",
+      light: "dusk",
+      msg: `${MY_CALL} DE ${HQ_CALL} QRT AT DUSK GN K`,
+      prompt: "Copy the sign-off, then acknowledge (QSL).",
+      final: true,
+    },
+  ],
+  outroCopy: "Another day on the ridge, logged and quiet. Whatever happened out past the reef, it's someone else's watch now.",
+  outroAside:
+    "Weeks later, word came down the net: a coconut shell, carved in a hand not much " +
+    'older than yours — "11 ALIVE NATIVE KNOWS POSIT & REEF NARU ISLAND KENNEDY." ' +
+    "Rendova got the message.",
+};
+
+const SCENARIOS: Scenario[] = [KOLOMBANGARA_DAY14, KOLOMBANGARA_DAY3];
 
 type Phase = "cold" | "onair" | "sked" | "spot" | "done";
 
@@ -254,7 +349,9 @@ export class AdventureMode {
   private settings: Settings;
   private engine: MorseEngine;
 
+  private scenario: Scenario = SCENARIOS[0];
   private phase: Phase = "cold";
+  private radioOn = false; // distinct from phase: lets the player kill power mid-day by mistake without ending the run
   private playing = false;
   private freqKhz = 4200; // start off-frequency so tuning is the first task
   private power = 10; // watts, 0..100; low = quiet/faint, high = strong/exposed
@@ -285,7 +382,6 @@ export class AdventureMode {
   private elDanger!: HTMLElement;
   private elStartBtn!: HTMLButtonElement;
   private elShowTextBtn!: HTMLButtonElement;
-  private elContinueBtn!: HTMLButtonElement;
   private elTxRow!: HTMLElement;
   private elTxInput!: HTMLInputElement;
   private elTxBtn!: HTMLButtonElement;
@@ -312,12 +408,15 @@ export class AdventureMode {
 
   /** (Re)start a fresh run: reset all per-day state, generate a new day (new
    *  sightings, authenticator table, sked frequency), and return to the intro
-   *  card. Used both by mount() and by "Replay the day" on the outro screen —
-   *  see the transition-screen / Replay discussion in MORSE-GAMES.md. */
-  private resetRun(): void {
+   *  card. Used by mount(), by "Replay the day" on the outro screen, and by
+   *  the mission picker to switch scenarios — see the transition-screen /
+   *  Replay discussion in MORSE-GAMES.md. */
+  private resetRun(scenario: Scenario = this.scenario): void {
+    this.scenario = scenario;
     this.clearFreqSettle();
     this.freqSettleMissed = false;
     this.phase = "cold";
+    this.radioOn = false;
     this.playing = false;
     this.freqKhz = 4200;
     this.power = 10;
@@ -330,7 +429,7 @@ export class AdventureMode {
     this.authTable = makeAuthTable(); // generated fresh — see the authenticator note above
     this.liveAuthIdx = randInt(0, this.authTable.length - 1); // which row KEN actually challenges with
     this.hqFreqKhz = makeHqFreqKhz(); // generated fresh — same SOI logic as the auth table
-    this.day = buildDay(this.authTable[this.liveAuthIdx].challenge); // this run's mix of skeds + generated sightings
+    this.day = scenario.buildTimeline(this.authTable[this.liveAuthIdx].challenge); // this run's mix of skeds + generated sightings
     this.root.innerHTML = "";
     this.root.appendChild(this.buildIntro());
   }
@@ -343,20 +442,29 @@ export class AdventureMode {
   private buildIntro(): HTMLElement {
     const view = el("section", "adventure-intro dawn");
     const card = el("div", "intro-card");
-    card.appendChild(text("div", "intro-tag", "Kolombangara · Day 14"));
-    card.appendChild(text("h2", "intro-title", "Station GOOSE"));
-    card.appendChild(
-      text(
-        "p",
-        "intro-copy",
-        "Before dawn the Minnow put you ashore below the summit and slipped back " +
-          "out into the dark. The scouts had the set up the mountain track before " +
-          "your boots were dry. Another day on the ridge, watching the Slot."
-      )
-    );
+    card.appendChild(text("div", "intro-tag", this.scenario.dayTag));
+    card.appendChild(text("h2", "intro-title", this.scenario.introTitle));
+    card.appendChild(text("p", "intro-copy", this.scenario.introCopy));
     card.appendChild(button("Begin the watch", "btn primary", () => this.beginShack()));
+    const picker = this.buildMissionPicker();
+    if (picker) card.appendChild(picker);
     view.appendChild(card);
     return view;
+  }
+
+  /** Every mission is unlocked for the demo, so both transition cards (this
+   *  intro and the outro below) offer every *other* scenario as a one-tap
+   *  jump — the doc's sanctioned home for level-select chrome (it explicitly
+   *  keeps this off the in-play shack). Returns null when there's only one
+   *  scenario, so it's a no-op once/if this ever ships as a single mission. */
+  private buildMissionPicker(): HTMLElement | null {
+    const others = SCENARIOS.filter((s) => s.id !== this.scenario.id);
+    if (others.length === 0) return null;
+    const row = el("div", "mission-list");
+    for (const s of others) {
+      row.appendChild(button(s.dayTag, "btn ghost", () => this.resetRun(s)));
+    }
+    return row;
   }
 
   /** Flip from the intro card into the radio shack. */
@@ -379,7 +487,7 @@ export class AdventureMode {
     const panel = el("div", "shack-panel shack-briefing");
     panel.appendChild(text("h2", "shack-title", "Station GOOSE — Kolombangara"));
     panel.appendChild(text("div", "shack-label", "Briefing"));
-    panel.appendChild(text("p", "brief", briefingText(this.hqFreqKhz)));
+    panel.appendChild(text("p", "brief", this.scenario.briefing(this.hqFreqKhz)));
     panel.appendChild(text("div", "shack-label", "Authenticator (today) — SOI table"));
     const authGrid = el("div", "codebook codebook--single");
     for (const { challenge, response } of this.authTable) {
@@ -389,7 +497,7 @@ export class AdventureMode {
     }
     panel.appendChild(authGrid);
     panel.appendChild(text("div", "shack-label", "Notes"));
-    panel.appendChild(text("p", "notes", NOTES));
+    panel.appendChild(text("p", "notes", this.scenario.notes));
     this.elNotesFeed = el("div", "notes-feed"); // spotter runners land here
     panel.appendChild(this.elNotesFeed);
     return panel;
@@ -422,13 +530,11 @@ export class AdventureMode {
     // Controls — Power comes first: it's the master switch, highlighted while
     // everything else is cold, and gates the dials below until warmed up.
     const controls = el("div", "shack-controls");
-    this.elStartBtn = button("⏻", "btn primary btn-power power-glow", () => void this.start());
+    this.elStartBtn = button("⏻", "btn primary btn-power power-glow", () => void this.togglePower());
     this.elStartBtn.setAttribute("aria-label", "Power");
     this.elStartBtn.title = "Power on the set";
     this.elShowTextBtn = button("Show Text: Off", "btn ghost", () => this.toggleText());
-    this.elContinueBtn = button("→ Log off", "btn primary", () => this.showOutro());
-    this.elContinueBtn.hidden = true;
-    controls.append(this.elStartBtn, this.elShowTextBtn, this.elContinueBtn);
+    controls.append(this.elStartBtn, this.elShowTextBtn);
     panel.appendChild(controls);
 
     // Dials — Frequency (big, left) and TX Power (small, right), side by
@@ -559,6 +665,7 @@ export class AdventureMode {
           ["CONVOY", "group of ships"],
           ["DD", "destroyer"],
           ["AK", "transport / cargo ship"],
+          ["PT", 'PT boat — small, fast ("patrol torpedo boat")'],
         ],
       },
       {
@@ -646,18 +753,45 @@ export class AdventureMode {
     return Math.abs(this.freqKhz - this.hqFreqKhz) <= ON_FREQ_KHZ;
   }
 
-  private async start(): Promise<void> {
+  /** The power button doubles as the day's only "log off" control — see
+   *  enterDone(). Tapping it cold starts the set; tapping it once the day's
+   *  events are done closes the day; tapping it any other time is an
+   *  accidental shutdown, so warn rather than silently killing the run. */
+  private async togglePower(): Promise<void> {
+    if (!this.radioOn) await this.powerOn();
+    else this.powerOff();
+  }
+
+  private async powerOn(): Promise<void> {
     await this.engine.resume();
-    this.elStartBtn.disabled = true;
+    this.radioOn = true;
     this.elStartBtn.classList.remove("power-glow");
     this.elStartBtn.classList.add("power-on");
-    this.setStatus("The set hums to life…");
-    await this.engine.playPowerHum();
-    this.phase = "onair";
-    this.setScene("dawn", "0600");
-    this.setStatus("Set's warm — spin the dial to today's sked frequency (see the briefing).");
+    if (this.phase === "cold") {
+      this.setStatus("The set hums to life…");
+      await this.engine.playPowerHum();
+      this.phase = "onair";
+      this.setScene("dawn", "0600");
+      this.setStatus("Set's warm — spin the dial to today's sked frequency (see the briefing).");
+      this.scheduleFreqSettle();
+    } else {
+      this.setStatus("Set's back up — you're on the air again.");
+      this.scheduleFreqSettle();
+    }
     this.refresh();
-    this.scheduleFreqSettle();
+  }
+
+  private powerOff(): void {
+    this.radioOn = false;
+    this.clearFreqSettle();
+    this.elStartBtn.classList.remove("power-on");
+    if (this.phase === "done") {
+      this.showOutro();
+      return;
+    }
+    this.elStartBtn.classList.add("power-glow");
+    this.setStatus("Your radio is off — you won't be able to receive directives from KEN!");
+    this.refresh();
   }
 
   /** Fires once the dial has held still for FREQ_SETTLE_MS — see
@@ -709,6 +843,15 @@ export class AdventureMode {
   private async runEvent(): Promise<void> {
     const e = this.day[this.evtIx];
     this.setScene(e.light, e.clock);
+    // A beat between events — otherwise KEN jumps straight from one exchange to
+    // the next and it reads as harried rather than as time having passed. Long
+    // enough that the player looks at the clock, not so long it drags. Held via
+    // `playing` so the tx row stays disabled — currentEvent already points at
+    // the new event during this window, but phase/need don't until below.
+    this.playing = true;
+    this.refresh();
+    await delay(CLOCK_TRANSITION_PAUSE_MS);
+    this.playing = false;
     if (e.kind === "spot") {
       this.phase = "spot";
       this.need = requiredFields(e.sighting);
@@ -734,8 +877,9 @@ export class AdventureMode {
   private enterDone(): void {
     this.phase = "done";
     this.setScene("dusk", "1800");
-    this.setStatus("Set's down for the night. Good day's work.");
+    this.setStatus("Set's down for the night. Good day's work — tap Power to log off.");
     this.addTraffic("log", `End of day. Skeds & sightings ${this.day.length} · Sent ${this.txCount} · Danger low.`);
+    this.elStartBtn.classList.add("power-glow");
     this.refresh();
   }
 
@@ -747,17 +891,15 @@ export class AdventureMode {
     this.root.innerHTML = "";
     const view = el("section", "adventure-intro dusk");
     const card = el("div", "intro-card");
-    card.appendChild(text("div", "intro-tag", "Kolombangara · Day 14 — complete"));
+    card.appendChild(text("div", "intro-tag", `${this.scenario.dayTag} — complete`));
     card.appendChild(text("h2", "intro-title", "Set's down for the night"));
-    card.appendChild(
-      text(
-        "p",
-        "intro-copy",
-        `${tally} Another day on the ridge, logged and quiet. Tomorrow the Slot will be ` +
-          "watching back."
-      )
-    );
+    card.appendChild(text("p", "intro-copy", `${tally} ${this.scenario.outroCopy}`));
+    if (this.scenario.outroAside) {
+      card.appendChild(text("p", "intro-copy intro-aside", this.scenario.outroAside));
+    }
     card.appendChild(button("Replay the day", "btn primary", () => this.resetRun()));
+    const picker = this.buildMissionPicker();
+    if (picker) card.appendChild(picker);
     view.appendChild(card);
     this.root.appendChild(view);
   }
@@ -768,7 +910,176 @@ export class AdventureMode {
     this.elDay.textContent = `— ${light} · ${clock} —`;
   }
 
-  /** Player keys a message: plays it as sidetone, bumps danger, then routes. */
+  private get currentEvent(): DayEvent {
+    return this.day[this.evtIx];
+  }
+
+  // ---- KEN's dialogue rules -------------------------------------------------
+  // Ranked rules for the dialogue engine (src/dialogue/engine.ts) — array order
+  // is priority order. Kolombangara-specific; see MORSE-GAMES.md and the plan
+  // this was built from for why the shapes below (header-check, ack-or-repeat,
+  // authenticator-gate, field-completion, fallback) are meant to generalize to
+  // future missions even though only this one uses them today.
+
+  private static isFirstContact(ctx: AdventureMode): boolean {
+    return ctx.phase === "sked" && ctx.currentEvent.kind === "sked" && ctx.evtIx === 0;
+  }
+  private static isLaterSked(ctx: AdventureMode): boolean {
+    return ctx.phase === "sked" && ctx.currentEvent.kind === "sked" && ctx.evtIx !== 0;
+  }
+  private static isSpot(ctx: AdventureMode): boolean {
+    return ctx.phase === "spot" && ctx.currentEvent.kind === "spot";
+  }
+  /** Token-based, not exact-string: tolerates real message variation (extra
+   *  spacing, surrounding prowords, either order) without needing AI judgment. */
+  private static authStatus(i: DialogueInput, ctx: AdventureMode): { hasQsl: boolean; hasAuth: boolean } {
+    const live = ctx.authTable[ctx.liveAuthIdx];
+    return {
+      hasQsl: i.words.includes("QSL") || i.words.includes("R"),
+      hasAuth: includesSequence(i.words, ["I", "AUTHENTICATE", live.response]),
+    };
+  }
+
+  private static readonly RULES: Rule<DialogueInput, AdventureMode>[] = [
+    // Every transmission to KEN must lead with proper addressing (KEN DE GOOSE).
+    // Drop it and KEN doesn't know who's calling — real net discipline, and a real
+    // Q-code for it: QRZ. Nudge, not a hard fail — resend with the preamble.
+    {
+      id: "header-check",
+      match: (i) => !includesSequence(i.words, [HQ_CALL, "DE", MY_CALL]),
+      act: async (_i, ctx) => {
+        await ctx.hqSend(`${MY_CALL} DE ${HQ_CALL} QRZ K`);
+        ctx.setStatus(`${HQ_CALL} doesn't know who that was — lead with ${HQ_CALL} DE ${MY_CALL}.`);
+      },
+    },
+    // First contact of the day: QSL and the authenticator reply must arrive together.
+    {
+      id: "first-contact-repeat",
+      when: AdventureMode.isFirstContact,
+      match: (i) => i.isAgn,
+      act: async (_i, ctx) => {
+        const e = ctx.currentEvent;
+        if (e.kind !== "sked") return;
+        await ctx.hqSend(e.msg);
+      },
+    },
+    {
+      id: "first-contact-complete",
+      when: AdventureMode.isFirstContact,
+      match: (i, ctx) => {
+        const { hasQsl, hasAuth } = AdventureMode.authStatus(i, ctx);
+        return hasQsl && hasAuth;
+      },
+      act: async (_i, ctx) => {
+        await ctx.advance();
+      },
+    },
+    {
+      id: "first-contact-auth-only",
+      when: AdventureMode.isFirstContact,
+      match: (i, ctx) => {
+        const { hasQsl, hasAuth } = AdventureMode.authStatus(i, ctx);
+        return hasAuth && !hasQsl;
+      },
+      act: (_i, ctx) => {
+        ctx.setStatus("Authenticated — now add QSL to the same transmission to complete the sked.");
+      },
+    },
+    {
+      id: "first-contact-qsl-only",
+      when: AdventureMode.isFirstContact,
+      match: (i, ctx) => {
+        const { hasQsl, hasAuth } = AdventureMode.authStatus(i, ctx);
+        return hasQsl && !hasAuth;
+      },
+      act: async (_i, ctx) => {
+        const live = ctx.authTable[ctx.liveAuthIdx];
+        await ctx.hqSend(`${MY_CALL} DE ${HQ_CALL} AUTHENTICATE ${live.challenge} K`);
+        ctx.setStatus(
+          `${HQ_CALL} won't log that without authentication — send QSL I AUTHENTICATE <code>, together.`
+        );
+      },
+    },
+    {
+      id: "first-contact-neither",
+      when: AdventureMode.isFirstContact,
+      match: () => true,
+      act: (_i, ctx) => {
+        ctx.setStatus("Check the authenticator table, then send QSL I AUTHENTICATE <code>, or AGN? for a repeat.");
+      },
+    },
+    {
+      id: "later-sked-repeat",
+      when: AdventureMode.isLaterSked,
+      match: (i) => i.isAgn,
+      act: async (_i, ctx) => {
+        const e = ctx.currentEvent;
+        if (e.kind !== "sked") return;
+        await ctx.hqSend(e.msg);
+      },
+    },
+    {
+      id: "later-sked-ack",
+      when: AdventureMode.isLaterSked,
+      match: (i) => i.words.includes("QSL") || i.words.includes("R"),
+      act: async (_i, ctx) => {
+        const e = ctx.currentEvent;
+        if (e.kind !== "sked") return;
+        if (e.final) ctx.enterDone();
+        else await ctx.advance();
+      },
+    },
+    {
+      id: "later-sked-nudge",
+      when: AdventureMode.isLaterSked,
+      match: () => true,
+      act: (_i, ctx) => {
+        ctx.setStatus(`Send QSL to acknowledge ${HQ_CALL}, or AGN? for a repeat.`);
+      },
+    },
+    {
+      id: "spot-repeat",
+      when: AdventureMode.isSpot,
+      match: (i) => i.isAgn,
+      act: (_i, ctx) => {
+        const e = ctx.currentEvent;
+        if (e.kind !== "spot") return;
+        ctx.addSpot(e.sighting.prose, "the boy repeats");
+      },
+    },
+    {
+      id: "spot-grade",
+      when: AdventureMode.isSpot,
+      match: () => true,
+      act: async (i, ctx) => {
+        const e = ctx.currentEvent;
+        if (e.kind !== "spot") return;
+        ctx.need = ctx.need.filter((f) => !fieldSatisfied(f, e.sighting, i.tk));
+        if (ctx.need.length === 0) {
+          await ctx.hqSend(SPOT_ACK);
+          await ctx.advance();
+        } else {
+          // Directed answer-back: HQ asks for exactly what's still missing/wrong.
+          await ctx.hqSend(`${MY_CALL} DE ${HQ_CALL} ${ctx.need.map((f) => PROWORD[f]).join(" ")} K`);
+          ctx.setStatus(`${HQ_CALL} wants: ${ctx.need.map((f) => FIELD_LABEL[f]).join(", ")}. Send it.`);
+        }
+      },
+    },
+    // Safety net for states this mission never reaches (phase/event always stay
+    // in lockstep — see runEvent()/advance()) but a future mission's content
+    // might. Without this, an unanticipated state would go silent.
+    {
+      id: "fallback",
+      match: () => true,
+      act: async (_i, ctx) => {
+        await ctx.hqSend(`${MY_CALL} DE ${HQ_CALL} AGN K`);
+        ctx.setStatus(`${HQ_CALL} didn't copy that — resend, or check the codebook for the right prowords.`);
+      },
+    },
+  ];
+
+  /** Player keys a message: plays it as sidetone, bumps danger, then routes
+   *  through the dialogue engine's rule table above. */
   private async transmit(raw: string): Promise<void> {
     const msg = raw.trim().toUpperCase();
     if (!msg || this.playing || !this.txEnabled) return;
@@ -776,69 +1087,18 @@ export class AdventureMode {
     this.txCount += 1;
     await this.playSelf(msg);
 
-    const isAgn = msg.includes("AGN");
-    const e = this.day[this.evtIx];
-
-    // Every transmission to KEN must lead with proper addressing (KEN DE GOOSE).
-    // Drop it and KEN doesn't know who's calling — real net discipline, and a real
-    // Q-code for it: QRZ. Nudge, not a hard fail — resend with the preamble.
-    if (!includesSequence(tokenizeWords(msg), [HQ_CALL, "DE", MY_CALL])) {
-      await this.hqSend(`${MY_CALL} DE ${HQ_CALL} QRZ K`);
-      this.setStatus(`${HQ_CALL} doesn't know who that was — lead with ${HQ_CALL} DE ${MY_CALL}.`);
-      this.refresh();
-      return;
-    }
-
-    if (this.phase === "sked" && e.kind === "sked" && this.evtIx === 0) {
-      // First contact of the day: QSL and the authenticator reply must arrive together.
-      // Token-based, not exact-string: tolerates real message variation (extra
-      // spacing, surrounding prowords, either order) without needing AI judgment.
-      const live = this.authTable[this.liveAuthIdx];
-      const words = tokenizeWords(msg);
-      const hasQsl = words.includes("QSL") || words.includes("R");
-      const hasAuth = includesSequence(words, ["I", "AUTHENTICATE", live.response]);
-      if (isAgn) {
-        await this.hqSend(e.msg);
-      } else if (hasQsl && hasAuth) {
-        await this.advance();
-      } else if (hasAuth) {
-        this.setStatus("Authenticated — now add QSL to the same transmission to complete the sked.");
-      } else if (hasQsl) {
-        await this.hqSend(`${MY_CALL} DE ${HQ_CALL} AUTHENTICATE ${live.challenge} K`);
-        this.setStatus(
-          `${HQ_CALL} won't log that without authentication — send QSL I AUTHENTICATE <code>, together.`
-        );
-      } else {
-        this.setStatus("Check the authenticator table, then send QSL I AUTHENTICATE <code>, or AGN? for a repeat.");
-      }
-    } else if (this.phase === "sked" && e.kind === "sked") {
-      const words = tokenizeWords(msg);
-      if (isAgn) await this.hqSend(e.msg);
-      else if (words.includes("QSL") || words.includes("R")) {
-        if (e.final) this.enterDone();
-        else await this.advance();
-      } else this.setStatus(`Send QSL to acknowledge ${HQ_CALL}, or AGN? for a repeat.`);
-    } else if (this.phase === "spot" && e.kind === "spot") {
-      if (isAgn) {
-        this.addSpot(e.sighting.prose, "the boy repeats");
-      } else {
-        const tk = tokenize(msg);
-        this.need = this.need.filter((f) => !fieldSatisfied(f, e.sighting, tk));
-        if (this.need.length === 0) {
-          await this.hqSend(SPOT_ACK);
-          await this.advance();
-        } else {
-          // Directed answer-back: HQ asks for exactly what's still missing/wrong.
-          await this.hqSend(`${MY_CALL} DE ${HQ_CALL} ${this.need.map((f) => PROWORD[f]).join(" ")} K`);
-          this.setStatus(`${HQ_CALL} wants: ${this.need.map((f) => FIELD_LABEL[f]).join(", ")}. Send it.`);
-        }
-      }
-    }
+    const input: DialogueInput = {
+      msg,
+      words: tokenizeWords(msg),
+      isAgn: msg.includes("AGN"), // a raw substring check, not token-based — see DialogueInput
+      tk: tokenize(msg),
+    };
+    await respond(AdventureMode.RULES, input, this);
     this.refresh();
   }
 
   private get txEnabled(): boolean {
-    return !this.playing && (this.phase === "sked" || this.phase === "spot");
+    return this.radioOn && !this.playing && (this.phase === "sked" || this.phase === "spot");
   }
 
   // ---- Audio + log helpers ------------------------------------------------
@@ -987,9 +1247,7 @@ export class AdventureMode {
     this.elFreqOut.textContent = `${this.freqKhz} kHz`;
     this.elPowerOut.textContent = `${this.power} W`;
 
-    this.elContinueBtn.hidden = this.phase !== "done";
-
-    const cold = this.phase === "cold";
+    const cold = this.phase === "cold" || !this.radioOn;
     this.elDials.classList.toggle("cold", cold);
     this.setKnobDisabled(cold);
     this.setPowerKnobDisabled(cold);
