@@ -10,11 +10,24 @@ export interface Settings {
   wordListId: string;
 }
 
-/** Cumulative attempts/correct per character, across all sessions. */
-export type CharStats = Record<string, { attempts: number; correct: number }>;
+export interface CharStat {
+  attempts: number;
+  correct: number;
+  /** Decaying EWMA "problem score" — wrongness plus normalized recognition latency,
+   *  roughly 0 (instant + correct) to 2 (wrong + maxed-out slow). Only populated by
+   *  modes that track timing (Word Wrangler, via recordTiming()) — undefined otherwise.
+   *  Higher means more practice needed; drives Word Wrangler's word-selection bias. */
+  difficulty?: number;
+}
+
+/** Cumulative attempts/correct (+ optional decaying difficulty) per character, across
+ *  all sessions. */
+export type CharStats = Record<string, CharStat>;
 
 const SETTINGS_KEY = "morse-games.settings";
 const STATS_KEY = "morse-games.charStats";
+const LATENCY_CAP_MS = 2500; // real lookup delays top out well under this; caps outlier damage from undetectable distraction
+const DIFFICULTY_EWMA_ALPHA = 0.25; // recent samples weigh more — matches the "self-heals" decaying-score design intent
 
 export const DEFAULT_SETTINGS: Settings = {
   charWpm: 20,
@@ -99,6 +112,26 @@ export function recordResult(char: string, correct: boolean): void {
   const entry = stats[char] ?? { attempts: 0, correct: 0 };
   entry.attempts += 1;
   if (correct) entry.correct += 1;
+  stats[char] = entry;
+  try {
+    localStorage.setItem(STATS_KEY, JSON.stringify(stats));
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Like recordResult(), but also folds recognition latency (ms between a character's
+ *  sound ending and the corresponding keystroke, right or wrong) into a decaying
+ *  difficulty score used to bias word selection. See Word Wrangler's timing capture
+ *  for how latencyMs is measured. */
+export function recordTiming(char: string, correct: boolean, latencyMs: number): void {
+  const stats = loadCharStats();
+  const entry = stats[char] ?? { attempts: 0, correct: 0 };
+  entry.attempts += 1;
+  if (correct) entry.correct += 1;
+  const ratio = Math.min(Math.max(latencyMs, 0), LATENCY_CAP_MS) / LATENCY_CAP_MS;
+  const sample = (correct ? 0 : 1) + ratio;
+  entry.difficulty = DIFFICULTY_EWMA_ALPHA * sample + (1 - DIFFICULTY_EWMA_ALPHA) * (entry.difficulty ?? sample);
   stats[char] = entry;
   try {
     localStorage.setItem(STATS_KEY, JSON.stringify(stats));

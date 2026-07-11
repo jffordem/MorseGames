@@ -60,6 +60,19 @@ export function computeTiming(charWpm: number, effectiveWpm: number): Timing {
   };
 }
 
+/** Total sound duration of one character's dit/dah pattern (elements + intra-character
+ *  gaps), excluding the inter-character gap that follows it. The single source of
+ *  truth for this math — reused by playChar() and by callers timing recognition
+ *  latency against when a character's sound actually ends (e.g. Word Wrangler). */
+export function charDurationMs(pattern: string, t: Timing): number {
+  let ms = 0;
+  for (let i = 0; i < pattern.length; i++) {
+    ms += pattern[i] === "-" ? t.dahMs : t.ditMs;
+    if (i < pattern.length - 1) ms += t.intraMs;
+  }
+  return ms;
+}
+
 /** Options for {@link MorseEngine.playString}. */
 export interface PlayStringOptions {
   /** Index to begin playback from (for resume). Defaults to 0. */
@@ -182,7 +195,7 @@ export class MorseEngine {
       }
     }
 
-    const totalMs = (cursor - startAt) * 1000 + 20;
+    const totalMs = charDurationMs(pattern, t) + 20;
     await delay(totalMs);
   }
 
