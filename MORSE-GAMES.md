@@ -336,14 +336,20 @@ Additional world-building — several of these resolve open threads.
   than a late-game twist. Two goals run in parallel and keep it
   from being an empty tutorial:
   1. **Primary — get shipped out:** reach the skill bar (the Koch / prosign / brevity-code
-     mastery gate = the graduation mechanic). This is a **genuine competency gate** —
-     **full Koch character set + prosigns, at 7.5 WPM minimum** (locked, 2026-07-09; see
-     **Speed as the difficulty gate** below) — not a formality: if you can't copy at a
-     basic clip you genuinely aren't ready for the field, so the gate protects you from a
-     deep end that wouldn't be fun, and it lets every field mission safely *assume* a
-     baseline. The elegant part: it makes fiction and pedagogy the *same thing* — **"ready
-     to ship out" literally means "able to copy CW."** No divergence between game goal and
-     learning goal (the holy grail for edutainment).
+     mastery gate = the graduation mechanic). This is a **genuine competency gate** — but
+     revised 2026-07-10 (see **Training Day design** below for the full reasoning): rather
+     than full Koch character set + prosigns, graduation gates on **7.5 WPM effective,
+     sustained accuracy, at whatever Koch subset training actually covers** — favoring
+     *speed* over *character-set completeness* as the pass criterion, since speed is
+     already established as the game's real difficulty axis (see **Speed as the difficulty
+     gate** below). Not a formality: if you can't copy at a basic clip you genuinely aren't
+     ready for the field, so the gate protects you from a deep end that wouldn't be fun,
+     and it lets every field mission safely *assume* a speed baseline (not a vocabulary
+     baseline — see below for why full vocabulary coverage is neither achievable nor
+     desirable from training alone). The elegant part still holds: it makes fiction and
+     pedagogy the *same thing* — **"ready to ship out" literally means "able to copy CW at
+     speed."** No divergence between game goal and learning goal (the holy grail for
+     edutainment).
   2. **Optional — solve the intrigue:** a mystery/problem that emerges *during* training,
      giving real stakes early, for players who want to dig.
   - **The mystery earns its keep two ways:** it introduces mechanics *diegetically* and
@@ -361,9 +367,65 @@ Additional world-building — several of these resolve open threads.
     feeding the roguelike-run / jump-in-jump-out pillar. One Act 1 then serves everyone:
     newcomers barely register the mystery, veterans blast the competency gate and focus on
     the puzzle.
-  - The instructor — a *harried corporal* / mentor — lives here and carries the
-    **coach/conductor persona** from PROJECT-PLAN. Reinforces the reluctant-hero *Father
-    Goose* tone (a nobody who turns out to matter).
+  - The instructor — **Andy**, a *harried corporal* / mentor — lives here and carries the
+    **coach/conductor persona** from PROJECT-PLAN's "assigning coach" idea: Andy's dialogue
+    *is* the coach mechanic, diegetically — no dashboard, no meta-UI, just Andy voicing
+    what the latency/difficulty data (shipped 2026-07-10 in `stats/storage.ts`) already
+    knows ("your dah's dragging on M, one more pass"). Tone: tough-but-fair, brief — real
+    drill instructors had hours; we have minutes, so Andy's toughness has to read as
+    honesty and economy, not volume. Reinforces the reluctant-hero *Father Goose* tone (a
+    nobody who turns out to matter).
+  - **Training Day design (2026-07-10) — the first playable training level.** Sketched
+    while validating the gating mechanics feel right, not yet built:
+    - **Reuse Random Run, themed — don't invent a new mechanic.** Random Run's existing
+      loop (Koch-gated character set, graduate via correct reps, free replay via Space, no
+      penalty for wrong answers) already satisfies "replays aren't forced" — the training
+      level is a cold-open card + Andy's framing wrapped around that mechanic, not a
+      bespoke shack-style capsule. Prove the loop cheaply before dressing it up, same
+      instinct that built the Kolombangara demo.
+    - **Koch coverage is necessarily partial, and that's fine — checked against real data.**
+      Adventure mode's actual vocabulary (every codebook word/proword/callsign) uses 24 of
+      26 letters (only J and X never appear) — but the standard Koch order (`KOCH_ORDER`
+      in `koch.ts`, the real LCWO/G4FON sequence) interleaves digits and punctuation with
+      letters from very early on (the AR prosign at position 14, BT at 17) and doesn't
+      complete the alphabet until its very last slot. The last letter Adventure needs (D)
+      doesn't appear until position 38 of 41 — reaching it means picking up nearly all the
+      digits/punctuation along the way regardless. **Decision: don't chase full coverage.**
+      Freeze training's Koch level early (covers the common letters solid), and let the
+      stragglers (the B/C/D/H/V/G/Q/Z-ish tail) get picked up ambiently during early field
+      missions, not as a training pre-req.
+    - **Graduation favors speed over Koch level (new mechanic, not yet built).** Today,
+      *neither* Random Run nor Word Wrangler ties graduation to WPM at all — it's pure
+      correct-rep volume at the current Koch level; speed is just a manual slider. Training
+      Day should invert that emphasis: freeze the Koch subset per above, then the actual
+      grind is effective WPM (Farnsworth spacing) creeping toward 7.5 as accuracy holds,
+      with graduation as "N consecutive clean reps at the target speed," not a raw
+      correct-count. Matches "speed is the real gate" directly.
+    - **The "did I get enough training for this?!" beat (2026-07-10) — Full Metal Jacket +
+      Old Man's War, composed.** The competency gate stays mechanically fair (never an
+      unplayable field deep end — that promise doesn't change); what changes is that
+      nothing *around* the gate should tell the player they're fully ready. Two registers,
+      composed rather than competing:
+      - **The personal register (FMJ).** Andy's send-off isn't triumphant — it carries
+        honest doubt. Not "you've got this, kid" but closer to "it's not enough. It never
+        is. It's what we had time for." He's not lying to GOOSE any more than a drill
+        instructor lies about what's coming; he's just out of time.
+      - **The institutional register (Old Man's War's "minimum bid").** The reason Andy's
+        out of time isn't personal — it's procurement. The gate is calibrated to
+        *deployable*, not *mastered*, by policy, from above Andy. **Bill** (already the one
+        who promotes/reassigns) is the natural vessel for that pressure if voiced at all —
+        the transport leaves Thursday, ready or not. This isn't a new theme grafted on: it's
+        the same vein as the Technician-grade "no brass out here" grumbling already in the
+        doc, just extended backward from rank to training. It's also historically honest,
+        not just borrowed fiction — wartime training pipelines really were compressed under
+        manpower pressure.
+      - **Guadalcanal Day 1 cashes the feeling in.** The existing "cold open — first sked,
+        still shaky" framing should lean into the gap: real static, a KEN who doesn't slow
+        down the way Andy did, the first message landing messier than any drill — same fair
+        7.5 WPM floor and forgiving AGN loop, just less hand-holding in the *framing*. The
+        partial-Koch-coverage decision above stops being a mere technical concession here
+        and becomes the mechanism for the feeling: GOOSE will genuinely hit a letter in the
+        field he never quite drilled clean.
   - *Design note: a pure "no base, learn entirely in-world" approach was considered and
     rejected — keep the base, just make it compelling and consequential.*
 - **The mission-element kit (the shack is the stage; assemble the beats).** The radio
@@ -781,14 +843,15 @@ the doc's core pillar ("Koch speed = difficulty," islands-as-difficulty ⇒ risi
 but this section locks in the concrete decisions for how a WPM jump feels from the
 inside, so a real skill wall never reads as an unfair one.
 
-- **Field missions open at full Koch + 7.5 WPM minimum, not a slow ramp-in (locked).**
-  No field mission ever assumes fewer than the complete character set and prosigns, and
-  none run below 7.5 WPM — this is the graduation gate from **Onboarding** above, now a
-  concrete number rather than the earlier "~5–7 WPM (tunable)." Two reasons, both
-  load-bearing: **realism** (nobody ships an operative to the field without the full
-  set — a partial-character operator isn't a plausible soldier, it's a tutorial
-  fiction leaking into the world) and **felt accomplishment** (jumping from the 5 WPM
-  trainer baseline to 7.5 for the first field mission is itself a win the player can
+- **Field missions open at 7.5 WPM minimum, not a slow ramp-in (locked).** No field
+  mission ever runs below 7.5 WPM — this is the graduation gate from **Onboarding**
+  above, now a concrete number rather than the earlier "~5–7 WPM (tunable)." **Revised
+  2026-07-10:** the gate is speed-first, not full-character-set-first (see **Training
+  Day design** under Onboarding for why full Koch coverage isn't achievable — or
+  desirable — from training alone). Two reasons the speed floor itself is load-bearing:
+  **realism** (nobody ships an operative to the field who can't copy at a basic clip —
+  that's a tutorial fiction leaking into the world) and **felt accomplishment** (jumping
+  from the 5 WPM trainer baseline to 7.5 for the first field mission is itself a win the player can
   feel, not just a number going up). The training-base competency gate is what makes
   this honest rather than a difficulty cliff — see **Onboarding** above.
 - **Rejected: a fading/partial Show Text reveal.** Considered as a way to wean players
@@ -825,6 +888,29 @@ inside, so a real skill wall never reads as an unfair one.
   (`Danger: low (this island)`, hardcoded regardless of `txCount`); this section is the
   target design for whenever that gets wired up for real, not a description of current
   behavior.
+- **The posting-by-posting WPM curve, anchored to real license-class speeds
+  (2026-07-10).** Escalation should step at posting transitions, not creep smoothly
+  mission-to-mission (consistent with "rank ties in only at posting transitions" in
+  Campaign structure & pacing above). Rather than pick arbitrary numbers, the curve maps
+  onto the real pre-2000 FCC code-speed ladder — 5 WPM was Novice, 13 WPM was General, 20
+  WPM was Extra — so the campaign's speed target is authentic ham history, not an
+  invented game curve, and 20 WPM (the eventual ceiling) is a real, respected, achievable
+  benchmark rather than a superhuman one:
+
+  | Posting | Effective WPM | Real-world anchor |
+  |---|---|---|
+  | Training (prologue) | 5 → 7.5 | Novice floor, climbing to the graduation gate |
+  | Guadalcanal | 7.5 (locked) | just past Novice — competent, still clearly green |
+  | New Georgia / Munda | ~10 | everyday working/rag-chew speed |
+  | Kolombangara | ~13 | the real General-class milestone — lands on the built demo |
+  | Bougainville (both postings) | ~16–18 | approaching Extra, matches rising danger |
+  | Bougainville invasion / finale | ~20 | the real Extra-class ceiling |
+
+  Flat within a posting (only enemy WPM/DF/sked-frequency creep day-to-day per the
+  existing two-axis escalation note); the player's own required floor only jumps at a
+  posting transition, alongside the rank/promotion beat. Magic Carpet's finale doesn't
+  need a higher number — its skill test shifts to coordination (the relay-net-at-scale
+  role), not raw copy speed, so 20 WPM plateaus rather than climbing further.
 
 ## The transition screen
 

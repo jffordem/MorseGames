@@ -396,10 +396,28 @@ Score the way a contester thinks, not raw keystrokes:
   finds new contacts. Open "realistic vs. actually fun" questions are collected under
   [Questions for Hams](#questions-for-hams) — to be settled with experienced operators
   before this is built.
-- **Adaptive difficulty in Word Wrangler (weak-character biasing).** Quietly track
-  which characters trip you up and bias the next word toward them, so practice
-  self-targets your weak spots without any manual setup. Design worked out during
-  brainstorming:
+- **Adaptive difficulty in Word Wrangler (weak-character biasing) — phase 1 shipped
+  2026-07-10, extended beyond the original design.** Quietly track which characters
+  trip you up and bias the next word toward them, so practice self-targets your weak
+  spots without any manual setup. **Implemented differently than first sketched below:**
+  rather than substitution-based confusion tracking, the shipped version drives the
+  decaying score off **recognition latency** — the delay between a character's sound
+  ending and the corresponding keystroke, right or wrong (`recordTiming()` in
+  `src/stats/storage.ts`; capture logic in `src/modes/word-wrangler.ts` and
+  `src/modes/random-run.ts`; `charDurationMs()` extracted to `src/audio/morse-engine.ts`
+  as the shared timing source of truth). Distraction/noise handling: any single latency
+  sample is capped (2500ms) rather than trying to classify *why* a gap is long; a tab
+  hidden mid-attempt (Page Visibility API), an edit (backspace/paste) mid-word, a replay,
+  or the first ~45s of a session (settling-in jitter) all discard that measurement's
+  latency data — scoring/streak/attempts are never affected, only the difficulty signal.
+  `pick()` in both modes weights by `1 + Σ difficulty` with the ~30% pure-random floor
+  described below. **Shipped to both Word Wrangler and Random Run** (Random Run's
+  strict call-and-response shape made it the cleaner of the two to instrument, despite
+  Word Wrangler shipping first) — a broader character set (punctuation/numbers/prosigns)
+  feeds the same shared difficulty pool. **Not yet built:** the substitution confusion
+  matrix (`confusions[heard][typed]`) and minimal-pair drilling described below — still
+  a legitimate phase 2, now layered on top of a working latency signal rather than
+  instead of one. Original design notes preserved below for that follow-on work:
   - **Localize the error, don't just flag the whole word.** Replays are a weak, diffuse
     signal (you replay the entire word). Misses are far sharper *if* you diff the guess
     against the target: typing `FEAF` for `LEAF` says you substituted **F for L** at a

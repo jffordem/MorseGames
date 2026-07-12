@@ -6,12 +6,16 @@ import { KOCH_ORDER, MORSE, kochSet } from "../data/koch";
 import {
   loadSettings,
   saveSettings,
+  loadCharStats,
   recordResult,
+  recordTiming,
   Settings,
 } from "../stats/storage";
 
 const GRADUATION_STEP = 5; // characters added per level-up
 const GRADUATION_PER_CHAR = 20; // correct copies per active char to graduate
+const RANDOM_PICK_FLOOR = 0.3; // fraction of picks that stay pure-random, so biasing stays quiet
+const WARMUP_MS = 45000; // ignore latency data for this long after Start — settling-in jitter isn't real difficulty
 
 interface SessionStats {
   score: number;
@@ -47,6 +51,17 @@ export class RandomRunMode {
   private current = "";
   private recentPicks: string[] = [];
   private session: SessionStats = freshSession();
+
+  // Recognition-latency capture — invisible to the player, feeds the same decaying
+  // per-character difficulty score as Word Wrangler (see stats/storage.ts). Random Run
+  // is strict call-and-response (one char, one keystroke), so this needs only a single
+  // timestamp pair per round rather than Word Wrangler's per-position correlation.
+  private charEndTime = 0;
+  private timingReliable = false;
+  private sessionStartTime = 0;
+  private onVisibilityChange = (): void => {
+    if (document.hidden && this.running) this.timingReliable = false;
+  };
 
   // Cached element refs
   private elDisplay!: HTMLElement;
@@ -88,11 +103,13 @@ export class RandomRunMode {
     this.root.appendChild(this.buildControls());
     this.refreshHud();
     document.addEventListener("keydown", this.onKeyDown);
+    document.addEventListener("visibilitychange", this.onVisibilityChange);
   }
 
   unmount(): void {
     this.stop();
     document.removeEventListener("keydown", this.onKeyDown);
+    document.removeEventListener("visibilitychange", this.onVisibilityChange);
   }
 
   // ---- DOM construction ---------------------------------------------------
@@ -247,6 +264,7 @@ export class RandomRunMode {
     await this.engine.resume();
     this.session = freshSession();
     this.recentPicks = [];
+    this.sessionStartTime = performance.now();
     this.running = true;
     this.elStartBtn.textContent = "⏹ Stop";
     this.refreshHud();
@@ -262,6 +280,9 @@ export class RandomRunMode {
     this.showSummary();
   }
 
+  /** Mostly weights toward characters with a high decaying difficulty score (see
+   *  stats/storage.ts's recordTiming()), but a fixed fraction of picks stay
+   *  pure-random so biasing stays quiet rather than becoming a repetitive grind. */
   private pick(): string {
     const chars = this.activeChars;
     let candidates = chars;
@@ -274,7 +295,18 @@ export class RandomRunMode {
       candidates = chars.filter((c) => c !== banned);
       if (candidates.length === 0) candidates = chars;
     }
-    return candidates[Math.floor(Math.random() * candidates.length)];
+    if (Math.random() < RANDOM_PICK_FLOOR) {
+      return candidates[Math.floor(Math.random() * candidates.length)];
+    }
+    const stats = loadCharStats();
+    const weights = candidates.map((c) => 1 + (stats[c]?.difficulty ?? 0));
+    const total = weights.reduce((a, b) => a + b, 0);
+    let r = Math.random() * total;
+    for (let i = 0; i < candidates.length; i++) {
+      r -= weights[i];
+      if (r <= 0) return candidates[i];
+    }
+    return candidates[candidates.length - 1]; // float-rounding fallback
   }
 
   private async nextChar(): Promise<void> {
@@ -282,11 +314,13 @@ export class RandomRunMode {
     this.current = this.pick();
     this.recentPicks.unshift(this.current);
     this.recentPicks = this.recentPicks.slice(0, 2);
+    this.timingReliable = true; // reset each round; only an event (replay, tab-hide) knocks this false
 
     this.setDisplay("♪", "listening", "Listening…");
     this.awaitingInput = false;
     await this.engine.playChar(this.current);
     if (!this.running) return;
+    this.charEndTime = performance.now();
     this.awaitingInput = true;
   }
 
@@ -302,6 +336,9 @@ export class RandomRunMode {
       e.preventDefault();
       if (this.awaitingInput) {
         this.session.replays += 1;
+        // Replaying restarts the audio schedule, so any latency measured against the
+        // original charEndTime would no longer be meaningful — drop it for this round.
+        this.timingReliable = false;
         void this.engine.playChar(this.current);
       }
       return;
@@ -316,17 +353,26 @@ export class RandomRunMode {
 
     e.preventDefault();
     this.awaitingInput = false;
-    void this.evaluate(guess);
+    const latencyMs = performance.now() - this.charEndTime;
+    void this.evaluate(guess, latencyMs);
   };
 
-  private async evaluate(guess: string): Promise<void> {
+  private async evaluate(guess: string, latencyMs: number): Promise<void> {
     const correct = guess === this.current;
     this.session.attempts += 1;
     const pc = this.session.perChar[this.current] ?? { attempts: 0, correct: 0 };
     pc.attempts += 1;
     if (correct) pc.correct += 1;
     this.session.perChar[this.current] = pc;
-    recordResult(this.current, correct);
+    // Fold recognition latency into the decaying difficulty score when it's
+    // trustworthy — no replay/tab-hide since the sound finished, and the session has
+    // settled in past its warm-up window (checked fresh here, not cached at round
+    // start, so a long pause mid-round still crosses the threshold correctly).
+    // Otherwise fall back to the plain attempts/correct update so lifetime stats are
+    // never skipped.
+    const pastWarmup = performance.now() - this.sessionStartTime >= WARMUP_MS;
+    if (this.timingReliable && pastWarmup) recordTiming(this.current, correct, latencyMs);
+    else recordResult(this.current, correct);
 
     if (correct) {
       this.session.score += 1;

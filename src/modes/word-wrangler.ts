@@ -3,16 +3,18 @@
 // current Koch character set (and capped in length to keep the pace up). You
 // hear the word, type it (as you go), and press Enter to submit.
 
-import { MorseEngine } from "../audio/morse-engine";
-import { KOCH_ORDER, kochSet } from "../data/koch";
+import { MorseEngine, charDurationMs } from "../audio/morse-engine";
+import { KOCH_ORDER, kochSet, MORSE } from "../data/koch";
 import { loadWordList, formableWords, WORD_LISTS } from "../data/words";
-import { loadSettings, saveSettings, Settings } from "../stats/storage";
+import { loadSettings, saveSettings, loadCharStats, recordTiming, Settings } from "../stats/storage";
 
 const GRADUATION_STEP = 5; // Koch characters added per level-up
 const WORDS_PER_CHAR = 5; // correct words per active char to graduate
 const MIN_WORD_LEN = 2;
 const MAX_WORD_LEN = 7; // cap length to keep the game moving
 const LEAD_IN_MS = 300; // inaudible primer window before a word so the first symbol isn't clipped
+const RANDOM_PICK_FLOOR = 0.3; // fraction of picks that stay pure-random, so biasing stays quiet
+const WARMUP_MS = 45000; // ignore latency data for this long after Start — settling-in jitter isn't real difficulty
 
 interface SessionStats {
   score: number;
@@ -53,6 +55,16 @@ export class WordWranglerMode {
   private current = "";
   private lastWord = "";
   private session: SessionStats = freshSession();
+
+  // Recognition-latency capture for the current word attempt — invisible to the
+  // player, feeds the decaying per-character difficulty score (see submit()).
+  private charEndTimes: number[] = []; // charEndTimes[i] = wall-clock time character i's sound finished
+  private keystrokeTimes: number[] = []; // keystrokeTimes[i] = wall-clock time the i-th letter was typed
+  private timingReliable = false; // false once an edit (backspace/paste) or a tab-hide happens mid-attempt
+  private sessionStartTime = 0;
+  private onVisibilityChange = (): void => {
+    if (document.hidden && this.running) this.timingReliable = false;
+  };
 
   // element refs
   private elDisplaySub!: HTMLElement;
@@ -96,10 +108,12 @@ export class WordWranglerMode {
     this.root.appendChild(this.buildControls());
     this.refreshHud();
     void this.loadDictionary();
+    document.addEventListener("visibilitychange", this.onVisibilityChange);
   }
 
   unmount(): void {
     this.stop();
+    document.removeEventListener("visibilitychange", this.onVisibilityChange);
   }
 
   private async loadDictionary(): Promise<void> {
@@ -227,6 +241,7 @@ export class WordWranglerMode {
     this.elInput.placeholder = "type the word…";
     this.elInput.disabled = true;
     this.elInput.addEventListener("keydown", this.onInputKey);
+    this.elInput.addEventListener("input", this.onInputChange);
 
     const progressWrap = el("div", "progress");
     this.elProgressBar = el("div", "progress-bar");
@@ -292,6 +307,7 @@ export class WordWranglerMode {
     await this.engine.resume();
     this.session = freshSession();
     this.lastWord = "";
+    this.sessionStartTime = performance.now();
     this.running = true;
     this.elStartBtn.textContent = "⏹ Stop";
     this.elReplayBtn.disabled = false;
@@ -313,12 +329,31 @@ export class WordWranglerMode {
     this.showSummary();
   }
 
+  /** Mostly weights toward words containing weak characters (per-character decaying
+   *  difficulty score from recognition latency + wrongness — see recordTiming()), but
+   *  a fixed fraction of picks stay pure-random so biasing stays quiet rather than
+   *  becoming a repetitive grind on the same few letters. */
   private pick(): string {
     let candidates = this.pool;
     if (this.lastWord && this.pool.length > 1) {
       candidates = this.pool.filter((w) => w !== this.lastWord);
     }
-    return candidates[Math.floor(Math.random() * candidates.length)];
+    if (Math.random() < RANDOM_PICK_FLOOR) {
+      return candidates[Math.floor(Math.random() * candidates.length)];
+    }
+    const stats = loadCharStats();
+    const weights = candidates.map((w) => {
+      let weight = 1;
+      for (const ch of w) weight += stats[ch]?.difficulty ?? 0;
+      return weight;
+    });
+    const total = weights.reduce((a, b) => a + b, 0);
+    let r = Math.random() * total;
+    for (let i = 0; i < candidates.length; i++) {
+      r -= weights[i];
+      if (r <= 0) return candidates[i];
+    }
+    return candidates[candidates.length - 1]; // float-rounding fallback
   }
 
   private async nextWord(): Promise<void> {
@@ -331,6 +366,9 @@ export class WordWranglerMode {
     this.elInput.disabled = false;
     this.elInput.focus();
     this.elDisplaySub.textContent = "♪ Listening… (type as you go)";
+    this.charEndTimes = [];
+    this.keystrokeTimes = [];
+    this.timingReliable = true; // reset each word; only an event (edit, tab-hide, replay) knocks this false
     await this.playCurrent();
   }
 
@@ -348,7 +386,13 @@ export class WordWranglerMode {
       // finishes re-acquiring before the first symbol instead of clipping it.
       await this.engine.primeOutput(LEAD_IN_MS);
       if (!this.running) return;
-      await this.engine.playString(this.current);
+      await this.engine.playString(this.current, {
+        onCharStart: (char, index) => {
+          const pattern = MORSE[char.toUpperCase()];
+          if (!pattern) return;
+          this.charEndTimes[index] = performance.now() + charDurationMs(pattern, this.engine.timing);
+        },
+      });
     } finally {
       this.playing = false;
       if (this.running) this.elReplayBtn.disabled = false;
@@ -375,9 +419,26 @@ export class WordWranglerMode {
     }
   };
 
+  /** Recognition-latency capture: a keystroke that grows the input by exactly one
+   *  character is timestamped at its position. Any other edit (backspace, paste) means
+   *  position-correlation with charEndTimes is no longer meaningful, so the whole
+   *  attempt's timing data is dropped — scoring/streak are unaffected either way. */
+  private onInputChange = (): void => {
+    const len = this.elInput.value.length;
+    if (len === this.keystrokeTimes.length + 1) {
+      this.keystrokeTimes.push(performance.now());
+    } else if (len !== this.keystrokeTimes.length) {
+      this.timingReliable = false;
+    }
+  };
+
   private replay(): void {
     if (!this.running || !this.current || this.playing) return;
     this.session.replays += 1;
+    // A replay restarts the audio schedule but keeps already-typed letters, so any
+    // keystroke timestamps already captured no longer line up with the new
+    // charEndTimes schedule about to be recorded — drop this attempt's timing data.
+    this.timingReliable = false;
     this.elInput.focus();
     void this.playCurrent();
   }
@@ -392,6 +453,19 @@ export class WordWranglerMode {
     this.evaluating = true;
     const correct = guess === this.current;
     this.session.attempts += 1;
+
+    // Fold per-character recognition latency into the decaying difficulty score, if
+    // this attempt's timing data is still trustworthy (no edits, no tab-hide, no
+    // mid-attempt replay) and the session has settled in past its warm-up window
+    // (checked fresh here, not cached at word start, so a long pause before typing
+    // still crosses the threshold correctly). Purely a background signal — never
+    // shown to the player.
+    if (this.timingReliable && performance.now() - this.sessionStartTime >= WARMUP_MS) {
+      const n = Math.min(this.charEndTimes.length, this.keystrokeTimes.length, this.current.length);
+      for (let i = 0; i < n; i++) {
+        recordTiming(this.current[i], guess[i] === this.current[i], this.keystrokeTimes[i] - this.charEndTimes[i]);
+      }
+    }
 
     if (correct) {
       this.session.score += 1;

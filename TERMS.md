@@ -38,37 +38,49 @@ or indirect, arising from use of, or inability to use, the app.
 
 **2. No data collection.**
 The app has no server-side backend, no user accounts, and no login. It does not
-collect, store, transmit, or share any personal information. Settings, statistics, and
-progress are stored only in your own browser's local storage and never leave your
-device. The app does not use cookies, analytics, or tracking of any kind. (The hosting
-provider serving these files may keep its own standard, incidental web server access
-logs — that's outside the app's control and not something the app itself generates or
-can access.)
+automatically collect, store, transmit, or share any personal information about you or
+your usage. Settings, statistics, and progress are stored only in your own browser's
+local storage and never leave your device. The app does not use cookies, analytics, or
+tracking of any kind. (The hosting provider serving these files may keep its own
+standard, incidental web server access logs — that's outside the app's control and not
+something the app itself generates or can access.)
 
-**3. Content notice.**
+**3. Feedback (opt-in).**
+The "Send Feedback" link is entirely optional and voluntary — the app never prompts,
+tracks, or collects anything on its own. Clicking it opens your own email app, where
+*you* compose and send the message yourself — the app does not transmit anything on
+your behalf. Because of that, sending feedback this way will reveal your email address
+to us as the sender, the same as emailing anyone else directly; there's no anonymous
+form involved. If you'd rather not share your email address, simply don't use this
+link. If you do send feedback, we may keep it to help improve the app. Please don't
+include sensitive personal information in it. This is a deliberate carve-out from §2
+above: §2 is about what the app does automatically; this section is about what you
+choose to send us yourself, which is a different thing.
+
+**4. Content notice.**
 Some training modes are built around fictionalized narrative scenarios set during World
 War II (the "Adventure" mode). These are written with care and restraint — the intent is
 respectful, non-graphic historical fiction, not violence for its own sake — but they do
 reference wartime danger and real historical events. If wartime themes are not something
 you want to engage with, we'd recommend skipping those modes.
 
-**4. Health notice.**
+**5. Health notice.**
 The app includes brief animated visual effects (e.g. glowing/pulsing UI elements) and
 audio tones. These are designed to be gentle, low-contrast, and slow (well under
 typical flash-rate thresholds) — not intended to flash or flicker rapidly. If you have
 photosensitive epilepsy or any condition that could be affected by on-screen animation
 or audio, please consult a physician before use.
 
-**5. Not professional instruction.**
+**6. Not professional instruction.**
 This app is an informal training tool for practicing Morse code (CW) and related ham
 radio skills. It is not a substitute for official licensing study materials, an
 accredited course, or guidance from a licensed instructor or examiner.
 
-**6. Changes.**
+**7. Changes.**
 These terms may be updated as the app changes. Continued use after an update
 constitutes acceptance of the revised terms.
 
-**7. Governing law.** *[placeholder — worth having your lawyer friend pick a
+**8. Governing law.** *[placeholder — worth having your lawyer friend pick a
 jurisdiction/venue here if he thinks it's warranted for something this low-stakes; left
 blank rather than guessing]*
 
@@ -84,3 +96,17 @@ blank rather than guessing]*
 - The short modal text should stay short (a glance, not a wall of text) — the full
   version above is what actually carries the substantive disclaimer, and only needs to
   be read by someone who clicks through.
+- **Feedback link (2026-07-10 decision):** label it **"Send Feedback"** — the label
+  itself signals the opt-in nature described in §3, no separate confirmation needed.
+  Place it in the persistent `<header class="app-header">` in `index.html` (outside
+  `#mode-root`, so it's present on every tab and never touches Adventure mode's
+  immersive shack). Mechanism: a plain `mailto:` link to a **dedicated "feedback"
+  address, not a personal one** — cheap insurance against spam/abuse (easy to rotate
+  without disrupting anything personal), keeps the app at zero backend/zero new
+  hosting, and keeps §3's disclosure simple (no third-party form processor to name).
+- **In-context caption, next to the link itself (not just in §3):** a small, persistent
+  line of muted text — e.g. *"Opens your email app — sending reveals your email
+  address to us, the same as emailing anyone directly."* Reinforces §3 at the actual
+  point of action rather than relying on a first-visit modal most people won't reread,
+  and doubles as a light, honest deterrent for drive-by negativity: knowing the message
+  isn't anonymous tends to raise the bar on what people are willing to send.
