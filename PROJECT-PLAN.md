@@ -475,7 +475,13 @@ Score the way a contester thinks, not raw keystrokes:
     `QRZ`, common call-sign fragments — drilled as single sound units. A fluent op hears
     these as one sound, never as letters. Builds a vocabulary of instantly-recognized
     phrases (the CW equivalent of a musician's licks) that leads into head-copy (mode 5),
-    the "playing by ear" endgame. Could ship as a Word Wrangler word-list.
+    the "playing by ear" endgame. Could ship as a Word Wrangler word-list. **Confirmed as
+    a real priority (2026-07-13)** — of everything bounced around in that session's
+    brainstorm, this is the one the user specifically wants kept on the list, with
+    **Q-codes and common RST numbers** named as the priority content to cover first
+    (over the fuller CQ/DE/73/callsign-fragment set above). Cheapest possible version:
+    just a new word-list text file — no new mode, no new engine work, reuses the
+    adaptive-difficulty tracking Word Wrangler already has.
   - **Kill the dit-dah crutch (app-wide principle).** Never present dots-and-dashes as the
     *primary* representation — every rendered `·—··` reinforces the lookup table. Represent
     characters by **sound** and by **letter**, not by symbol. Musician-friendly exception:
