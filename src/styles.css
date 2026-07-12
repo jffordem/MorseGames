@@ -308,6 +308,37 @@ main {
   opacity: 0.4;
 }
 
+/* Field Day log table */
+.log-table {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-top: 0.5rem;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.log-row {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr;
+  gap: 0.5rem;
+  padding: 0.3rem 0.5rem;
+  border-radius: 6px;
+  font-variant-numeric: tabular-nums;
+}
+.log-row--head {
+  color: var(--muted);
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+}
+.log-row:not(.log-row--head) {
+  background: var(--panel-2);
+}
+.log-row--dupe {
+  opacity: 0.55;
+  text-decoration: line-through;
+}
+
 /* Select + textarea (reading mode) */
 .field select,
 .field textarea {
@@ -555,6 +586,11 @@ main {
   align-items: flex-end;
   gap: 2rem;
   flex-wrap: nowrap;
+}
+/* Anchors the power knob to the panel's right edge instead of wherever the
+ * frequency row's width happens to end — see field-day.ts for why. */
+.dials-row--spread {
+  justify-content: space-between;
 }
 .knob-row {
   display: flex;

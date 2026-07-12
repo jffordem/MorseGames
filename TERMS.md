@@ -64,6 +64,14 @@ respectful, non-graphic historical fiction, not violence for its own sake — bu
 reference wartime danger and real historical events. If wartime themes are not something
 you want to engage with, we'd recommend skipping those modes.
 
+Separately, contest-style training modes (e.g. "Field Day") generate **random,
+fictional callsigns** for practice contacts, following real amateur-radio callsign
+formats for realism. These are randomly generated for gameplay purposes only and are
+not intended to identify, depict, or refer to any real person, station, or
+organization — any resemblance to an actual callsign is coincidental, the same way a
+film disclaims its characters' names. If a generated callsign happens to match your
+own, it's chance, not reference.
+
 **5. Health notice.**
 The app includes brief animated visual effects (e.g. glowing/pulsing UI elements) and
 audio tones. These are designed to be gentle, low-contrast, and slow (well under

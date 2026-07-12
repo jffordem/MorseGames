@@ -3,6 +3,7 @@ import { RandomRunMode } from "./modes/random-run";
 import { WordWranglerMode } from "./modes/word-wrangler";
 import { ReadingMode } from "./modes/reading";
 import { AdventureMode } from "./modes/adventure";
+import { FieldDayMode } from "./modes/field-day";
 
 const root = document.getElementById("mode-root") as HTMLElement;
 const tabs = document.getElementById("tabs") as HTMLElement;
@@ -34,6 +35,12 @@ function activate(tab: string): void {
     }
     case "adventure": {
       const mode = new AdventureMode(root);
+      mode.mount();
+      current = mode;
+      break;
+    }
+    case "contest": {
+      const mode = new FieldDayMode(root);
       mode.mount();
       current = mode;
       break;
