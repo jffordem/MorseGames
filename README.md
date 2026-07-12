@@ -68,8 +68,13 @@ docker compose up
   characters as accuracy builds.
 - **Word Wrangler** — Hear a word, type it. Word list is filtered to only include words
   you can form with your current Koch character set.
+- **Contest** — Run a Field Day contest: call CQ (or QRZ), work callers, and copy their
+  exchange to log it. Tune to an available 20m frequency first — no fixed time limit,
+  just work as many contacts as you like.
 - **Reading** — Passive listening to public-domain texts (Aesop, Gettysburg Address,
   Alice in Wonderland). Bookmarks your place between sessions.
+- **Adventure** — A narrative radio-shack mission: tune to HQ, copy orders, and encode
+  reports as a WWII coastwatcher. Multiple missions to choose from, freely replayable.
 
 ## Settings
 

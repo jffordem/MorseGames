@@ -1509,6 +1509,13 @@ persistence. Build & run via Docker (`docker compose up --build`, served on :408
   at high ranks; now also tied to posting transitions per Campaign structure above). Still
   to pin down: what rank gates, and whether WPM ceiling / brevity vocabulary / unlocked
   islands are separate tracks or all rolled into rank.
+- **Rank badges — a visual signifier for promotion, not yet designed (2026-07-13, note
+  for later).** The Technician-grade rank ladder above (T/5→T/4→T/3, tied to posting
+  transitions) has no visual representation yet — just a narrative beat. Worth
+  designing actual insignia-style badges for each promotion, mirrors the QSL-card idea
+  parked for Contest mode in `PROJECT-PLAN.md`'s "Challenge mode" note: a real,
+  period-appropriate visual form (WWII Technician-grade chevrons, not a generic game
+  icon) so a promotion *looks* like the milestone it narratively is.
 - **Setting** — leaning **Coastwatcher-first with islands-as-difficulty**; SOE stays a
   possible later skin over the same engine. Confirm before building.
 - **Immersive UI language** — the transition screen settled its own chrome (UI overlay, not

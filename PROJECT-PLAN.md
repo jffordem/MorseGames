@@ -607,6 +607,83 @@ Score the way a contester thinks, not raw keystrokes:
 - **Strict scoring mode** — real-ARRL-style penalties for busted QSOs, as a toggle.
 - **Club angle** — shared daily-challenge seed; compare scores at a meeting.
   Fits the "social, bounded, high-visibility" energy rubric.
+- **Challenge mode: confusion-pair & digraph drills, with badges that "look as real as
+  they feel" (2026-07-13).** Surfaced by a user noticing Word Wrangler serves very few
+  "qu" words — turned out to be plain letter-frequency rarity (~1% of the word list),
+  not a bug, which led to a real idea: a dedicated drill mode targeting the specific
+  letter combinations that actually trip people up, with milestone badges to match.
+  Explicit tone constraint from the user: **"not trying to turn it into Beat Saber" —
+  a little gamification, not an arcade layer.** That constraint actually points at the
+  right answer: the most on-brand "gamification" here is borrowing *real* ham culture
+  (paper certificates, QSL cards, award nets), which is already understated, rather than
+  inventing flashy game chrome — consistent with "ham-centric, not a kids' typing game"
+  above.
+  - **Two different drills, because they're two different skills.** Don't lump them
+    together:
+    - **Reversal-pair discrimination.** `G/W`, `L/F`, `Q/Y` (as the user named them) are
+      the exact three genuine Morse **reversal pairs** already identified under
+      Adaptive difficulty above — the pattern read backward *is* the other letter
+      (L `.-..` reversed is F's `..-.`; Q `--.-` reversed is Y's `-.--`; W `.--`
+      reversed is G's `--.`). A challenge built around *one named pair at a time* — a
+      focused stream of just those two characters (and words containing them) — turns
+      "the ear grabs the right dots/dashes but scrambles their order" from a diagnosed
+      weakness into a nameable, beatable opponent. The per-character difficulty data
+      already shipped (`recordTiming()`'s `CharStat.difficulty`, Word Wrangler + Random
+      Run) already knows which pair is live-confusing a given player right now — the
+      parked "assigning coach" idea could recommend the right challenge directly
+      ("your L/F confusion crept back — try the L/F Buster").
+    - **Digraph chunking — QU, CK, and similar.** Not a confusion pair at all (Q and U
+      don't sound alike or invert into each other) — it's a spelling regularity (Q is
+      almost always followed by U in English; CK is a common word-final pair). The goal
+      here is chunking, not discrimination: hearing "QU" or "CK" as one fluent unit
+      instead of two separately-decoded letters — the same "phrases as licks" idea
+      already parked for prosigns/callsigns, applied to ordinary spelling patterns.
+  - **Badges modeled on real ham awards, not generic game badges.** A few ideas, all
+    aimed at "this represents something a real operator would recognize," not a
+    points-and-confetti layer:
+    - **License-class WPM milestones.** The campaign's own WPM curve is already
+      anchored to real license speeds (5=Novice, 13=General, 20=Extra — see
+      `MORSE-GAMES.md`'s "Speed as the difficulty gate"). The *same* real milestones
+      apply to the base trainer directly — hitting 10 WPM (a real, respected
+      "everyday working speed," per that section) is worth a concrete, named
+      acknowledgment in Random Run/Word Wrangler too, not just in-fiction. This is the
+      cheapest, most honest badge to build first, and it's already backed by real
+      numbers rather than invented thresholds.
+    - **A QSL-card-styled certificate as the actual visual form factor, specifically
+      for Contest mode (flagged 2026-07-13 to think through more later — not designed
+      yet).** Real hams collect QSL cards (confirmation postcards) as physical proof of
+      contacts — a milestone "badge" designed to look like one (a small card-style
+      graphic, not an icon or a progress-bar pop-up) would carry the "looks as real as
+      it feels" feeling directly, and it's a cheap, static asset to design once and
+      stamp with whatever the milestone is. Adventure mode's equivalent signifier would
+      be **rank badges** instead (period insignia, not a QSL card) — see the new note
+      under `MORSE-GAMES.md`'s Meta-progression detail. **Risk noted (2026-07-13):** a
+      QSL card is a very specific, recognizable real object — a mediocre facsimile risks
+      reading as kitsch rather than authentic, which would undermine the exact goal it's
+      meant to serve, and there's no in-house art budget to guarantee it looks right.
+    - **Lower-risk alternative: a lifetime QSO-count milestone (10 / 100 / 1,000 /
+      ...), no artwork required.** Sidesteps the facsimile-risk above entirely while
+      staying just as grounded in real ham culture — a running lifetime contact count is
+      a genuine, tracked bragging-rights number for real operators (the same instinct as
+      a birder's life list). Just needs a persisted running total + a threshold check,
+      no visual asset to get right or wrong. Worth treating as the safer default and the
+      QSL card as the stretch/nice-to-have on top, not the other way around.
+    - **A "Worked All ___" style collection badge for Contest mode**, echoing the real
+      ARRL "Worked All States" award — Field Day already tracks unique sections worked
+      as its multiplier; surfacing "X of Y sections worked" as a genuine collection
+      goal (not just a score multiplier) reuses data that already exists.
+    - **A contest-certificate summary for a strong Field Day session** — real contests
+      issue certificates/plaques; a session summary styled the same way (rather than
+      just numbers in a modal) would be a cheap, authentic payoff for a good run.
+    - **Retiring a confusion pair earns its own small badge** — "you now own L and F"
+      (already the RPG-eagerness section's phrasing above), specifically tied to
+      clearing the reversal-pair challenge described above, not just general accuracy.
+  - **Restraint note, given the Beat Saber caveat:** keep the *frequency* of badges low
+    and the *meaning* high — a handful of real, well-earned milestones (WPM classes, a
+    couple of named confusion pairs, one contest certificate) beats a long checklist of
+    minor achievements. The goal is confidence at a few real moments (like the user's
+    own "just hit 10 WPM, feels like a milestone"), not a constant drip of dopamine
+    pings.
 
 ## Questions for Hams
 
