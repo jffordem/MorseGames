@@ -545,12 +545,15 @@ main {
   font-style: italic;
   color: var(--muted);
 }
-.mission-list {
+.mission-nav {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
   gap: 0.5rem;
-  justify-content: center;
   margin-top: 0.8rem;
+}
+.mission-nav-slot {
+  flex: 1 1 0;
+  min-width: 0;
 }
 .shack-panel {
   background: var(--panel);
