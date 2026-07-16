@@ -459,25 +459,36 @@ export class AdventureMode {
     card.appendChild(text("div", "intro-tag", this.scenario.dayTag));
     card.appendChild(text("h2", "intro-title", this.scenario.introTitle));
     card.appendChild(text("p", "intro-copy", this.scenario.introCopy));
-    card.appendChild(button("Begin the watch", "btn primary", () => this.beginShack()));
-    const picker = this.buildMissionPicker();
-    if (picker) card.appendChild(picker);
+    card.appendChild(this.buildTransitionRow("Begin the watch", () => this.beginShack()));
     view.appendChild(card);
     return view;
   }
 
-  /** Every mission is unlocked for the demo, so both transition cards (this
-   *  intro and the outro below) offer every *other* scenario as a one-tap
-   *  jump — the doc's sanctioned home for level-select chrome (it explicitly
-   *  keeps this off the in-play shack). Returns null when there's only one
-   *  scenario, so it's a no-op once/if this ever ships as a single mission. */
-  private buildMissionPicker(): HTMLElement | null {
-    const others = SCENARIOS.filter((s) => s.id !== this.scenario.id);
-    if (others.length === 0) return null;
-    const row = el("div", "mission-list");
-    for (const s of others) {
-      row.appendChild(button(s.dayTag, "btn ghost", () => this.resetRun(s)));
-    }
+  /** Three fixed slots below a transition card's exposition — left/center/right,
+   *  so the primary action ("Begin the watch" on the intro, "Replay the day" on
+   *  the outro below) always sits dead center regardless of whether prev/next
+   *  exist. Missing prev/next slots render as blank space, not a collapsed row,
+   *  so the layout never shifts — the doc's sanctioned home for level-select
+   *  chrome (it explicitly keeps this off the in-play shack). Every mission is
+   *  unlocked for the demo, so "Next mission" is left wide open — the plan is
+   *  to eventually gate it behind mission accomplishments. */
+  private buildTransitionRow(primaryLabel: string, onPrimary: () => void): HTMLElement {
+    const idx = SCENARIOS.findIndex((s) => s.id === this.scenario.id);
+    const prev = idx > 0 ? SCENARIOS[idx - 1] : null;
+    const next = idx < SCENARIOS.length - 1 ? SCENARIOS[idx + 1] : null;
+
+    const row = el("div", "mission-nav");
+    row.appendChild(
+      prev
+        ? button("Previous mission", "btn ghost mission-nav-slot", () => this.resetRun(prev))
+        : el("span", "mission-nav-slot")
+    );
+    row.appendChild(button(primaryLabel, "btn primary mission-nav-slot", onPrimary));
+    row.appendChild(
+      next
+        ? button("Next mission", "btn ghost mission-nav-slot", () => this.resetRun(next))
+        : el("span", "mission-nav-slot")
+    );
     return row;
   }
 
@@ -911,9 +922,7 @@ export class AdventureMode {
     if (this.scenario.outroAside) {
       card.appendChild(text("p", "intro-copy intro-aside", this.scenario.outroAside));
     }
-    card.appendChild(button("Replay the day", "btn primary", () => this.resetRun()));
-    const picker = this.buildMissionPicker();
-    if (picker) card.appendChild(picker);
+    card.appendChild(this.buildTransitionRow("Replay the day", () => this.resetRun()));
     view.appendChild(card);
     this.root.appendChild(view);
   }
