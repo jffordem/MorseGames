@@ -479,9 +479,17 @@ Score the way a contester thinks, not raw keystrokes:
     a real priority (2026-07-13)** — of everything bounced around in that session's
     brainstorm, this is the one the user specifically wants kept on the list, with
     **Q-codes and common RST numbers** named as the priority content to cover first
-    (over the fuller CQ/DE/73/callsign-fragment set above). Cheapest possible version:
-    just a new word-list text file — no new mode, no new engine work, reuses the
-    adaptive-difficulty tracking Word Wrangler already has.
+    (over the fuller CQ/DE/73/callsign-fragment set above). **First slice shipped
+    2026-07-13**: the ~26 Q-codes hams actually use on CW (QRZ/QSL/QTH/QSY/etc.) plus
+    common RST report numbers (599, 5NN, 579, 559, 449, 339, 229, 111), sourced from
+    `public/words-qcodes-rst.txt`. First attempt exposed this as its own selectable
+    "Q-codes & RST reports" word-list; **refactored same day** so the bonus words are
+    instead folded into whichever dictionary is selected (`loadWordList()` always
+    appends them) — no opt-in required, they just show up in the random mix once the
+    Koch level covers their characters. No new mode, no new engine work; the loader's
+    word-file filter was loosened from letters-only to letters+digits to admit the
+    RST numbers. The fuller CQ/DE/73/TU/callsign-fragment set is still parked for a
+    later pass.
   - **Kill the dit-dah crutch (app-wide principle).** Never present dots-and-dashes as the
     *primary* representation — every rendered `·—··` reinforces the lookup table. Represent
     characters by **sound** and by **letter**, not by symbol. Musician-friendly exception:

@@ -116,6 +116,13 @@ export const WORD_LISTS: WordListOption[] = [
 
 export const DEFAULT_WORD_LIST_ID = "full";
 
+// Ham-vocabulary bonus content (Q-codes, common RST reports) — folded into every
+// dictionary rather than offered as its own selectable list, so it's always in the
+// random mix instead of requiring the player to opt in. Gated the same way as any
+// other word: formableWords() only surfaces QRZ/599/etc. once the active Koch set
+// covers all of its characters.
+const BONUS_FILE = "words-qcodes-rst.txt";
+
 export function wordListById(id: string): WordListOption {
   return WORD_LISTS.find((w) => w.id === id) ?? WORD_LISTS[0];
 }
@@ -123,32 +130,39 @@ export function wordListById(id: string): WordListOption {
 const cache = new Map<string, string[]>();
 
 /**
- * Load a word list (cached per file). Fetches the named static asset; if it's
- * missing/empty/offline, falls back to the bundled common-word list so the mode
- * always works.
+ * Fetch a static word-list asset (one word per line, uppercased). Returns null if
+ * it's missing, empty, or the fetch fails (offline) rather than throwing.
  */
-export async function loadWordList(id: string = DEFAULT_WORD_LIST_ID): Promise<string[]> {
-  const { file } = wordListById(id);
-  const cached = cache.get(file);
-  if (cached) return cached;
+async function fetchWordFile(file: string): Promise<string[] | null> {
   try {
     const res = await fetch(file, { cache: "force-cache" });
     if (res.ok) {
       const words = (await res.text())
         .split(/\r?\n/)
         .map((w) => w.trim().toUpperCase())
-        .filter((w) => /^[A-Z]+$/.test(w));
-      if (words.length > 0) {
-        cache.set(file, words);
-        return words;
-      }
+        .filter((w) => /^[A-Z0-9]+$/.test(w)); // digits allowed for RST reports (e.g. 599)
+      if (words.length > 0) return words;
     }
   } catch {
-    /* not present / offline — use the fallback */
+    /* not present / offline */
   }
-  const fallback = FALLBACK_WORDS.map((w) => w.toUpperCase());
-  cache.set(file, fallback);
-  return fallback;
+  return null;
+}
+
+/**
+ * Load a word list (cached per selected list id), with the ham-vocabulary bonus
+ * words always appended. Falls back to the bundled common-word list if the
+ * selected dictionary is missing/empty/offline, so the mode always works.
+ */
+export async function loadWordList(id: string = DEFAULT_WORD_LIST_ID): Promise<string[]> {
+  const { file } = wordListById(id);
+  const cached = cache.get(file);
+  if (cached) return cached;
+  const primary = (await fetchWordFile(file)) ?? FALLBACK_WORDS.map((w) => w.toUpperCase());
+  const bonus = (await fetchWordFile(BONUS_FILE)) ?? [];
+  const combined = [...new Set([...primary, ...bonus])];
+  cache.set(file, combined);
+  return combined;
 }
 
 /** Words whose every letter is in `activeSet`, within the length bounds. */
