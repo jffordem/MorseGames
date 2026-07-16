@@ -1,4 +1,5 @@
 import "./styles.css";
+import { ensureTermsAcknowledged, openTermsModal } from "./terms";
 import { RandomRunMode } from "./modes/random-run";
 import { WordWranglerMode } from "./modes/word-wrangler";
 import { ReadingMode } from "./modes/reading";
@@ -61,3 +62,6 @@ tabs.addEventListener("click", (e) => {
 });
 
 activate("random-run");
+ensureTermsAcknowledged();
+
+document.getElementById("terms-link")?.addEventListener("click", () => openTermsModal());

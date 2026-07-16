@@ -100,6 +100,50 @@ needs a lawyer unless a real conflict turns up:
 - If either name is already taken (registered or in active confusing use), don't ship
   under it — come back and brainstorm alternatives together rather than risk a rename
   after the fact.
+- **Still outstanding as of 2026-07-16** — not yet run. This remains a hard blocker on
+  sharing a public link, separate from everything below.
+
+**First public-hosting slice shipped 2026-07-16** (prompted by wanting club feedback
+before building out the Adventure campaign further):
+- **GitHub Pages deploy pipeline** — `.github/workflows/deploy.yml`, builds on push to
+  `main` and deploys via `actions/deploy-pages`. Requires a one-time manual step in the
+  repo's Settings → Pages → "Source" set to "GitHub Actions" before the first run will
+  publish anything.
+- **Terms & Disclaimer modal** — `src/terms.ts`, wired into `main.ts`, gated on
+  `localStorage["morse-games.termsAcknowledged"]` per `TERMS.md`'s spec. Still
+  "pending legal review" per that file's status line — functionally wired, not legally
+  blessed.
+- **"Send Feedback" mailto link** — added to `index.html`'s header, per `TERMS.md` §3.
+  Uses a **placeholder address** (`feedback@example.com`, `TODO`-commented in
+  `index.html`) — must be swapped for a real dedicated address before the link goes out
+  publicly, or feedback will vanish into nowhere.
+
+**Pre-public-launch checklist (as of 2026-07-16).** The pieces above make the app
+*technically* deployable; these are what's still needed before actually sharing a
+public link with the club. Roughly in priority order — the first two are hard
+blockers, the rest are prudent but lower-stakes:
+
+- [ ] **Run the trademark check** ("clear the working titles" guidance above) —
+      USPTO TESS search + marketplace/web sweep for "Morse Games" and "Morse
+      Adventures." Don't ship under either name if a real conflict turns up.
+- [ ] **Pick a real feedback address** and replace the `feedback@example.com`
+      placeholder in `index.html` (dedicated address, not a personal inbox, per
+      `TERMS.md`'s rationale).
+- [ ] **Get `TERMS.md` reviewed** by your lawyer friend and decide §8 (governing
+      law) — currently left blank on purpose. Update `src/terms.ts`'s `FULL_TEXT` to
+      match once the wording is final.
+- [ ] **Flip the repo's Settings → Pages → Source to "GitHub Actions"** (one-time,
+      manual — the workflow file alone won't publish anything until this is set).
+- [ ] **Do a real click-through test** of the deployed Pages URL, not just the local
+      Docker container: confirm the terms modal appears once and stays dismissed on
+      reload, the feedback link opens a mail client with the right address, and
+      asset paths resolve correctly under the `username.github.io/reponame/`
+      subpath (the app hasn't actually been served from a subpath yet — only from
+      Docker's root-served build).
+- [ ] **Re-confirm the no-data-collection claim still holds** against whatever's on
+      `main` at deploy time — a quick `grep` for new `fetch(`/`XMLHttpRequest`/
+      third-party `<script src=` additions since the 2026-07-10 audit is enough;
+      re-run this before every future public deploy, not just the first one.
 
 ## The timing engine (foundation — everything depends on it)
 
