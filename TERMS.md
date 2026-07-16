@@ -1,6 +1,15 @@
 # Morse Games — Terms of Use & Disclaimer
 
-**Status: DRAFT — pending legal review. Not yet wired into the app.**
+**Status: DRAFT — pending legal review. Wired into the app (2026-07-16)** as a
+first-visit modal (`src/terms.ts`, gated on `localStorage["morse-games.termsAcknowledged"]`),
+a "Send Feedback" `mailto:` link + caption, and a "Terms & Disclaimer" button — both in
+`index.html`'s footer (moved there from the header the same day) — that reopens the
+same modal on demand, jumping straight to the full text via `openTermsModal()`, for
+anyone who wants to review it again later. Two things still need a real decision
+before public launch:
+- The feedback address is currently a placeholder (`feedback@example.com`, marked
+  with a `TODO` comment in `index.html`) — swap in the real dedicated address.
+- §8 (governing law) is still blank, as originally noted below.
 
 This is a two-part draft: a short version meant for a first-visit popup, and a fuller
 version that popup would link to. Written for a free, no-login, no-data-collection hobby
@@ -94,27 +103,33 @@ blank rather than guessing]*
 
 ---
 
-## Notes for implementation (once approved)
+## Notes for implementation (done 2026-07-16 — kept for rationale)
 
 - Gate the modal on a single `localStorage` flag (e.g. `morse-games.termsAcknowledged`)
   so it only shows once per browser — no server round-trip, consistent with the
-  no-data-collection stance above.
+  no-data-collection stance above. **Done** — `src/terms.ts`.
 - Reuse the existing full-viewport overlay pattern already used elsewhere (see
-  `MORSE-GAMES.md`'s note on the `Modal` class / `.modal-overlay`).
+  `MORSE-GAMES.md`'s note on the `Modal` class / `.modal-overlay`). **Done** — the
+  modal starts on the short Part 1 text with a "Read Full Terms & Disclaimer" button
+  that swaps in the Part 2 text in place, plus "I Understand — Continue".
 - The short modal text should stay short (a glance, not a wall of text) — the full
   version above is what actually carries the substantive disclaimer, and only needs to
   be read by someone who clicks through.
 - **Feedback link (2026-07-10 decision):** label it **"Send Feedback"** — the label
   itself signals the opt-in nature described in §3, no separate confirmation needed.
-  Place it in the persistent `<header class="app-header">` in `index.html` (outside
-  `#mode-root`, so it's present on every tab and never touches Adventure mode's
-  immersive shack). Mechanism: a plain `mailto:` link to a **dedicated "feedback"
-  address, not a personal one** — cheap insurance against spam/abuse (easy to rotate
-  without disrupting anything personal), keeps the app at zero backend/zero new
-  hosting, and keeps §3's disclosure simple (no third-party form processor to name).
+  Place it in a persistent element in `index.html` (outside `#mode-root`, so it's
+  present on every tab and never touches Adventure mode's immersive shack). Mechanism:
+  a plain `mailto:` link to a **dedicated "feedback" address, not a personal one** —
+  cheap insurance against spam/abuse (easy to rotate without disrupting anything
+  personal), keeps the app at zero backend/zero new hosting, and keeps §3's disclosure
+  simple (no third-party form processor to name). **Done, with a placeholder address**
+  (`feedback@example.com`) until a real one is picked — see the status note at the top
+  of this file. **Moved to a footer below `<main>` (2026-07-16)** — originally in the
+  header, relocated so it reads as a quiet, low-emphasis afterthought rather than
+  competing with the app's title for attention.
 - **In-context caption, next to the link itself (not just in §3):** a small, persistent
   line of muted text — e.g. *"Opens your email app — sending reveals your email
   address to us, the same as emailing anyone directly."* Reinforces §3 at the actual
   point of action rather than relying on a first-visit modal most people won't reread,
   and doubles as a light, honest deterrent for drive-by negativity: knowing the message
-  isn't anonymous tends to raise the bar on what people are willing to send.
+  isn't anonymous tends to raise the bar on what people are willing to send. **Done.**
