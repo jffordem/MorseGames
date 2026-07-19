@@ -729,6 +729,9 @@ main {
   pointer-events: none;
 }
 .btn-power {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-size: 1.3rem;
   padding: 0.5rem 1rem;
 }

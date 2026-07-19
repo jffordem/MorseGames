@@ -279,10 +279,11 @@ export class FieldDayMode {
     const controls = el("div", "shack-controls");
     // Same power-button mechanic as Adventure mode: a pulsing invite to power on,
     // solid when running, rather than a plain Start/Stop label.
-    this.elStartBtn = button("⏻", "btn primary btn-power power-glow", () => {
+    this.elStartBtn = button("", "btn primary btn-power power-glow", () => {
       if (this.running) this.stop();
       else void this.start();
     });
+    this.elStartBtn.innerHTML = POWER_ICON_SVG;
     this.elStartBtn.setAttribute("aria-label", "Power");
     this.elStartBtn.title = "Power on the rig";
     this.elShowTextBtn = button("Show Text: Off", "btn ghost", () => this.toggleText());
@@ -749,6 +750,13 @@ function button(label: string, className: string, onClick: () => void): HTMLButt
   b.addEventListener("click", onClick);
   return b;
 }
+
+// Inline SVG instead of the Unicode "⏻" glyph (U+23FB) — that codepoint has
+// spotty font coverage (e.g. missing on some Windows setups) and renders blank.
+const POWER_ICON_SVG =
+  '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" ' +
+  'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ' +
+  'focusable="false"><path d="M12 2v8"/><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/></svg>';
 
 function formatClock(ms: number): string {
   const totalSec = Math.max(0, Math.floor(ms / 1000));

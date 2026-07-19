@@ -643,7 +643,8 @@ export class AdventureMode {
     // Controls — Power comes first: it's the master switch, highlighted while
     // everything else is cold, and gates the dials below until warmed up.
     const controls = el("div", "shack-controls");
-    this.elStartBtn = button("⏻", "btn primary btn-power power-glow", () => void this.togglePower());
+    this.elStartBtn = button("", "btn primary btn-power power-glow", () => void this.togglePower());
+    this.elStartBtn.innerHTML = POWER_ICON_SVG;
     this.elStartBtn.setAttribute("aria-label", "Power");
     this.elStartBtn.title = "Power on the set";
     this.elShowTextBtn = button("Show Text: Off", "btn ghost", () => this.toggleText());
@@ -1543,6 +1544,13 @@ function button(label: string, className: string, onClick: () => void): HTMLButt
   b.addEventListener("click", onClick);
   return b;
 }
+
+// Inline SVG instead of the Unicode "⏻" glyph (U+23FB) — that codepoint has
+// spotty font coverage (e.g. missing on some Windows setups) and renders blank.
+const POWER_ICON_SVG =
+  '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" ' +
+  'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ' +
+  'focusable="false"><path d="M12 2v8"/><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/></svg>';
 
 const DEG_PER_DETENT = 8; // rotation quantum for the encoder simulation below
 const KEY_FLICK_DEG = 8; // cosmetic pointer nudge per keypress/wheel tick, independent of DEG_PER_DETENT
