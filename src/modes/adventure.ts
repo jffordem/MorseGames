@@ -13,7 +13,9 @@
 // Spotter sightings are GENERATED (random category / count / type / altitude /
 // heading), so no two runs are alike. Inbound HQ traffic is Morse you copy; runners
 // arrive as text; your sends go out as Morse sidetone. Light walks dawn→dusk across
-// the timeline. Retransmissions bump a danger readout, kept LOW this mission.
+// the timeline. Retransmissions (AGN repeats, incomplete reports that need a second
+// pass) bump a real retryCount-driven danger readout — see "Danger escalation" near
+// the RELAY scenario below, where it's first wired up for real.
 //
 // First contact each day is CHALLENGED (AUTHENTICATE / I AUTHENTICATE — real WWII
 // Signal Operating Instructions prowords). The briefing prints today's authenticator
@@ -29,11 +31,13 @@ import { tokenize, tokenizeWords, includesSequence } from "../dialogue/tokens";
 
 const HQ_CALL = "KEN"; // net control (HQ)
 const MY_CALL = "GOOSE"; // this station
+const RELAY_CALL = "SKIP"; // a second coastwatcher post, out of KEN's direct reach
 const FREQ_MIN = 4000;
 const FREQ_MAX = 5200;
 const ON_FREQ_KHZ = 5; // within this window, HQ is readable — one grid step, so the readout actually matches the briefing
 const FREQ_SETTLE_MS = 700; // dwell time on a steady frequency before static/the sked fires
 const CLOCK_TRANSITION_PAUSE_MS = 4000; // beat between events so the player notices the clock jump, not just a harried KEN
+const OVERHEAR_PAUSE_MS = 2500; // how long "not for you" traffic lingers before the day moves on by itself
 
 const SPOT_ACK = `${MY_CALL} DE ${HQ_CALL} QSL K`; // HQ's ack of a completed report
 
@@ -179,7 +183,14 @@ function fieldSatisfied(field: string, s: Sighting, tk: Set<string>): boolean {
 
 type DayEvent =
   | { kind: "sked"; clock: string; light: string; msg: string; prompt: string; final?: boolean }
-  | { kind: "spot"; clock: string; light: string; sighting: Sighting };
+  | { kind: "spot"; clock: string; light: string; sighting: Sighting }
+  // A third station (RELAY_CALL) has traffic for HQ that can't reach HQ directly —
+  // copy it, acknowledge the sender, then re-address and forward to HQ. See
+  // "Level type — the relay net" in MORSE-GAMES.md.
+  | { kind: "relay"; clock: string; light: string; from: string; sighting: Sighting }
+  // Traffic between two OTHER stations, overheard on the same frequency — nothing
+  // to do but recognize it isn't for you and not answer it (monitoring discipline).
+  | { kind: "overhear"; clock: string; light: string; from: string; to: string; msg: string };
 
 /** Built once per transmit() call and handed to the dialogue engine's rule table. */
 interface DialogueInput {
@@ -354,9 +365,77 @@ const KOLOMBANGARA_DAY3: Scenario = {
     "Rendova got the message.",
 };
 
-const SCENARIOS: Scenario[] = [KOLOMBANGARA_DAY14, KOLOMBANGARA_DAY3];
+/** A different game feel from the first two days: most of the mechanics are
+ *  reused (skeds, a spot report, the authenticator), but the centerpiece is a
+ *  relay beat — SKIP, a second post further up the strait, can't reach KEN
+ *  directly, so GOOSE copies SKIP's traffic, acknowledges SKIP, and forwards a
+ *  fact-complete report to KEN. Get the forward wrong and KEN — who caught
+ *  fragments of SKIP's own weak signal too, just not enough to act on alone —
+ *  flags the mismatch rather than silently failing. A "not for you" exchange
+ *  right after tests whether the player has learned to tell the two apart.
+ *  See MORSE-GAMES.md's "Level type — the relay net". */
+const KOLOMBANGARA_DAY_RELAY: Scenario = {
+  id: "kolombangara-relay",
+  dayTag: "Kolombangara · Day 23",
+  introTitle: "Station GOOSE",
+  introCopy:
+    "Six days since the boy brought the news about the wreckage. Today HQ's added a " +
+    "wrinkle to the watch: a second post further up the strait, SKIP, whose signal " +
+    "barely clears the reef most mornings. When it doesn't reach KEN, it reaches you " +
+    "instead.",
+  notes:
+    "Day 23. There's another set up the coast — SKIP, on the net — too far from KEN's " +
+    "ears and too proud to say so outright. When SKIP's traffic won't carry, it lands " +
+    "on me: copy it, tell SKIP I've got it, then say it again, addressed right, for " +
+    "KEN. Get it wrong and it's not just static — it's a report that never arrives.",
+  briefing: (hqFreqKhz) =>
+    "STATION GOOSE — Kolombangara. Same OP, same watch: Blackett Strait and the Slot. " +
+    `Report shipping and aircraft to HQ (KEN) on ${hqFreqKhz} kHz; skeds 0600 / 1200 / 1800. ` +
+    `A second post, ${RELAY_CALL}, works the coast north of you — out of KEN's reach most ` +
+    `days. When ${RELAY_CALL} calls, copy it, acknowledge ${RELAY_CALL}, then forward it to ` +
+    "KEN, addressed right. Minimum power — the DF launch hasn't gone anywhere.",
+  buildTimeline: (authChallenge) => [
+    {
+      kind: "sked",
+      clock: "0600",
+      light: "dawn",
+      msg: `${MY_CALL} DE ${HQ_CALL} WATCH SLOT RPT ALL SHIPPING ES ACFT AUTHENTICATE ${authChallenge} K`,
+      prompt:
+        "Copy your orders and the authenticator challenge. Check today's table, then " +
+        "send QSL I AUTHENTICATE <code> together — or AGN? to hear it again.",
+    },
+    { kind: "spot", clock: "0800", light: "morning", sighting: makeAircraftSighting() },
+    { kind: "relay", clock: "1030", light: "morning", from: RELAY_CALL, sighting: makeShipSighting() },
+    {
+      kind: "overhear",
+      clock: "1200",
+      light: "noon",
+      from: RELAY_CALL,
+      to: HQ_CALL,
+      msg: `${HQ_CALL} DE ${RELAY_CALL} QRU K`,
+    },
+    {
+      kind: "sked",
+      clock: "1500",
+      light: "afternoon",
+      msg: `${MY_CALL} DE ${HQ_CALL} QSL RELAY LOGGED MAINTAIN WATCH K`,
+      prompt: "Copy KEN, then acknowledge (QSL).",
+    },
+    {
+      kind: "sked",
+      clock: "1800",
+      light: "dusk",
+      msg: `${MY_CALL} DE ${HQ_CALL} QRT AT DUSK GN K`,
+      prompt: "Copy the sign-off, then acknowledge (QSL).",
+      final: true,
+    },
+  ],
+  outroCopy: "Another day on the ridge — and one more voice on the net you can now put a name to.",
+};
 
-type Phase = "cold" | "onair" | "sked" | "spot" | "done";
+const SCENARIOS: Scenario[] = [KOLOMBANGARA_DAY14, KOLOMBANGARA_DAY3, KOLOMBANGARA_DAY_RELAY];
+
+type Phase = "cold" | "onair" | "sked" | "spot" | "relay" | "overhear" | "done";
 
 export class AdventureMode {
   private root: HTMLElement;
@@ -372,10 +451,16 @@ export class AdventureMode {
   private txCount = 0;
   private showText = false; // "plot mode": reveal inbound HQ traffic as text
   private clock = "—";
-  private traffic: { who: "ken" | "you" | "run" | "log"; msg: string; clock: string }[] = [];
+  // tag overrides the displayed sender for "ken"-tagged (inbound-Morse) entries —
+  // the relay mission's SKIP traffic reuses the same masked-until-Show-Text path
+  // as HQ traffic, just under a different callsign.
+  private traffic: { who: "ken" | "you" | "run" | "log"; msg: string; clock: string; tag?: string }[] = [];
   private day: DayEvent[] = [];
   private evtIx = 0;
-  private need: string[] = []; // report fields still outstanding for the current spot
+  private need: string[] = []; // report fields still outstanding for the current spot/relay-forward
+  private relayAcked = false; // acknowledged the relay sender (e.g. SKIP) this beat
+  private relayForwardDone = false; // forwarded a complete report to HQ this beat
+  private retryCount = 0; // AGN repeats + incomplete-report resends this run — drives dangerLabel
   private authTable: AuthPair[] = []; // today's authenticator table
   private liveAuthIdx = 0; // which row of authTable KEN actually challenges with, randomized per run
   private hqFreqKhz = 0; // today's sked frequency, generated fresh in mount()
@@ -440,6 +525,9 @@ export class AdventureMode {
     this.traffic = [];
     this.evtIx = 0;
     this.need = [];
+    this.relayAcked = false;
+    this.relayForwardDone = false;
+    this.retryCount = 0;
     this.authTable = makeAuthTable(); // generated fresh — see the authenticator note above
     this.liveAuthIdx = randInt(0, this.authTable.length - 1); // which row KEN actually challenges with
     this.hqFreqKhz = makeHqFreqKhz(); // generated fresh — same SOI logic as the auth table
@@ -658,6 +746,7 @@ export class AdventureMode {
           ["sked freq", `${HQ_CALL}'s day sked (kHz) — today's is in the Briefing, not fixed`],
           [HQ_CALL, "HQ / net control"],
           [MY_CALL, "you (this station)"],
+          [RELAY_CALL, "a second coastwatcher post — often can't reach HQ direct, relies on you"],
         ],
       },
       {
@@ -673,6 +762,8 @@ export class AdventureMode {
           ["QRZ", "who is calling me? — you dropped your ID"],
           ["QRT", "shut down / go silent"],
           ["QRU", "nothing heard / anything for me?"],
+          ["QTC", "I have traffic for __"],
+          ["QSP", "relay / I'll relay"],
           ["TU", "thanks"],
           ["GN", "good night"],
           ["AUTHENTICATE", "reply to the challenge that follows"],
@@ -776,6 +867,16 @@ export class AdventureMode {
 
   private get onFreq(): boolean {
     return Math.abs(this.freqKhz - this.hqFreqKhz) <= ON_FREQ_KHZ;
+  }
+
+  /** Danger escalation — first wired up for real on the relay mission (see
+   *  MORSE-GAMES.md's "Speed as the difficulty gate" section). retryCount only
+   *  climbs on AGN repeats and incomplete-report resends, never on a clean
+   *  first-try transmission, so a careful operator reads "low" the whole day. */
+  private get dangerLabel(): string {
+    if (this.retryCount >= 4) return "high — that's a lot of chatter on this frequency";
+    if (this.retryCount >= 2) return "elevated — keep transmissions clean";
+    return "low";
   }
 
   /** The power button doubles as the day's only "log off" control — see
@@ -886,6 +987,25 @@ export class AdventureMode {
           ? "This one matters — encode it and report to KEN, clean."
           : "Runner's in — encode it and report to KEN."
       );
+    } else if (e.kind === "relay") {
+      this.phase = "relay";
+      this.need = requiredFields(e.sighting);
+      this.relayAcked = false;
+      this.relayForwardDone = false;
+      const s = e.sighting;
+      const fields = s.category === "SHIP" ? [s.count, s.type, s.dir] : [s.count, s.type, s.alt, s.dir];
+      const skipMsg = `${MY_CALL} DE ${e.from} QTC ${HQ_CALL} BT ${fields.join(" ")} AR K`;
+      if (await this.hqSend(skipMsg, e.from)) {
+        this.setStatus(`Copy ${e.from}'s traffic, acknowledge ${e.from}, then forward it to ${HQ_CALL}.`);
+      }
+    } else if (e.kind === "overhear") {
+      this.phase = "overhear";
+      await this.hqSend(e.msg, e.from);
+      this.setStatus("Not addressed to you — no need to answer. Keep listening.");
+      this.refresh();
+      await delay(OVERHEAR_PAUSE_MS);
+      await this.advance();
+      return;
     } else {
       this.phase = "sked";
       if (await this.hqSend(e.msg)) this.setStatus(e.prompt);
@@ -903,7 +1023,7 @@ export class AdventureMode {
     this.phase = "done";
     this.setScene("dusk", "1800");
     this.setStatus("Set's down for the night. Good day's work — tap Power to log off.");
-    this.addTraffic("log", `End of day. Skeds & sightings ${this.day.length} · Sent ${this.txCount} · Danger low.`);
+    this.addTraffic("log", `End of day. Skeds & sightings ${this.day.length} · Sent ${this.txCount} · Danger ${this.dangerLabel}.`);
     this.elStartBtn.classList.add("power-glow");
     this.refresh();
   }
@@ -953,6 +1073,9 @@ export class AdventureMode {
   private static isSpot(ctx: AdventureMode): boolean {
     return ctx.phase === "spot" && ctx.currentEvent.kind === "spot";
   }
+  private static isRelay(ctx: AdventureMode): boolean {
+    return ctx.phase === "relay" && ctx.currentEvent.kind === "relay";
+  }
   /** Token-based, not exact-string: tolerates real message variation (extra
    *  spacing, surrounding prowords, either order) without needing AI judgment. */
   private static authStatus(i: DialogueInput, ctx: AdventureMode): { hasQsl: boolean; hasAuth: boolean } {
@@ -963,16 +1086,28 @@ export class AdventureMode {
     };
   }
 
+  /** Who a transmission may legitimately be addressed to right now. Normally
+   *  just HQ — but a relay beat adds the third station you're relaying for,
+   *  since acknowledging *that* sender is a real, required step of the beat. */
+  private validRecipients(): string[] {
+    const e = this.currentEvent;
+    if (this.phase === "relay" && e.kind === "relay") return [HQ_CALL, e.from];
+    return [HQ_CALL];
+  }
+
   private static readonly RULES: Rule<DialogueInput, AdventureMode>[] = [
-    // Every transmission to KEN must lead with proper addressing (KEN DE GOOSE).
-    // Drop it and KEN doesn't know who's calling — real net discipline, and a real
-    // Q-code for it: QRZ. Nudge, not a hard fail — resend with the preamble.
+    // Every transmission must lead with proper addressing (e.g. KEN DE GOOSE).
+    // Drop it and the addressee doesn't know who's calling — real net discipline,
+    // and a real Q-code for it: QRZ. Nudge, not a hard fail — resend with the
+    // preamble. Skipped during "overhear": nothing there is addressed to you in
+    // the first place, so that phase's own rule handles the messaging instead.
     {
       id: "header-check",
-      match: (i) => !includesSequence(i.words, [HQ_CALL, "DE", MY_CALL]),
+      when: (ctx) => ctx.phase !== "overhear",
+      match: (i, ctx) => !ctx.validRecipients().some((call) => includesSequence(i.words, [call, "DE", MY_CALL])),
       act: async (_i, ctx) => {
         await ctx.hqSend(`${MY_CALL} DE ${HQ_CALL} QRZ K`);
-        ctx.setStatus(`${HQ_CALL} doesn't know who that was — lead with ${HQ_CALL} DE ${MY_CALL}.`);
+        ctx.setStatus(`Lead with ${ctx.validRecipients().join(" or ")} DE ${MY_CALL}, depending who you're answering.`);
       },
     },
     // First contact of the day: QSL and the authenticator reply must arrive together.
@@ -983,6 +1118,7 @@ export class AdventureMode {
       act: async (_i, ctx) => {
         const e = ctx.currentEvent;
         if (e.kind !== "sked") return;
+        ctx.retryCount += 1;
         await ctx.hqSend(e.msg);
       },
     },
@@ -1038,6 +1174,7 @@ export class AdventureMode {
       act: async (_i, ctx) => {
         const e = ctx.currentEvent;
         if (e.kind !== "sked") return;
+        ctx.retryCount += 1;
         await ctx.hqSend(e.msg);
       },
     },
@@ -1067,6 +1204,7 @@ export class AdventureMode {
       act: (_i, ctx) => {
         const e = ctx.currentEvent;
         if (e.kind !== "spot") return;
+        ctx.retryCount += 1;
         ctx.addSpot(e.sighting.prose, "the boy repeats");
       },
     },
@@ -1083,9 +1221,99 @@ export class AdventureMode {
           await ctx.advance();
         } else {
           // Directed answer-back: HQ asks for exactly what's still missing/wrong.
+          ctx.retryCount += 1;
           await ctx.hqSend(`${MY_CALL} DE ${HQ_CALL} ${ctx.need.map((f) => PROWORD[f]).join(" ")} K`);
           ctx.setStatus(`${HQ_CALL} wants: ${ctx.need.map((f) => FIELD_LABEL[f]).join(", ")}. Send it.`);
         }
+      },
+    },
+    // A relay beat needs TWO correctly-addressed sends to complete, in either
+    // order: acknowledge the relay sender (e.g. SKIP), and forward a complete
+    // report to HQ. Reuses the same requiredFields()/fieldSatisfied() grading
+    // as a direct spot report — see MORSE-GAMES.md's "Level type — the relay
+    // net". relayAcked/relayForwardDone track the two steps independently so
+    // the beat only completes once both are done.
+    {
+      id: "relay-repeat",
+      when: AdventureMode.isRelay,
+      match: (i) => i.isAgn,
+      act: async (_i, ctx) => {
+        const e = ctx.currentEvent;
+        if (e.kind !== "relay") return;
+        ctx.retryCount += 1;
+        const s = e.sighting;
+        const fields = s.category === "SHIP" ? [s.count, s.type, s.dir] : [s.count, s.type, s.alt, s.dir];
+        await ctx.hqSend(`${MY_CALL} DE ${e.from} QTC ${HQ_CALL} BT ${fields.join(" ")} AR K`, e.from);
+      },
+    },
+    {
+      id: "relay-ack",
+      when: AdventureMode.isRelay,
+      match: (i, ctx) => {
+        const e = ctx.currentEvent;
+        if (e.kind !== "relay") return false;
+        return includesSequence(i.words, [e.from, "DE", MY_CALL]) && (i.words.includes("QSL") || i.words.includes("R"));
+      },
+      act: async (_i, ctx) => {
+        const e = ctx.currentEvent;
+        if (e.kind !== "relay") return;
+        ctx.relayAcked = true;
+        if (ctx.relayForwardDone) {
+          await ctx.hqSend(SPOT_ACK);
+          await ctx.advance();
+        } else {
+          ctx.setStatus(`${e.from} acknowledged — now forward the report to ${HQ_CALL}.`);
+        }
+      },
+    },
+    {
+      id: "relay-forward",
+      when: AdventureMode.isRelay,
+      match: (i) => includesSequence(i.words, [HQ_CALL, "DE", MY_CALL]),
+      act: async (i, ctx) => {
+        const e = ctx.currentEvent;
+        if (e.kind !== "relay") return;
+        ctx.need = ctx.need.filter((f) => !fieldSatisfied(f, e.sighting, i.tk));
+        if (ctx.need.length > 0) {
+          // The "checksum": KEN also caught fragments of e.from's own weak
+          // transmission — too garbled to act on alone (why the relay was
+          // needed at all), but enough to flag a mismatch against your forward.
+          ctx.retryCount += 1;
+          await ctx.hqSend(
+            `${MY_CALL} DE ${HQ_CALL} YR RPT VS WHAT I CAUGHT OF ${e.from} DISAGREES ${ctx.need.map((f) => PROWORD[f]).join(" ")} K`
+          );
+          ctx.setStatus(`${HQ_CALL} caught ${e.from} too, and it doesn't match: ${ctx.need.map((f) => FIELD_LABEL[f]).join(", ")}. Recheck and resend.`);
+          return;
+        }
+        ctx.relayForwardDone = true;
+        if (ctx.relayAcked) {
+          await ctx.hqSend(SPOT_ACK);
+          await ctx.advance();
+        } else {
+          ctx.setStatus(`Forwarded clean — now acknowledge ${e.from} to close out the relay.`);
+        }
+      },
+    },
+    {
+      id: "relay-nudge",
+      when: AdventureMode.isRelay,
+      match: () => true,
+      act: (_i, ctx) => {
+        const e = ctx.currentEvent;
+        const from = e.kind === "relay" ? e.from : RELAY_CALL;
+        ctx.setStatus(`Acknowledge ${from} (${from} DE ${MY_CALL} QSL), and forward the report to ${HQ_CALL} (${HQ_CALL} DE ${MY_CALL} …).`);
+      },
+    },
+    // Nothing here needs a reply — the correct play is recognizing the traffic
+    // isn't yours and staying off the key. A nudge, not a penalty: no retryCount
+    // bump, since declining to answer costs nothing and the day auto-advances
+    // regardless (see runEvent()'s "overhear" branch).
+    {
+      id: "overhear-nudge",
+      when: (ctx) => ctx.phase === "overhear",
+      match: () => true,
+      act: (_i, ctx) => {
+        ctx.setStatus("That wasn't addressed to you — no need to answer. Keep listening.");
       },
     },
     // Safety net for states this mission never reaches (phase/event always stay
@@ -1121,17 +1349,25 @@ export class AdventureMode {
   }
 
   private get txEnabled(): boolean {
-    return this.radioOn && !this.playing && (this.phase === "sked" || this.phase === "spot");
+    return (
+      this.radioOn &&
+      !this.playing &&
+      (this.phase === "sked" || this.phase === "spot" || this.phase === "relay" || this.phase === "overhear")
+    );
   }
 
   // ---- Audio + log helpers ------------------------------------------------
 
-  /** Play an inbound HQ message — but only if the dial is actually on today's
-   *  freq. Off frequency before it even starts, you get one burst of static.
-   *  Once it's underway, drifting off mutes it and retuning restarts it from
-   *  the top (see the playback loop below) — the dial matters for the whole
-   *  message, not just the moment it begins. Returns whether it came through. */
-  private async hqSend(msg: string): Promise<boolean> {
+  /** Play an inbound message on the net frequency — but only if the dial is
+   *  actually on today's freq. Off frequency before it even starts, you get
+   *  one burst of static. Once it's underway, drifting off mutes it and
+   *  retuning restarts it from the top (see the playback loop below) — the
+   *  dial matters for the whole message, not just the moment it begins.
+   *  `fromTag` labels the sender in the traffic feed — defaults to HQ_CALL,
+   *  but the relay mission's SKIP traffic is real over-the-air Morse on the
+   *  same frequency too, just from a different station. Returns whether it
+   *  came through. */
+  private async hqSend(msg: string, fromTag: string = HQ_CALL): Promise<boolean> {
     if (!this.onFreq) {
       this.playing = true;
       this.addTraffic("log", "static — off frequency");
@@ -1144,7 +1380,7 @@ export class AdventureMode {
       return false;
     }
     this.playing = true;
-    this.addTraffic("ken", msg);
+    this.addTraffic("ken", msg, fromTag);
     await this.engine.primeOutput(300);
 
     // Live-monitored playback: drifting off frequency mid-message mutes it
@@ -1152,7 +1388,7 @@ export class AdventureMode {
     // and retuning starts it over from the top rather than resuming mid-
     // character — you re-found the station, you didn't rewind it.
     for (;;) {
-      this.setStatus(`♪ ${HQ_CALL} is sending…`);
+      this.setStatus(`♪ ${fromTag} is sending…`);
       this.refresh();
       let droppedOut = false;
       await this.engine.playString(msg, {
@@ -1164,7 +1400,7 @@ export class AdventureMode {
       });
       if (!droppedOut) break;
       this.engine.stop();
-      this.setStatus(`Signal's fading — you drifted off ${HQ_CALL}'s frequency. Retune to pick it back up.`);
+      this.setStatus(`Signal's fading — you drifted off ${fromTag}'s frequency. Retune to pick it back up.`);
       this.refresh();
       await this.waitUntilOnFreq();
     }
@@ -1205,8 +1441,8 @@ export class AdventureMode {
     this.refresh();
   }
 
-  private addTraffic(who: "ken" | "you" | "run" | "log", msg: string): void {
-    this.traffic.push({ who, msg, clock: this.clock });
+  private addTraffic(who: "ken" | "you" | "run" | "log", msg: string, tag?: string): void {
+    this.traffic.push({ who, msg, clock: this.clock, tag });
     this.renderTraffic();
   }
 
@@ -1220,7 +1456,7 @@ export class AdventureMode {
         row.classList.add("who-log");
         row.textContent = `— ${e.msg} —`;
       } else {
-        const tag = e.who === "ken" ? HQ_CALL : e.who === "you" ? "YOU" : "RUNNER";
+        const tag = e.who === "ken" ? (e.tag ?? HQ_CALL) : e.who === "you" ? "YOU" : "RUNNER";
         row.append(text("span", `who-${e.who}`, `${e.clock} ${tag}: `));
         const masked = e.who === "ken" && !this.showText;
         row.appendChild(
@@ -1281,7 +1517,7 @@ export class AdventureMode {
     this.elTxRow.classList.toggle("flash", tx);
 
     this.elDanger.textContent = this.txCount
-      ? `Transmissions: ${this.txCount} · Danger: low (this island)`
+      ? `Transmissions: ${this.txCount} · Danger: ${this.dangerLabel}`
       : "";
   }
 }
