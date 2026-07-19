@@ -662,6 +662,32 @@ Additional world-building — several of these resolve open threads.
       authenticator and report-field checks in `adventure.ts` —
       `includesSequence(words, [HQ_CALL, "DE", MY_CALL])` — gates the existing parsing in
       `transmit()`, so no new grading machinery is needed.
+  - **Relay net — prototyped as the third Kolombangara demo mission (2026-07-18,
+    implemented).** `kolombangara-relay` in `adventure.ts`: SKIP calls in traffic that
+    can't reach KEN directly; GOOSE copies it, acknowledges SKIP, then re-addresses and
+    forwards a fact-complete report to KEN — reusing the same `Sighting` /
+    `requiredFields()` / `fieldSatisfied()` machinery as a direct spot report (no new
+    grading logic, just a two-step ack-then-forward structure and an addressing-direction
+    check generalized from the header-check rule). A `overhear` event right after
+    (`KEN DE SKIP QRU K`) tests monitoring discipline, per **Make the header matter**
+    above.
+    - **The checksum question, resolved period-accurately (user's idea, 2026-07-18):**
+      how can KEN catch a wrong/incomplete forward without being narratively omniscient?
+      KEN's own antenna also catches fragments of SKIP's transmission — too garbled to
+      act on alone (the actual reason the relay is needed at all), but enough to flag a
+      mismatch against GOOSE's forward. Grounded in how real cross-station signal
+      verification worked (multiple partial copies reconciled at the receiving end); no
+      new mechanic, just how the existing fidelity-check clarification message is worded.
+    - **Also where danger/retry escalation (see "Speed as the difficulty gate" above)
+      finally got wired up for real**, rather than staying the hardcoded "Danger: low"
+      stub — a real `retryCount` (AGN repeats, incomplete-report resends) now drives a
+      low/elevated/high label, engine-wide, though this mission's two-step requirement is
+      what's most likely to actually move it.
+    - **Parked for later:** a fuller version where a second independent station reports
+      the same event with a genuine live discrepancy the player has to notice and
+      reconcile (rather than KEN's fragmentary-copy checksum above) — richer, but roughly
+      doubles the scope of what shipped; worth a future mission if the lighter version
+      plays well.
   - **Soft tells before the hard check — rogue-transmission suspicion (2026-07-08,
     brainstorm, not yet designed in detail).** The authenticator table above is the *hard*
     impostor check — deliberate, pass/fail, once per contact. This idea is the *soft* layer
