@@ -1,15 +1,18 @@
 # Morse Games — Terms of Use & Disclaimer
 
-**Status: DRAFT — pending legal review. Wired into the app (2026-07-16)** as a
-first-visit modal (`src/terms.ts`, gated on `localStorage["morse-games.termsAcknowledged"]`),
-a "Send Feedback" `mailto:` link + caption, and a "Terms & Disclaimer" button — both in
-`index.html`'s footer (moved there from the header the same day) — that reopens the
-same modal on demand, jumping straight to the full text via `openTermsModal()`, for
-anyone who wants to review it again later. Two things still need a real decision
-before public launch:
-- The feedback address is currently a placeholder (`feedback@example.com`, marked
-  with a `TODO` comment in `index.html`) — swap in the real dedicated address.
-- §8 (governing law) is still blank, as originally noted below.
+**Status: Final — accepted without formal legal review (2026-07-19).** The project
+owner made a deliberate call to move forward without lawyer sign-off, judging the app
+low-risk given its scope: free, no accounts, no data collection, a plain disclaimer.
+Wired into the app (2026-07-16) as a first-visit modal (`src/terms.ts`, gated on
+`localStorage["morse-games.termsAcknowledged"]`), a "Send Feedback" `mailto:` link +
+caption, and a "Terms & Disclaimer" button — both in `index.html`'s footer (moved there
+from the header the same day) — that reopens the same modal on demand, jumping straight
+to the full text via `openTermsModal()`, for anyone who wants to review it again later.
+
+The feedback address is live: `morsegames.feedback@gmail.com` (set 2026-07-19, replacing
+the `feedback@example.com` placeholder in `index.html`). No governing-law clause is
+included (§8 was considered and deliberately dropped rather than left as a placeholder —
+see below).
 
 This is a two-part draft: a short version meant for a first-visit popup, and a fuller
 version that popup would link to. Written for a free, no-login, no-data-collection hobby
@@ -97,10 +100,6 @@ accredited course, or guidance from a licensed instructor or examiner.
 These terms may be updated as the app changes. Continued use after an update
 constitutes acceptance of the revised terms.
 
-**8. Governing law.** *[placeholder — worth having your lawyer friend pick a
-jurisdiction/venue here if he thinks it's warranted for something this low-stakes; left
-blank rather than guessing]*
-
 ---
 
 ## Notes for implementation (done 2026-07-16 — kept for rationale)
@@ -122,9 +121,9 @@ blank rather than guessing]*
   a plain `mailto:` link to a **dedicated "feedback" address, not a personal one** —
   cheap insurance against spam/abuse (easy to rotate without disrupting anything
   personal), keeps the app at zero backend/zero new hosting, and keeps §3's disclosure
-  simple (no third-party form processor to name). **Done, with a placeholder address**
-  (`feedback@example.com`) until a real one is picked — see the status note at the top
-  of this file. **Moved to a footer below `<main>` (2026-07-16)** — originally in the
+  simple (no third-party form processor to name). **Done — live address set 2026-07-19**
+  (`morsegames.feedback@gmail.com`), replacing the earlier `feedback@example.com`
+  placeholder. **Moved to a footer below `<main>` (2026-07-16)** — originally in the
   header, relocated so it reads as a quiet, low-emphasis afterthought rather than
   competing with the app's title for attention.
 - **In-context caption, next to the link itself (not just in §3):** a small, persistent

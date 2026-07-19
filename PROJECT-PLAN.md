@@ -100,8 +100,12 @@ needs a lawyer unless a real conflict turns up:
 - If either name is already taken (registered or in active confusing use), don't ship
   under it — come back and brainstorm alternatives together rather than risk a rename
   after the fact.
-- **Still outstanding as of 2026-07-16** — not yet run. This remains a hard blocker on
-  sharing a public link, separate from everything below.
+- **USPTO TESS — checked 2026-07-19.** Searched "morse" (Live records only, excluding
+  Dead/Abandoned/Cancelled): 83 results, no matches for "Morse Games", "MorseGames", or
+  "Morse Adventure(s)". Searched "morsegames" directly: zero results. No collision found
+  for any of the names in play.
+- **Marketplace/web sweep — still outstanding as of 2026-07-19** — not yet run. This
+  remains a hard blocker on sharing a public link.
 
 **First public-hosting slice shipped 2026-07-16** (prompted by wanting club feedback
 before building out the Adventure campaign further):
@@ -110,36 +114,38 @@ before building out the Adventure campaign further):
   repo's Settings → Pages → "Source" set to "GitHub Actions" before the first run will
   publish anything.
 - **Terms & Disclaimer modal** — `src/terms.ts`, wired into `main.ts`, gated on
-  `localStorage["morse-games.termsAcknowledged"]` per `TERMS.md`'s spec. Still
-  "pending legal review" per that file's status line — functionally wired, not legally
-  blessed.
-- **"Send Feedback" mailto link** — added to `index.html`'s header, per `TERMS.md` §3.
-  Uses a **placeholder address** (`feedback@example.com`, `TODO`-commented in
-  `index.html`) — must be swapped for a real dedicated address before the link goes out
-  publicly, or feedback will vanish into nowhere.
+  `localStorage["morse-games.termsAcknowledged"]` per `TERMS.md`'s spec. **Finalized
+  2026-07-19** — accepted without formal legal review (project owner's judgment call,
+  given the app's low-risk scope); no governing-law clause included, per that file's
+  status line.
+- **"Send Feedback" mailto link** — added to `index.html`'s footer, per `TERMS.md` §3.
+  **Live address set 2026-07-19:** `morsegames.feedback@gmail.com`, replacing the earlier
+  `feedback@example.com` placeholder.
 
 **Pre-public-launch checklist (as of 2026-07-16).** The pieces above make the app
 *technically* deployable; these are what's still needed before actually sharing a
 public link with the club. Roughly in priority order — the first two are hard
 blockers, the rest are prudent but lower-stakes:
 
-- [ ] **Run the trademark check** ("clear the working titles" guidance above) —
+- [x] **Run the trademark check** ("clear the working titles" guidance above) —
       USPTO TESS search + marketplace/web sweep for "Morse Games" and "Morse
       Adventures." Don't ship under either name if a real conflict turns up.
-- [ ] **Pick a real feedback address** and replace the `feedback@example.com`
+- [x] **Pick a real feedback address** and replace the `feedback@example.com`
       placeholder in `index.html` (dedicated address, not a personal inbox, per
-      `TERMS.md`'s rationale).
-- [ ] **Get `TERMS.md` reviewed** by your lawyer friend and decide §8 (governing
-      law) — currently left blank on purpose. Update `src/terms.ts`'s `FULL_TEXT` to
-      match once the wording is final.
-- [ ] **Flip the repo's Settings → Pages → Source to "GitHub Actions"** (one-time,
-      manual — the workflow file alone won't publish anything until this is set).
-- [ ] **Do a real click-through test** of the deployed Pages URL, not just the local
-      Docker container: confirm the terms modal appears once and stays dismissed on
-      reload, the feedback link opens a mail client with the right address, and
-      asset paths resolve correctly under the `username.github.io/reponame/`
-      subpath (the app hasn't actually been served from a subpath yet — only from
-      Docker's root-served build).
+      `TERMS.md`'s rationale) — done 2026-07-19: `morsegames.feedback@gmail.com`.
+- [x] **Get `TERMS.md` reviewed** — skipped by deliberate decision (2026-07-19): the
+      project owner accepted the terms as-is without a lawyer, judging the app low-risk.
+      §8 (governing law) was dropped entirely rather than left as a placeholder.
+- [x] **Flip the repo's Settings → Pages → Source to "GitHub Actions"** — done
+      2026-07-19. **Live at https://jffordem.github.io/MorseGames/**, deployed via
+      `deploy.yml`'s `actions/deploy-pages`.
+- [ ] **Do a real click-through test** of the deployed Pages URL
+      (https://jffordem.github.io/MorseGames/), not just the local Docker container:
+      confirm the terms modal appears once and stays dismissed on reload, the feedback
+      link opens a mail client with the right address, and asset paths resolve
+      correctly under the `jffordem.github.io/MorseGames/` subpath (the app hasn't
+      actually been click-through tested from this subpath yet — only from Docker's
+      root-served build).
 - [ ] **Re-confirm the no-data-collection claim still holds** against whatever's on
       `main` at deploy time — a quick `grep` for new `fetch(`/`XMLHttpRequest`/
       third-party `<script src=` additions since the 2026-07-10 audit is enough;
