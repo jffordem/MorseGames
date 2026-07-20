@@ -32,6 +32,7 @@ import { tokenize, tokenizeWords, includesSequence } from "../dialogue/tokens";
 const HQ_CALL = "KEN"; // net control (HQ)
 const MY_CALL = "GOOSE"; // this station
 const RELAY_CALL = "SKIP"; // a second coastwatcher post, out of KEN's direct reach
+const NICK_CALL = "NICK"; // supply — the Request Supplies mission element's trading partner
 const FREQ_MIN = 4000;
 const FREQ_MAX = 5200;
 const ON_FREQ_KHZ = 5; // within this window, HQ is readable — one grid step, so the readout actually matches the briefing
@@ -100,6 +101,16 @@ function pick<T>(a: T[]): T {
 }
 function randInt(lo: number, hi: number): number {
   return lo + Math.floor(Math.random() * (hi - lo + 1));
+}
+/** n distinct items, order randomized — used to vary which supplies/trade
+ *  goods a haggle mission features each run (see MUNDA_DAY1). */
+function pickN<T>(pool: readonly T[], n: number): T[] {
+  const copy = [...pool];
+  const out: T[] = [];
+  for (let i = 0; i < n && copy.length > 0; i++) {
+    out.push(copy.splice(randInt(0, copy.length - 1), 1)[0]);
+  }
+  return out;
 }
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -190,7 +201,32 @@ type DayEvent =
   | { kind: "relay"; clock: string; light: string; from: string; sighting: Sighting }
   // Traffic between two OTHER stations, overheard on the same frequency — nothing
   // to do but recognize it isn't for you and not answer it (monitoring discipline).
-  | { kind: "overhear"; clock: string; light: string; from: string; to: string; msg: string };
+  | { kind: "overhear"; clock: string; light: string; from: string; to: string; msg: string }
+  // Request Supplies kit element — a real back-and-forth negotiation over CW, not
+  // a scripted exchange. `partner` haggles via the RULES table below (see "Nick's
+  // dialogue rules") using a value-weighted engine with two INDEPENDENT
+  // valuations (see GOOSE_VALUE / rollNickValues) — Nick's own sense of what
+  // each good is worth, rolled fresh per run and never shown outright, is what
+  // actually drives the negotiation; GOOSE's fixed sense of worth is used only
+  // for the after-the-fact "what did that cost you" readout. Offering ANY
+  // combination/quantity of goods knocks their Nick-value off his ask, so the
+  // negotiation equalizes both sides rather than just decrementing a counter.
+  // Both sides of the trade are real, possessable goods — `priceItem` is
+  // something GOOSE actually has (see MUNDA_DAY1's trade pool), `rewardItem` is
+  // something Nick actually stocks — never an abstract, ungrounded currency
+  // (see MORSE-GAMES.md's "Request Supplies mission draft" for the design
+  // rationale and why this replaced an earlier "cases of soap" placeholder).
+  | {
+      kind: "haggle";
+      clock: string;
+      light: string;
+      partner: string;
+      priceItem: string; // the trade good Nick's opening line names concretely
+      tradeWords: string[]; // ALL of GOOSE's trade goods this run, priceItem included
+      rewardItem: string; // the supply item Nick is actually offering
+      rewardQty: number; // how many units of rewardItem the deal delivers
+      nickValues: Record<string, number>; // Nick's own, hidden valuation — rolled once, never re-rolled
+    };
 
 /** Built once per transmit() call and handed to the dialogue engine's rule table. */
 interface DialogueInput {
@@ -226,8 +262,11 @@ interface Scenario {
   dayTag: string; // e.g. "Kolombangara · Day 14" — shown on both transition cards
   introTitle: string; // h2 on the cold-open card
   introCopy: string;
-  notes: string; // upper-left Notes panel text
-  briefing(hqFreqKhz: number): string; // upper-left Briefing panel text
+  // Plain string for fixed-content missions; a function for a mission whose
+  // flavor text needs to reflect this run's randomized DayEvents (e.g.
+  // MUNDA_DAY1's trade goods) — called with the built day so it can inspect it.
+  notes: string | ((day: DayEvent[]) => string);
+  briefing(hqFreqKhz: number, day: DayEvent[]): string; // upper-left Briefing panel text
   buildTimeline(authChallenge: string): DayEvent[];
   outroCopy: string; // sentence appended after the day's tally on the outro card
   outroAside?: string; // shown only on this scenario's outro — a payoff beat
@@ -433,9 +472,174 @@ const KOLOMBANGARA_DAY_RELAY: Scenario = {
   outroCopy: "Another day on the ridge — and one more voice on the net you can now put a name to.",
 };
 
-const SCENARIOS: Scenario[] = [KOLOMBANGARA_DAY14, KOLOMBANGARA_DAY3, KOLOMBANGARA_DAY_RELAY];
+// Request Supplies randomization pools (MUNDA_DAY1 only, so far). Both pools
+// are generated once in buildTimeline() and read back by notes()/briefing()
+// from the built day, never re-rolled independently — see the Scenario
+// interface note on why `notes` accepts a function. This keeps every side of
+// the trade grounded in something real: SUPPLY_TRADE_POOL is what GOOSE
+// actually has on hand (the briefing's "HAVE TO TRADE" line), SUPPLY_REWARD_POOL
+// is what Nick actually stocks (the briefing's "NEED" line is exactly what the
+// deal delivers — no more haggling toward a goal that was never obtainable,
+// which an earlier "cases of soap" abstraction did). Different pool sizes and
+// randomized quantities so a run's whole trade genuinely varies — see
+// MORSE-GAMES.md's "Request Supplies mission draft" for the design intent
+// ("play poker with Nick whenever the urge strikes").
+const SUPPLY_REWARD_POOL = ["BATTERIES", "QUININE", "BANDAGES", "FUEL"];
+const SUPPLY_TRADE_POOL = ["SCOTCH", "TOBACCO", "COFFEE", "CIGARETTES", "CHOCOLATE"];
+const TRADE_FLAVOR: Record<string, string> = {
+  SCOTCH: "Bill's flask of scotch he swore he'd forgotten about",
+  TOBACCO: "tobacco the scouts don't smoke",
+  COFFEE: "a tin of coffee from the last care package",
+  CIGARETTES: "a carton of cigarettes nobody's touched",
+  CHOCOLATE: "a chocolate ration bar going soft in the heat",
+};
+// [singular, plural] — explicit rather than a "+S" rule, since BOX/POUCH need
+// "-ES" and English pluralization bugs read as broken game text, not typos.
+const ITEM_UNIT: Record<string, [string, string]> = {
+  SCOTCH: ["CASE", "CASES"],
+  TOBACCO: ["POUCH", "POUCHES"],
+  COFFEE: ["TIN", "TINS"],
+  CIGARETTES: ["CARTON", "CARTONS"],
+  CHOCOLATE: ["BAR", "BARS"],
+  BATTERIES: ["BOX", "BOXES"],
+  QUININE: ["BOTTLE", "BOTTLES"],
+  BANDAGES: ["ROLL", "ROLLS"],
+  FUEL: ["CAN", "CANS"],
+};
+function unitFor(item: string, qty: number): string {
+  const [singular, plural] = ITEM_UNIT[item] ?? ["UNIT", "UNITS"];
+  return qty === 1 ? singular : plural;
+}
 
-type Phase = "cold" | "onair" | "sked" | "spot" | "relay" | "overhear" | "done";
+// Two independent valuations, not one shared price list — the "theory of
+// mind" half of the negotiation. GOOSE_VALUE is a fixed, personal sense of
+// what each trade good is worth (used only for the after-the-fact "what did
+// that cost you" readout in haggle-accept — never for the live math). Nick's
+// own valuation is rolled fresh per run (rollNickValues, called from
+// MUNDA_DAY1's buildTimeline) and is what actually drives the negotiation —
+// it's never shown to the player directly, only implied by how enthusiastic
+// his reaction is to a given offer (see nickReaction). The two can and do
+// disagree: GOOSE might treasure the scotch while Nick barely wants it this
+// trip, or vice versa — reading that gap *is* the game, not a UI you can
+// just read off. See MORSE-GAMES.md's "Request Supplies mission draft".
+const GOOSE_VALUE: Record<string, number> = {
+  SCOTCH: 3,
+  CIGARETTES: 2,
+  COFFEE: 2,
+  TOBACCO: 1,
+  CHOCOLATE: 1,
+};
+function rollNickValues(items: readonly string[]): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const item of items) out[item] = randInt(1, 3);
+  return out;
+}
+/** A soft tell, not a number — how enthusiastically Nick reacts hints at his
+ *  (hidden) valuation without ever stating it outright. */
+function nickReaction(value: number): string {
+  if (value >= 3) return "OM NOW WERE TALKING";
+  if (value === 2) return "OM THATLL DO";
+  return "OM IF THATS ALL YOU GOT";
+}
+
+/** Extract {item, qty} pairs from a haggle message — token-based, not natural
+ *  language (per dialogue/tokens.ts's "flexible but not fuzzy" philosophy): a
+ *  number token immediately before a known item sets its quantity, a bare
+ *  item defaults to 1. Lets one message offer several different goods at once
+ *  ("2 SCOTCH ES 2 CHOCOLATE"), each valued and summed on its own terms. */
+function parseOffer(words: string[], knownItems: readonly string[]): { item: string; qty: number }[] {
+  const out: { item: string; qty: number }[] = [];
+  for (let i = 0; i < words.length; i++) {
+    const w = words[i];
+    if (!knownItems.includes(w)) continue;
+    const prev = words[i - 1];
+    const qty = prev && /^[0-9]+$/.test(prev) ? Math.max(1, Number(prev)) : 1;
+    out.push({ item: w, qty });
+  }
+  return out;
+}
+
+function haggleEventOf(day: DayEvent[]): Extract<DayEvent, { kind: "haggle" }> | undefined {
+  const e = day[0];
+  return e?.kind === "haggle" ? e : undefined;
+}
+
+/** New Georgia/Munda Day 1 — the Request Supplies kit element's first outing. A
+ *  single haggle beat, no sked/authenticator ceremony (this post isn't being
+ *  watched today — see the notes), so the whole day is the negotiation with
+ *  NICK. DF danger is naturally low here: haggling never bumps retryCount, so
+ *  dangerLabel stays "low" the entire mission on purpose — this level is meant
+ *  to let the player focus entirely on the trade, not a DF/timer threat. Both
+ *  Nick's opening ask and which trade goods are on hand are randomized fresh
+ *  per run (see buildTimeline()) — replaying isn't just re-running a script,
+ *  it's a genuinely different negotiation. See MORSE-GAMES.md's "Request
+ *  Supplies mission draft" for the full design note. */
+const MUNDA_DAY1: Scenario = {
+  id: "munda-1",
+  dayTag: "New Georgia · Munda, Day 1",
+  introTitle: "Landfall — New Georgia",
+  introCopy:
+    "The Minnow put you ashore in the dark again, but this beach is different — jerry " +
+    "cans stacked at the tideline, a hacked path already climbing into the trees. Scouts " +
+    "work this stretch of coast now too. Your shoulders are still sore from the last of " +
+    "the cans.",
+  notes: (day) => {
+    const e = haggleEventOf(day);
+    const goods = e ? e.tradeWords.map((w) => TRADE_FLAVOR[w]).join(", ") : "whatever's left in my pack";
+    // GOOSE's own ranking, by GOOSE_VALUE — a personal opinion, not a promise
+    // about what Nick actually wants (that's rolled independently — see
+    // rollNickValues). Deliberately offered as a guess GOOSE could be wrong
+    // about, since the two valuations aren't guaranteed to agree.
+    const ranked = e ? [...e.tradeWords].sort((a, b) => GOOSE_VALUE[b] - GOOSE_VALUE[a]) : [];
+    const opinion =
+      ranked.length > 0
+        ? ` If it were up to me I'd part with the ${ranked[ranked.length - 1].toLowerCase()} first and keep the ` +
+          `${ranked[0].toLowerCase()} — but Nick's never once wanted what I expected him to.`
+        : "";
+    return (
+      "Day 1 at Munda. Aaron caught me before the sked. \"Don't take his first number,\" " +
+      "he said. \"Nick respects a fella who pushes back — bores him if you don't. Man " +
+      "once talked him down on a full case of Spam using nothing but a harmonica and a " +
+      `bad attitude.\" I don't have a harmonica — but I've got ${goods}.${opinion} No DF ` +
+      "launch working this stretch today, they say — for once, nobody's listening in but Nick."
+    );
+  },
+  briefing: (hqFreqKhz, day) => {
+    const e = haggleEventOf(day);
+    const trade = e ? e.tradeWords.join(", ") : "whatever's on hand";
+    const need = e ? e.rewardItem : "supplies";
+    return (
+      `STATION GOOSE — New Georgia. Ashore at Munda, hacking a path up from the beach. ` +
+      `Raise ${NICK_CALL} (supply) on ${hqFreqKhz} kHz before dusk. ` +
+      `NEED: ${need} — that's genuinely what he's got. HAVE TO TRADE: ${trade} — mix and ` +
+      "match what you send; what it's worth to him is his call, not yours. Minimum " +
+      "ceremony, maximum nerve."
+    );
+  },
+  buildTimeline: () => {
+    const tradeWords = pickN(SUPPLY_TRADE_POOL, 3);
+    const rewardItem = pick(SUPPLY_REWARD_POOL);
+    return [
+      {
+        kind: "haggle",
+        clock: "1000",
+        light: "morning",
+        partner: NICK_CALL,
+        priceItem: tradeWords[0],
+        tradeWords,
+        rewardItem,
+        rewardQty: randInt(1, 2),
+        nickValues: rollNickValues([...tradeWords, rewardItem]),
+      },
+    ];
+  },
+  outroCopy: "Whatever Nick sends, it beats hauling it up that path by hand.",
+  outroAside: "Somewhere down the coast, the Seabees are already at work — you just don't know it yet.",
+};
+
+const SCENARIOS: Scenario[] = [KOLOMBANGARA_DAY14, KOLOMBANGARA_DAY3, KOLOMBANGARA_DAY_RELAY, MUNDA_DAY1];
+
+type Phase = "cold" | "onair" | "sked" | "spot" | "relay" | "overhear" | "haggle" | "done";
 
 export class AdventureMode {
   private root: HTMLElement;
@@ -460,6 +664,14 @@ export class AdventureMode {
   private need: string[] = []; // report fields still outstanding for the current spot/relay-forward
   private relayAcked = false; // acknowledged the relay sender (e.g. SKIP) this beat
   private relayForwardDone = false; // forwarded a complete report to HQ this beat
+  // Haggle (Request Supplies) state — see beginHaggle() and the haggle-* RULES below.
+  // Deliberately never touches retryCount: this mission's DF danger stays pegged low
+  // by design (see MUNDA_DAY1), so haggling freely never reads as "risky."
+  private haggleStage: "opening" | "negotiate" = "opening";
+  private haggleAskValue = 0; // Nick's current ask, in ITEM_VALUE points — see haggle-counter
+  private haggleOffered = new Map<string, number>(); // cumulative {item: qty} offered this run, for the deal-struck summary
+  private haggleLastPlayerTokens: string[] = []; // detects an unchanged, stalled resend
+  private haggleRounds = 0; // negotiate-stage player turns — no cap, just a replay-worthy stat (see haggle-accept)
   private retryCount = 0; // AGN repeats + incomplete-report resends this run — drives dangerLabel
   private authTable: AuthPair[] = []; // today's authenticator table
   private liveAuthIdx = 0; // which row of authTable KEN actually challenges with, randomized per run
@@ -527,6 +739,11 @@ export class AdventureMode {
     this.need = [];
     this.relayAcked = false;
     this.relayForwardDone = false;
+    this.haggleStage = "opening";
+    this.haggleAskValue = 0;
+    this.haggleOffered = new Map();
+    this.haggleLastPlayerTokens = [];
+    this.haggleRounds = 0;
     this.retryCount = 0;
     this.authTable = makeAuthTable(); // generated fresh — see the authenticator note above
     this.liveAuthIdx = randInt(0, this.authTable.length - 1); // which row KEN actually challenges with
@@ -598,9 +815,10 @@ export class AdventureMode {
 
   private buildBriefing(): HTMLElement {
     const panel = el("div", "shack-panel shack-briefing");
-    panel.appendChild(text("h2", "shack-title", "Station GOOSE — Kolombangara"));
+    const place = this.scenario.dayTag.split(/[·,]/)[0].trim();
+    panel.appendChild(text("h2", "shack-title", `Station GOOSE — ${place}`));
     panel.appendChild(text("div", "shack-label", "Briefing"));
-    panel.appendChild(text("p", "brief", this.scenario.briefing(this.hqFreqKhz)));
+    panel.appendChild(text("p", "brief", this.scenario.briefing(this.hqFreqKhz, this.day)));
     panel.appendChild(text("div", "shack-label", "Authenticator (today) — SOI table"));
     const authGrid = el("div", "codebook codebook--single");
     for (const { challenge, response } of this.authTable) {
@@ -610,7 +828,8 @@ export class AdventureMode {
     }
     panel.appendChild(authGrid);
     panel.appendChild(text("div", "shack-label", "Notes"));
-    panel.appendChild(text("p", "notes", this.scenario.notes));
+    const notesText = typeof this.scenario.notes === "function" ? this.scenario.notes(this.day) : this.scenario.notes;
+    panel.appendChild(text("p", "notes", notesText));
     this.elNotesFeed = el("div", "notes-feed"); // spotter runners land here
     panel.appendChild(this.elNotesFeed);
     return panel;
@@ -925,13 +1144,20 @@ export class AdventureMode {
    *  scheduleFreqSettle(). No "on frequency" hint: the briefing has today's
    *  frequency. Off the dial, dwelling gets you static; tune it right and,
    *  after a beat (like you sat down just as the traffic started), the 0600
-   *  sked comes through on its own. */
+   *  sked comes through on its own. Also the entry point for a day that opens
+   *  on a haggle beat instead of a sked (MUNDA_DAY1) — spot/relay/overhear
+   *  never open a day, so those fall through and do nothing, same as before. */
   private async trySked0(): Promise<void> {
     if (this.phase !== "onair" || this.evtIx !== 0 || this.playing) return;
     const e = this.day[0];
-    if (e.kind !== "sked") return;
+    if (e.kind !== "sked" && e.kind !== "haggle") return;
     this.setScene(e.light, e.clock);
     if (this.onFreq) this.focusNotepad();
+    if (e.kind === "haggle") {
+      await this.beginHaggle(e);
+      this.refresh();
+      return;
+    }
     if (await this.hqSend(e.msg)) {
       this.phase = "sked";
       this.setStatus(e.prompt);
@@ -1007,11 +1233,38 @@ export class AdventureMode {
       await delay(OVERHEAR_PAUSE_MS);
       await this.advance();
       return;
+    } else if (e.kind === "haggle") {
+      await this.beginHaggle(e);
     } else {
       this.phase = "sked";
       if (await this.hqSend(e.msg)) this.setStatus(e.prompt);
     }
     this.refresh();
+  }
+
+  /** Opens a haggle beat (Request Supplies): reset the negotiation state, then
+   *  have `partner` open with an invitation to state what you need. Called from
+   *  both trySked0() (haggle as the day's first event) and runEvent() (haggle
+   *  at any later index), so the setup lives in one place. */
+  private async beginHaggle(e: Extract<DayEvent, { kind: "haggle" }>): Promise<void> {
+    this.phase = "haggle";
+    this.haggleStage = "opening";
+    this.haggleAskValue = 0; // set for real once negotiation opens — see haggle-opening
+    this.haggleOffered = new Map();
+    this.haggleLastPlayerTokens = [];
+    this.haggleRounds = 0;
+    if (await this.hqSend(`${MY_CALL} DE ${e.partner} HEARD YOU GOT A LIST FOR ME QRV K`, e.partner)) {
+      this.setStatus(`State what you need, then haggle it out with ${e.partner}.`);
+    }
+  }
+
+  /** The current ask (in Nick's own value points — see rollNickValues),
+   *  translated into a concrete count of `priceItem` so Nick always talks in
+   *  tangible goods, never raw "points." Rounds up, so it never asks for less
+   *  than covers the remaining value. */
+  private haggleRemainingUnits(e: Extract<DayEvent, { kind: "haggle" }>): number {
+    const priceVal = e.nickValues[e.priceItem] || 1;
+    return Math.ceil(this.haggleAskValue / priceVal);
   }
 
   private async advance(): Promise<void> {
@@ -1077,6 +1330,9 @@ export class AdventureMode {
   private static isRelay(ctx: AdventureMode): boolean {
     return ctx.phase === "relay" && ctx.currentEvent.kind === "relay";
   }
+  private static isHaggle(ctx: AdventureMode): boolean {
+    return ctx.phase === "haggle" && ctx.currentEvent.kind === "haggle";
+  }
   /** Token-based, not exact-string: tolerates real message variation (extra
    *  spacing, surrounding prowords, either order) without needing AI judgment. */
   private static authStatus(i: DialogueInput, ctx: AdventureMode): { hasQsl: boolean; hasAuth: boolean } {
@@ -1093,6 +1349,7 @@ export class AdventureMode {
   private validRecipients(): string[] {
     const e = this.currentEvent;
     if (this.phase === "relay" && e.kind === "relay") return [HQ_CALL, e.from];
+    if (this.phase === "haggle" && e.kind === "haggle") return [e.partner];
     return [HQ_CALL];
   }
 
@@ -1107,7 +1364,11 @@ export class AdventureMode {
       when: (ctx) => ctx.phase !== "overhear",
       match: (i, ctx) => !ctx.validRecipients().some((call) => includesSequence(i.words, [call, "DE", MY_CALL])),
       act: async (_i, ctx) => {
-        await ctx.hqSend(`${MY_CALL} DE ${HQ_CALL} QRZ K`);
+        // Reply as whoever you're actually supposed to be addressing — during a
+        // haggle beat that's the trade partner, not HQ (previously hardcoded to
+        // HQ_CALL, which was harmless while HQ was the only possible recipient).
+        const recipient = ctx.validRecipients()[0];
+        await ctx.hqSend(`${MY_CALL} DE ${recipient} QRZ K`, recipient);
         ctx.setStatus(`Lead with ${ctx.validRecipients().join(" or ")} DE ${MY_CALL}, depending who you're answering.`);
       },
     },
@@ -1305,6 +1566,254 @@ export class AdventureMode {
         ctx.setStatus(`Acknowledge ${from} (${from} DE ${MY_CALL} QSL), and forward the report to ${HQ_CALL} (${HQ_CALL} DE ${MY_CALL} …).`);
       },
     },
+    // Haggle (Request Supplies) — see MUNDA_DAY1 and beginHaggle(). The "opening"
+    // sub-stage just waits for the player to state their need (any properly-
+    // addressed message advances it, ungraded — the negotiation is the point,
+    // not this line); everything after is the real back-and-forth.
+    {
+      id: "haggle-opening",
+      when: AdventureMode.isHaggle,
+      match: (_i, ctx) => ctx.haggleStage === "opening",
+      act: async (_i, ctx) => {
+        const e = ctx.currentEvent;
+        if (e.kind !== "haggle") return;
+        ctx.haggleStage = "negotiate";
+        // Nick opens inflated above his OWN sense of fair value (never GOOSE's —
+        // see rollNickValues) — real negotiation posture, and room to work with.
+        const targetValue = e.rewardQty * e.nickValues[e.rewardItem];
+        const askValue = targetValue + randInt(2, 4);
+        const priceVal = e.nickValues[e.priceItem];
+        const startUnits = Math.max(1, Math.ceil(askValue / priceVal));
+        ctx.haggleAskValue = startUnits * priceVal; // keep the stated line and the math exact
+        const priceUnit = unitFor(e.priceItem, startUnits);
+        const rewardUnit = unitFor(e.rewardItem, e.rewardQty);
+        await ctx.hqSend(
+          `${MY_CALL} DE ${e.partner} QRV OFFER ${e.rewardQty} ${rewardUnit} ${e.rewardItem} FOR ` +
+            `${startUnits} ${priceUnit} ${e.priceItem} K`,
+          e.partner
+        );
+        ctx.setStatus(
+          `You need about ${startUnits} ${priceUnit.toLowerCase()} ${e.priceItem}'s worth to cover ` +
+            `${e.rewardQty} ${rewardUnit.toLowerCase()} ${e.rewardItem} — you've got ${e.tradeWords.join(", ")} ` +
+            "to work with. Offer any mix, counter with NEG <n>, or QSL once it's covered."
+        );
+      },
+    },
+    {
+      id: "haggle-repeat",
+      when: (ctx) => AdventureMode.isHaggle(ctx) && ctx.haggleStage === "negotiate",
+      match: (i) => i.isAgn,
+      act: async (_i, ctx) => {
+        const e = ctx.currentEvent;
+        if (e.kind !== "haggle") return;
+        const units = ctx.haggleRemainingUnits(e);
+        const priceUnit = unitFor(e.priceItem, units);
+        await ctx.hqSend(`${MY_CALL} DE ${e.partner} SEND ${units} ${priceUnit} ${e.priceItem} K`, e.partner);
+      },
+    },
+    {
+      id: "haggle-accept",
+      when: (ctx) => AdventureMode.isHaggle(ctx) && ctx.haggleStage === "negotiate",
+      match: (i) => i.words.includes("QSL") || i.words.includes("OK") || i.words.includes("R"),
+      act: async (_i, ctx) => {
+        const e = ctx.currentEvent;
+        if (e.kind !== "haggle") return;
+        await ctx.hqSend(`${MY_CALL} DE ${e.partner} HI OK QSL WILL SEND SAT K`, e.partner);
+
+        // Final price = whatever was already offered, plus enough priceItem to
+        // cover what's left of the ask — same commitment QSL always implied.
+        const finalOffered = new Map(ctx.haggleOffered);
+        const remainingUnits = ctx.haggleRemainingUnits(e);
+        if (remainingUnits > 0) {
+          finalOffered.set(e.priceItem, (finalOffered.get(e.priceItem) ?? 0) + remainingUnits);
+        }
+        const tradedStr = [...finalOffered.entries()]
+          .map(([item, qty]) => `${qty} ${unitFor(item, qty).toLowerCase()} ${item}`)
+          .join(", ");
+
+        // Two independent tallies of the SAME goods — Nick's real (hidden)
+        // valuation vs. GOOSE's own fixed sense of worth. The gap between them
+        // is the whole point (see GOOSE_VALUE / rollNickValues).
+        let nickTotal = 0;
+        let gooseTotal = 0;
+        for (const [item, qty] of finalOffered) {
+          nickTotal += e.nickValues[item] * qty;
+          gooseTotal += (GOOSE_VALUE[item] ?? 1) * qty;
+        }
+        const readOut =
+          gooseTotal < nickTotal
+            ? "Good read — that cost you less than it was worth to him."
+            : gooseTotal > nickTotal
+              ? "He got the better end of that one — wasn't what he was really after."
+              : "A fair trade, by anyone's reckoning.";
+
+        ctx.addTraffic(
+          "log",
+          `Deal struck: ${tradedStr} for ${e.rewardQty} ${unitFor(e.rewardItem, e.rewardQty).toLowerCase()} ` +
+            `${e.rewardItem}, ${ctx.haggleRounds} rounds of haggling. ${readOut}`
+        );
+        await ctx.advance();
+      },
+    },
+    // A stalled, unchanged resend — "bores him if you don't" made mechanical:
+    // repeating the exact same offer doesn't soften Nick, it stiffens him.
+    // Checked before "haggle-counter" so a genuine repeat reads as stalling,
+    // not (impossibly) as new value.
+    {
+      id: "haggle-stall",
+      when: (ctx) => AdventureMode.isHaggle(ctx) && ctx.haggleStage === "negotiate",
+      match: (i, ctx) =>
+        ctx.haggleLastPlayerTokens.length > 0 && i.words.join(" ") === ctx.haggleLastPlayerTokens.join(" "),
+      act: async (_i, ctx) => {
+        const e = ctx.currentEvent;
+        if (e.kind !== "haggle") return;
+        ctx.haggleRounds += 1;
+        const units = ctx.haggleRemainingUnits(e);
+        const priceUnit = unitFor(e.priceItem, units);
+        await ctx.hqSend(
+          `${MY_CALL} DE ${e.partner} HO HUM SAME OFFER? SEND ${units} ${priceUnit} ${e.priceItem} ` +
+            "OR SOMETHING NEW K",
+          e.partner
+        );
+        ctx.setStatus("Repeating yourself doesn't move him — try offering something new instead.");
+      },
+    },
+    // The real haggle — and the whole point of this redesign: a message can
+    // name SEVERAL different goods at once, each valued by Nick's OWN (hidden,
+    // per-run) valuation, not GOOSE's assumption — see rollNickValues. The
+    // total knocks straight off the ask, so the engine genuinely weighs
+    // combinations against Nick's price instead of counting mentions. NEG
+    // alone (no goods) only works down to Nick's own fair value for the
+    // reward — going below that takes real goods, not just pressure. His
+    // reaction to each item offered is a soft tell for how much HE actually
+    // wanted it (see nickReaction) — the only way to learn his real
+    // preferences is to offer things and watch how he responds.
+    {
+      id: "haggle-counter",
+      when: (ctx) => AdventureMode.isHaggle(ctx) && ctx.haggleStage === "negotiate",
+      match: (i, ctx) => {
+        const e = ctx.currentEvent;
+        if (e.kind !== "haggle") return false;
+        const hasOffer = parseOffer(i.words, e.tradeWords).length > 0;
+        const hasCounter = i.words.includes("NEG") && i.words.some((w) => /^[0-9]+$/.test(w));
+        return hasOffer || hasCounter;
+      },
+      act: async (i, ctx) => {
+        const e = ctx.currentEvent;
+        if (e.kind !== "haggle") return;
+        ctx.haggleRounds += 1;
+        ctx.haggleLastPlayerTokens = i.words;
+
+        const offer = parseOffer(i.words, e.tradeWords);
+        let offerValue = 0;
+        let reaction = "OM TOUGH TRADER";
+        for (const { item, qty } of offer) {
+          offerValue += e.nickValues[item] * qty;
+          ctx.haggleOffered.set(item, (ctx.haggleOffered.get(item) ?? 0) + qty);
+          reaction = nickReaction(e.nickValues[item]); // last item mentioned wins, good enough for one line
+        }
+
+        let negNote = "";
+        if (i.words.includes("NEG")) {
+          const fairValue = e.rewardQty * e.nickValues[e.rewardItem];
+          if (ctx.haggleAskValue > fairValue) {
+            offerValue += e.nickValues[e.priceItem];
+            reaction = offer.length > 0 ? reaction : "OM";
+          } else {
+            negNote = " ALREADY FAIR PRICE";
+          }
+        }
+
+        ctx.haggleAskValue = Math.max(0, ctx.haggleAskValue - offerValue);
+        const remainingUnits = ctx.haggleRemainingUnits(e);
+        const priceUnit = unitFor(e.priceItem, remainingUnits);
+
+        if (remainingUnits <= 0) {
+          await ctx.hqSend(`${MY_CALL} DE ${e.partner} HI OK DEAL SEND QSL TO CLOSE IT K`, e.partner);
+          ctx.setStatus("You've covered it — send QSL to close the deal, or keep pushing for something better.");
+        } else {
+          await ctx.hqSend(
+            `${MY_CALL} DE ${e.partner} ${reaction}${negNote} SEND ${remainingUnits} ${priceUnit} ${e.priceItem} ` +
+              "OR SOMETHING ELSE K",
+            e.partner
+          );
+          ctx.setStatus(
+            `You still owe about ${remainingUnits} ${priceUnit.toLowerCase()} ${e.priceItem}'s worth. ` +
+              "Offer more goods, counter with NEG <n>, or QSL to accept."
+          );
+        }
+      },
+    },
+    // "Got fuel?" — a direct question about the reward side of the trade, not
+    // an offer. Confirms what's actually on the table when it's the item Nick's
+    // already offering; if it names a *different* real supply item (from the
+    // same pool, just not this run's pick), says so plainly instead of letting
+    // the player fixate on something that was never obtainable this run — the
+    // exact bug this whole redesign fixes. Ranked after haggle-counter so an
+    // actual offer/counter always wins if a message somehow does both.
+    {
+      id: "haggle-reward-unavailable",
+      when: (ctx) => AdventureMode.isHaggle(ctx) && ctx.haggleStage === "negotiate",
+      match: (i, ctx) => {
+        const e = ctx.currentEvent;
+        return e.kind === "haggle" && SUPPLY_REWARD_POOL.some((w) => w !== e.rewardItem && i.tk.has(w));
+      },
+      act: async (i, ctx) => {
+        const e = ctx.currentEvent;
+        if (e.kind !== "haggle") return;
+        const asked = SUPPLY_REWARD_POOL.find((w) => w !== e.rewardItem && i.tk.has(w))!;
+        await ctx.hqSend(`${MY_CALL} DE ${e.partner} NEG NO ${asked} TODAY GOT ${e.rewardItem} THOUGH K`, e.partner);
+        ctx.setStatus(
+          `No ${asked} today — you're negotiating for ${e.rewardItem}. Counter with NEG <n>, offer trade ` +
+            "goods, or QSL to accept."
+        );
+      },
+    },
+    {
+      id: "haggle-reward-query",
+      when: (ctx) => AdventureMode.isHaggle(ctx) && ctx.haggleStage === "negotiate",
+      match: (i, ctx) => {
+        const e = ctx.currentEvent;
+        return e.kind === "haggle" && i.tk.has(e.rewardItem);
+      },
+      act: async (_i, ctx) => {
+        const e = ctx.currentEvent;
+        if (e.kind !== "haggle") return;
+        const units = ctx.haggleRemainingUnits(e);
+        const priceUnit = unitFor(e.priceItem, units);
+        const rewardUnit = unitFor(e.rewardItem, e.rewardQty);
+        await ctx.hqSend(
+          `${MY_CALL} DE ${e.partner} AFFIRM GOT ${e.rewardQty} ${rewardUnit} ${e.rewardItem} FOR YOU ` +
+            `SEND ${units} ${priceUnit} ${e.priceItem} K`,
+          e.partner
+        );
+        ctx.setStatus(
+          `That's the deal: ${e.rewardQty} ${rewardUnit.toLowerCase()} ${e.rewardItem} for about ${units} ` +
+            `${priceUnit.toLowerCase()} ${e.priceItem} from you. Counter with NEG <n>, offer more goods, or ` +
+            "QSL to accept."
+        );
+      },
+    },
+    // No round cap, on purpose — Nick doesn't get bored of the CLOCK, only of a
+    // stalled offer (see haggle-stall above). A player can haggle as long as
+    // they want, chasing a better price; haggleRounds is tracked purely as a
+    // bragging-rights stat on the deal-struck log line (see haggle-accept), so
+    // a replay has something concrete to try to beat.
+    {
+      id: "haggle-nudge",
+      when: (ctx) => AdventureMode.isHaggle(ctx) && ctx.haggleStage === "negotiate",
+      match: () => true,
+      act: (_i, ctx) => {
+        const e = ctx.currentEvent;
+        if (e.kind !== "haggle") return;
+        const units = ctx.haggleRemainingUnits(e);
+        const priceUnit = unitFor(e.priceItem, units).toLowerCase();
+        ctx.setStatus(
+          `You still owe about ${units} ${priceUnit} ${e.priceItem}'s worth — offer any mix of your goods ` +
+            `(${e.tradeWords.join(", ")}), counter with NEG <n>, or send QSL to accept.`
+        );
+      },
+    },
     // Nothing here needs a reply — the correct play is recognizing the traffic
     // isn't yours and staying off the key. A nudge, not a penalty: no retryCount
     // bump, since declining to answer costs nothing and the day auto-advances
@@ -1353,7 +1862,11 @@ export class AdventureMode {
     return (
       this.radioOn &&
       !this.playing &&
-      (this.phase === "sked" || this.phase === "spot" || this.phase === "relay" || this.phase === "overhear")
+      (this.phase === "sked" ||
+        this.phase === "spot" ||
+        this.phase === "relay" ||
+        this.phase === "overhear" ||
+        this.phase === "haggle")
     );
   }
 
@@ -1512,6 +2025,7 @@ export class AdventureMode {
     this.setKnobDisabled(cold);
     this.setPowerKnobDisabled(cold);
 
+    this.elTxInput.placeholder = `key a message to ${this.validRecipients()[0]}…`;
     const tx = this.txEnabled;
     this.elTxInput.disabled = !tx;
     this.elTxBtn.disabled = !tx;

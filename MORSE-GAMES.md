@@ -521,6 +521,55 @@ Additional world-building — several of these resolve open threads.
     (someone else's genuine feat, and a real reason his watch matters) is the beat — per
     the **Forrest Gump restraint** above, GOOSE supports and protects; the Seabees do the
     actual, heroic thing.
+- **Request Supplies mission draft — New Georgia/Munda Day 1, "the haggle loop"
+  (2026-07-19, a family design session — draft, not locked).** Fulfills the **Request
+  Supplies** kit element (see above); the one slot in the current 25-mission table tagged
+  for it. Ties to the Nixon cameo (see Easter eggs — **Nick's Snack Shack**), but the
+  mission itself never names him: called **"Nick"** throughout (the real, period,
+  non-identifying nickname), with an in-fiction station callsign `NICK`, same convention
+  as `KEN`/`SKIP`. Deliberately avoided calling him anything tied to his post-war
+  political nickname — that's decades anachronistic for 1943 and would identify him
+  outright, breaking the Method's "never confirm" rule.
+  - **Mechanic — a real back-and-forth, not a scripted exchange.** Built on the existing
+    ELIZA-style dialogue engine (`src/dialogue/engine.ts`'s `Rule`/`respond` — ranked
+    keyword/pattern rules, zero-AI, 100% client-side, same spirit as the HQ persona
+    already used elsewhere). Nick needs his own small `Ctx` (round count, what's been
+    offered so far, a warmth/patience state) and rule table so the negotiation is
+    genuinely responsive both ways — Nick plies the player (opens high, needles, holds
+    firm), and the player plies Nick back (new trade goods, splitting the difference,
+    appeals) — not a fixed 3-line script.
+  - **Rule-table shape (sketch, for later implementation):** opening high counter-ask →
+    softens noticeably if the player's message introduces a *new* leverage item not yet
+    offered (tobacco, scotch, a favor) → **gets bored and stiffens if the player just
+    resends the same offer unchanged** (the "bores him if you don't" rule — the
+    diegetic payoff for not haggling) → holds firm, wry, against lowball or
+    rank-flexing ("mentioning KEN doesn't move him — he's not impressed by rank," an
+    authentic black-market-trader beat) → a round cap so the sked stays short and
+    interruptible, resolving to a better/worse (never a hard-fail) supply outcome
+    depending how the haggling actually went.
+  - **DF danger pegged low for this level, on purpose.** Unlike the tension-forward
+    missions elsewhere in the campaign, this one should let the player focus entirely on
+    the negotiation itself rather than a DF/timer threat — haggling *is* the challenge
+    here, not a distraction from one.
+  - **Briefing/notes give the player diegetic license to push back** — e.g. a line from
+    Aaron before the sked: *"Don't take his first number. Nick respects a fella who
+    pushes back — bores him if you don't. Man once talked him down on a full case of
+    Spam using nothing but a harmonica and a bad attitude."* Licenses boldness the same
+    way the training base "licenses the repetition" elsewhere in this doc — the fiction
+    itself invites the player to actually haggle rather than accept the first offer.
+  - **Sample exchange (illustrative shape, not final copy):**
+    ```
+    NICK DE GOOSE NEED BATTERIES ES QUININE SEND WHEN ABLE K
+    GOOSE DE NICK QRV BUT SHORT ES SLOW GOT SCOTCH? SEND 2 CASES SOAP FIRST K
+    NICK DE GOOSE NEG 2 CASES 1 CASE ES TOBACCO OM FAIR TRADE K
+    GOOSE DE NICK HI OK 1 CASE ES TOBACCO QSL WILL SEND SAT K
+    ```
+    `HI` (laughter) and `OM` ("old man") are real, still-taught CW/ham shorthand, so the
+    negotiation stays inside the game's actual vocabulary rather than inventing slang.
+  - **Open for next pass:** the exact `Ctx`/`Rule` table (round cap, how many leverage
+    items exist, what "better/worse outcome" concretely changes), and whether the
+    request items (batteries, quinine) should vary per playthrough or stay fixed like
+    the PT-109 sighting does.
 - **Level control — self-paced navigation (Portal-style, with one twist).** Missions are
   capsules, so let the player move through the plot at their own pace with simple
   **previous / replay / next** controls — the lightweight, in-context form of the islands

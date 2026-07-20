@@ -122,10 +122,10 @@ before building out the Adventure campaign further):
   **Live address set 2026-07-19:** `morsegames.feedback@gmail.com`, replacing the earlier
   `feedback@example.com` placeholder.
 
-**Pre-public-launch checklist (as of 2026-07-16).** The pieces above make the app
-*technically* deployable; these are what's still needed before actually sharing a
-public link with the club. Roughly in priority order — the first two are hard
-blockers, the rest are prudent but lower-stakes:
+**Pre-public-launch checklist — complete as of 2026-07-19.** The pieces above make the
+app *technically* deployable; these were what's needed before actually sharing a public
+link with the club. All items below are done — the site is live and click-through
+tested at https://jffordem.github.io/MorseGames/, ready to share:
 
 - [x] **Run the trademark check** ("clear the working titles" guidance above) —
       USPTO TESS search + marketplace/web sweep for "Morse Games" and "Morse
@@ -139,17 +139,15 @@ blockers, the rest are prudent but lower-stakes:
 - [x] **Flip the repo's Settings → Pages → Source to "GitHub Actions"** — done
       2026-07-19. **Live at https://jffordem.github.io/MorseGames/**, deployed via
       `deploy.yml`'s `actions/deploy-pages`.
-- [ ] **Do a real click-through test** of the deployed Pages URL
-      (https://jffordem.github.io/MorseGames/), not just the local Docker container:
-      confirm the terms modal appears once and stays dismissed on reload, the feedback
-      link opens a mail client with the right address, and asset paths resolve
-      correctly under the `jffordem.github.io/MorseGames/` subpath (the app hasn't
-      actually been click-through tested from this subpath yet — only from Docker's
-      root-served build).
-- [ ] **Re-confirm the no-data-collection claim still holds** against whatever's on
-      `main` at deploy time — a quick `grep` for new `fetch(`/`XMLHttpRequest`/
-      third-party `<script src=` additions since the 2026-07-10 audit is enough;
-      re-run this before every future public deploy, not just the first one.
+- [x] **Do a real click-through test** of the deployed Pages URL — confirmed 2026-07-19
+      against https://jffordem.github.io/MorseGames/: terms modal, feedback link, and
+      asset paths under the `jffordem.github.io/MorseGames/` subpath all working.
+- [x] **Re-confirm the no-data-collection claim still holds** — re-checked 2026-07-19
+      against `main` @ `4345e63`: only `fetch()` is the same-origin word-list asset load
+      in `src/data/words.ts`; no third-party `<script src=`/external links; `localStorage`
+      keys match the documented set exactly (`morse-games.settings`, `.charStats`,
+      `.reading`, `.termsAcknowledged`); zero runtime `package.json` dependencies. Claim
+      holds. **Re-run this before every future public deploy**, not just the first one.
 
 ## The timing engine (foundation — everything depends on it)
 
