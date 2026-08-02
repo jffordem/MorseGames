@@ -637,7 +637,250 @@ const MUNDA_DAY1: Scenario = {
   outroAside: "Somewhere down the coast, the Seabees are already at work — you just don't know it yet.",
 };
 
-const SCENARIOS: Scenario[] = [KOLOMBANGARA_DAY14, KOLOMBANGARA_DAY3, KOLOMBANGARA_DAY_RELAY, MUNDA_DAY1];
+/** New Georgia/Munda Day 2 — the Decode (HQ's ask) beat: an ambiguous KEN order
+ *  builds the airstrip misconception that Day 3 pays off (see MORSE-GAMES.md's
+ *  "Milestone mission seed — protecting the Munda Seabees"). Same sked/spot
+ *  rhythm as the Kolombangara demo — no new mechanic, just Munda's voice and a
+ *  joke GOOSE doesn't know he's telling on himself. */
+const MUNDA_DAY2: Scenario = {
+  id: "munda-2",
+  dayTag: "New Georgia · Munda, Day 2",
+  introTitle: "The Ask",
+  introCopy:
+    "Nick's supplies came up the path by scout relay overnight. Back on the ordinary " +
+    "watch this morning — except KEN's 0600 traffic has a line in it nobody bothered " +
+    "to explain.",
+  notes:
+    "Day 2. KEN wants the strip \"prepped\" and us \"standing by to assist " +
+    "construction.\" Construction of what, he doesn't say — and there's exactly one " +
+    "strip anyone means out here. The boys looked at me like I'd tell them different. " +
+    "I didn't. How much chopping does THAT take, with two machetes and whatever's " +
+    "left of my back after the jerry cans? Didn't sleep much on that one.",
+  briefing: (hqFreqKhz) =>
+    `STATION GOOSE — New Georgia. Same stretch of coast at Munda. Report to HQ (KEN) ` +
+    `on ${hqFreqKhz} kHz; skeds 0600 / 1030 / 1200 / 1500 / 1800. Minimum power — a DF ` +
+    "launch has started working this coast again.",
+  buildTimeline: (authChallenge) => [
+    {
+      kind: "sked",
+      clock: "0600",
+      light: "dawn",
+      msg: `${MY_CALL} DE ${HQ_CALL} PREP STRIP SOONEST ES STAND BY TO ASSIST CONSTRUCTION AUTHENTICATE ${authChallenge} K`,
+      prompt:
+        "Copy your orders and the authenticator challenge. Check today's table, then " +
+        "send QSL I AUTHENTICATE <code> together — or AGN? to hear it again.",
+    },
+    { kind: "spot", clock: "0800", light: "morning", sighting: makeAircraftSighting() },
+    {
+      kind: "sked",
+      clock: "1030",
+      light: "morning",
+      msg: `${MY_CALL} DE ${HQ_CALL} STRIP PARTY ARRIVES TOMORROW BE READY K`,
+      prompt: "Copy KEN's heads-up, then acknowledge (QSL).",
+    },
+    { kind: "spot", clock: "1200", light: "noon", sighting: makeShipSighting() },
+    {
+      kind: "sked",
+      clock: "1500",
+      light: "afternoon",
+      msg: `${MY_CALL} DE ${HQ_CALL} QSL RPT LOGGED MAINTAIN WATCH K`,
+      prompt: "Copy KEN, then acknowledge (QSL).",
+    },
+    {
+      kind: "sked",
+      clock: "1800",
+      light: "dusk",
+      msg: `${MY_CALL} DE ${HQ_CALL} QRT AT DUSK GN K`,
+      prompt: "Copy the sign-off, then acknowledge (QSL).",
+      final: true,
+    },
+  ],
+  outroCopy: "Whatever's coming with the \"strip party,\" it's got top billing on my dread list now.",
+  outroAside:
+    "The boys had their own theory — \"maybe it means the OTHER strip.\" There is no " +
+    "other strip.",
+};
+
+/** New Georgia/Munda Day 3 — the milestone: the Seabees reveal. GOOSE arrives
+ *  braced for manual labor and finds the 47th/63rd Naval Construction Battalions
+ *  already tearing through the jungle with heavy equipment — his real job was
+ *  always watching the sky over their exposed, half-built strip, not swinging a
+ *  machete. Same "Milestone: Decode + React to threats" shape as Guadalcanal's
+ *  Day 4 (warning → the defense scrambles in time because of you), built on the
+ *  existing spot/sked rhythm — no new mechanic. See MORSE-GAMES.md's "Milestone
+ *  mission seed — protecting the Munda Seabees" and "Real history as milestone
+ *  missions" for the design rationale and the Forrest Gump restraint it follows. */
+const MUNDA_DAY3: Scenario = {
+  id: "munda-3",
+  dayTag: "New Georgia · Munda, Day 3",
+  introTitle: "The Strip",
+  introCopy:
+    "You came up the track before dawn already sore in advance, machete borrowed and " +
+    "dull, half-composing the complaint you'd write home about it — and stopped dead " +
+    "at the tree line. Diesel engines. Real ones, dozens of them, chewing through " +
+    "jungle wider and faster than any two men with machetes ever could. Whoever " +
+    '"stand by to assist construction" meant, it plainly wasn\'t you.',
+  notes:
+    "Day 3. Bulldozers. Actual bulldozers, and men who clearly know how to run them, " +
+    "and a strip taking shape in about the time it'd have taken me to clear the first " +
+    'tree. "Seabees," KEN finally says outright — like I was supposed to know the word ' +
+    "already. Feel a little foolish for the machete. Feel more foolish for how relieved " +
+    "I am. My job, it turns out, was never the chopping. It's watching the sky over men " +
+    "who can't look up while they work.",
+  briefing: (hqFreqKhz) =>
+    "STATION GOOSE — New Georgia. Munda strip, mid-construction — badly exposed while " +
+    `it's unfinished. Watch the sky over it; report anything inbound to HQ (KEN) on ` +
+    `${hqFreqKhz} kHz, skeds 0600 / 1030 / 1200 / 1500 / 1800. Fast and clean matters ` +
+    "more than usual today.",
+  buildTimeline: (authChallenge) => [
+    {
+      kind: "sked",
+      clock: "0600",
+      light: "dawn",
+      msg: `${MY_CALL} DE ${HQ_CALL} SEABEES ON THE STRIP ES EXPOSED WATCH THE SKY CLOSE AUTHENTICATE ${authChallenge} K`,
+      prompt:
+        "Copy your orders and the authenticator challenge. Check today's table, then " +
+        "send QSL I AUTHENTICATE <code> together — or AGN? to hear it again.",
+    },
+    { kind: "spot", clock: "0900", light: "morning", sighting: makeAircraftSighting() },
+    {
+      kind: "sked",
+      clock: "1030",
+      light: "morning",
+      msg: `${MY_CALL} DE ${HQ_CALL} QSL SCRAMBLED IN TIME TU K`,
+      prompt: "Copy KEN's heads-up, then acknowledge (QSL).",
+    },
+    { kind: "spot", clock: "1200", light: "noon", sighting: makeAircraftSighting() },
+    {
+      kind: "sked",
+      clock: "1500",
+      light: "afternoon",
+      msg: `${MY_CALL} DE ${HQ_CALL} QSL RPT LOGGED MAINTAIN WATCH K`,
+      prompt: "Copy KEN, then acknowledge (QSL).",
+    },
+    {
+      kind: "sked",
+      clock: "1800",
+      light: "dusk",
+      msg: `${MY_CALL} DE ${HQ_CALL} QRT AT DUSK GN K`,
+      prompt: "Copy the sign-off, then acknowledge (QSL).",
+      final: true,
+    },
+  ],
+  outroCopy: "Another section of strip poured before dark, and the sky stayed clear of anything you didn't call first.",
+  outroAside:
+    "Word came back, days later, third-hand: 47th and 63rd Battalion, five days start " +
+    "to finish once they got moving. Nobody thanked GOOSE for it. Nobody needed to — " +
+    "the planes that didn't get through were thanks enough.",
+};
+
+/** Scripted, not generated, so this run's reveal always reads the same way —
+ *  same precedent as PT109_SIGHTING above. The "unmistakably Bill" detail rides
+ *  in the prose, not the graded fields; the report itself grades exactly like
+ *  any other ship relay. See MORSE-GAMES.md's "true finale — Magic Carpet
+ *  coordination": the Easter egg that isn't a stretch. */
+const BILL_SHIP_SIGHTING: Sighting = {
+  category: "SHIP",
+  count: 1,
+  type: "AK",
+  dir: "E",
+  prose:
+    "One transport standing out for open water, outbound at last. A manifest clerk's " +
+    "gripe rides along with the passage request — something about working himself out " +
+    "of one lousy job straight into a worse one. You'd know that line anywhere.",
+};
+
+/** The true finale — Operation Magic Carpet, the real 1945-46 mass repatriation
+ *  (see MORSE-GAMES.md's "The true finale — Magic Carpet coordination"). A big
+ *  calendar-as-montage skip from the Bougainville invasion. GOOSE's rank-driven
+ *  coordinator shift, played for real: the same relay-net shape used for SKIP
+ *  at Kolombangara, generalized to three field stations reporting up through
+ *  him instead of one — "at scale" without a new mechanic. SKIP's own relay
+ *  beat is a deliberate callback (same partner, same drill, headed home too);
+ *  the TROOP relay's BILL_SHIP_SIGHTING is the closing Easter egg. Ships this
+ *  version's scope only — genuine player-chosen prioritization among competing
+ *  requests (the fuller "real scarcity" idea) is parked as a follow-up, not
+ *  built here; every relay still resolves in the fixed timeline order. */
+const MAGIC_CARPET_FINALE: Scenario = {
+  id: "magic-carpet",
+  dayTag: "Magic Carpet Coordination · Day 1",
+  introTitle: "The Priority Board",
+  introCopy:
+    "Two years gone in the space of a calendar page. The Slot is somebody else's watch " +
+    "now; yours is a plywood desk in a rear-area commo shed, a chalkboard of ship names, " +
+    "and headphones that never once make you flinch. The shooting's over. Getting " +
+    "everybody home is its own kind of war room.",
+  notes:
+    "Twenty months since Bougainville, near enough. Andy drilled the alphabet into me " +
+    "until I hated him for it; now I'm the one deciding whose message goes out first. " +
+    "Three stations on the board today, and every one of them wants the same thing " +
+    "everybody wants: a berth, and soon. There aren't enough hulls for all of it at " +
+    "once — there never quite are — so the board is mine to run, and God help me if I " +
+    "run it wrong.",
+  briefing: (hqFreqKhz) =>
+    "STATION GOOSE — Rear Area, Operation Magic Carpet. You're net control now: field " +
+    "stations report ship movements and passage status; copy each, acknowledge the " +
+    `sender, then forward anything complete to dispatch (KEN) on ${hqFreqKhz} kHz. Three ` +
+    `stations on the board today — ${RELAY_CALL} (harbor watch), DEPOT (repair yard), ` +
+    "TROOP (embarkation). Same drill as always, just more of it.",
+  buildTimeline: (authChallenge) => [
+    {
+      kind: "sked",
+      clock: "0900",
+      light: "morning",
+      msg: `${MY_CALL} DE ${HQ_CALL} PRIORITY BOARD OPEN 3 STATIONS TODAY AUTHENTICATE ${authChallenge} K`,
+      prompt:
+        "Copy your orders and the authenticator challenge. Check today's table, then " +
+        "send QSL I AUTHENTICATE <code> together — or AGN? to hear it again.",
+    },
+    { kind: "relay", clock: "1000", light: "morning", from: RELAY_CALL, sighting: makeShipSighting() },
+    {
+      kind: "overhear",
+      clock: "1030",
+      light: "morning",
+      from: HQ_CALL,
+      to: RELAY_CALL,
+      msg: `${RELAY_CALL} DE ${HQ_CALL} QRU K`,
+    },
+    { kind: "relay", clock: "1200", light: "noon", from: "DEPOT", sighting: makeShipSighting() },
+    { kind: "relay", clock: "1330", light: "afternoon", from: "TROOP", sighting: BILL_SHIP_SIGHTING },
+    {
+      kind: "sked",
+      clock: "1500",
+      light: "afternoon",
+      msg: `${MY_CALL} DE ${HQ_CALL} QSL BOARD CLOSED TU K`,
+      prompt: "Copy KEN, then acknowledge (QSL).",
+    },
+    {
+      kind: "sked",
+      clock: "1800",
+      light: "dusk",
+      msg: `${MY_CALL} DE ${HQ_CALL} QRT AT DUSK GN K`,
+      prompt: "Copy the sign-off, then acknowledge (QSL).",
+      final: true,
+    },
+  ],
+  outroCopy: "Board closed, clean. Whoever needed that berth will have it by morning.",
+  outroAside:
+    "Long after dusk, still logging, you caught up to the manifest note from the " +
+    "afternoon relay: a sergeant, groused down the line word for word, about working " +
+    "himself out of one lousy job straight into a worse one. You'd know that gripe " +
+    "anywhere — it was practically your induction. Bill's headed home too, then. Small " +
+    "world, wired together end to end. And somewhere in tonight's paperwork, without " +
+    "asking for it, your own rating went up one more grade — the safe kind, the kind " +
+    "that comes with nothing left to be modest about. Ceiling fans and beer, they used " +
+    "to say, about men exactly like the one you've become.",
+};
+
+const SCENARIOS: Scenario[] = [
+  KOLOMBANGARA_DAY14,
+  KOLOMBANGARA_DAY3,
+  KOLOMBANGARA_DAY_RELAY,
+  MUNDA_DAY1,
+  MUNDA_DAY2,
+  MUNDA_DAY3,
+  MAGIC_CARPET_FINALE,
+];
 
 type Phase = "cold" | "onair" | "sked" | "spot" | "relay" | "overhear" | "haggle" | "done";
 
