@@ -872,7 +872,182 @@ const MAGIC_CARPET_FINALE: Scenario = {
     "to say, about men exactly like the one you've become.",
 };
 
+/** Stateside training — Camp Murphy, Florida (see MORSE-GAMES.md's "Onboarding").
+ *  SCOPE NOTE (2026-08-02, deliberate): the design doc calls for training to
+ *  "reuse Random Run, themed" with a new graduate-on-speed mechanic (freeze the
+ *  Koch subset, ramp effective WPM to 7.5, graduate on N clean reps) — a real
+ *  UI integration between AdventureMode and RandomRunMode that doesn't exist
+ *  yet. Decided tonight to ship the lighter version instead: three ordinary
+ *  shack-engine Scenarios, same sked/spot rhythm as every other mission, using
+ *  KEN as Andy's training-desk callsign (the codebook already treats KEN as a
+ *  role, "not necessarily a person" — Andy keying as KEN here is in-universe
+ *  consistent, not a retcon) with Andy's actual personality carried entirely in
+ *  prose (introCopy/notes/outroAside), the same way Aaron and Bill's voices
+ *  work elsewhere. The real Koch-ramp/graduate-on-speed mechanic, and folding
+ *  this into a true Random-Run wrapper, are parked follow-ups, not built here.
+ *  SCENARIOS ordering note: these are prepended to index 0 (deliberately,
+ *  unlike Munda's days 2-3 and Magic Carpet, which were appended) because
+ *  training is the campaign's true prologue — appending it after Magic
+ *  Carpet's finale would put the beginning after the ending in prev/next
+ *  order, which is worse than the alternative below. Consequence: the demo's
+ *  default mission on load (`SCENARIOS[0]` in mount()) changes from
+ *  Kolombangara to Training Day 1. The Kolombangara-before-Munda ordering
+ *  further down the array is a separate, still-unreconciled inconsistency —
+ *  not fixed here, so as not to compound one ordering change with another. */
+const TRAINING_DAY1: Scenario = {
+  id: "training-1",
+  dayTag: "Camp Murphy · Day 1",
+  introTitle: "Never Traveled",
+  introCopy:
+    "Never traveled, and suddenly I'm in another state entirely for training — boot " +
+    "camp, then specialist school. Like they can't wait to send me out there. Not so " +
+    "sure I'm ready.",
+  notes:
+    "Day 1. A corporal named Andy runs the key like he's been doing it since birth and " +
+    "resents having to slow down for the rest of us. Everything sounds like noise. He " +
+    "says it won't, eventually. I'm choosing to believe him because the alternative is " +
+    "worse.",
+  briefing: (hqFreqKhz) =>
+    "TRAINEE GOOSE — Camp Murphy, Florida. Copy Corporal Andy on the training circuit " +
+    `(KEN) at ${hqFreqKhz} kHz. First rule, first day: every station proves who it is. ` +
+    "Check the authenticator table below before you answer anything.",
+  buildTimeline: (authChallenge) => [
+    {
+      kind: "sked",
+      clock: "0800",
+      light: "morning",
+      msg: `${MY_CALL} DE ${HQ_CALL} WELCOME TRAINEE COPY ES QSL AUTHENTICATE ${authChallenge} K`,
+      prompt:
+        "Your very first sked. This is the authenticator table — the real trick a " +
+        "station uses to prove it's who it says it is. Check today's table below, then " +
+        "send QSL I AUTHENTICATE <code> together — or AGN? if you need it again.",
+    },
+    {
+      kind: "sked",
+      clock: "1030",
+      light: "morning",
+      msg: `${MY_CALL} DE ${HQ_CALL} KEEP YOUR FIST STEADY ES TRY AGAIN K`,
+      prompt: "Copy Andy's correction, then acknowledge (QSL).",
+    },
+    {
+      kind: "sked",
+      clock: "1500",
+      light: "afternoon",
+      msg: `${MY_CALL} DE ${HQ_CALL} SECURE FOR CHOW GN K`,
+      prompt: "Copy the sign-off, then acknowledge (QSL).",
+      final: true,
+    },
+  ],
+  outroCopy:
+    "First day down. Every letter still feels like translating a foreign language in " +
+    "your head — but it's a language, and languages can be learned.",
+  outroAside:
+    "Andy caught you after chow. \"You flinched at your own key just now,\" he said. " +
+    "\"Won't have time for that where you're going. Same time tomorrow — we do this " +
+    "until it stops being a foreign language.\"",
+};
+
+const TRAINING_DAY2: Scenario = {
+  id: "training-2",
+  dayTag: "Camp Murphy · Day 2",
+  introTitle: "The Grind",
+  introCopy:
+    "Days blur now — reveille, drill, chow, the key, chow, drill, lights out. Andy " +
+    "says the alphabet stops being letters if you drill it enough. Sam says he's still " +
+    "waiting to notice that happening.",
+  notes:
+    "Sam says Andy keeps telling them it's like music. Sam doesn't hear it yet — keeps " +
+    "asking when the dots and dashes are supposed to turn into something else. I didn't " +
+    "say anything. Didn't want to explain why I already do. Andy doesn't repeat himself " +
+    "twice on anything — the authenticator table, the prosigns, the fist — you get it " +
+    "once, clean, or you get it again tomorrow, same as today.",
+  briefing: (hqFreqKhz) =>
+    "TRAINEE GOOSE — Camp Murphy training circuit. Same drill, more of it: authenticate " +
+    `first contact, copy Andy's traffic, acknowledge clean. KEN, ${hqFreqKhz} kHz, skeds ` +
+    "0800 / 0930 / 1030 / 1500.",
+  buildTimeline: (authChallenge) => [
+    {
+      kind: "sked",
+      clock: "0800",
+      light: "morning",
+      msg: `${MY_CALL} DE ${HQ_CALL} DAY 2 SAME RULES AUTHENTICATE ${authChallenge} K`,
+      prompt:
+        "Copy your orders and the authenticator challenge. Check today's table, then " +
+        "send QSL I AUTHENTICATE <code> together — or AGN? to hear it again.",
+    },
+    { kind: "spot", clock: "0930", light: "morning", sighting: makeAircraftSighting() },
+    {
+      kind: "sked",
+      clock: "1030",
+      light: "morning",
+      msg: `${MY_CALL} DE ${HQ_CALL} BETTER ES TIGHTER K`,
+      prompt: "Copy Andy, then acknowledge (QSL).",
+    },
+    {
+      kind: "sked",
+      clock: "1500",
+      light: "afternoon",
+      msg: `${MY_CALL} DE ${HQ_CALL} SECURE FOR CHOW GN K`,
+      prompt: "Copy the sign-off, then acknowledge (QSL).",
+      final: true,
+    },
+  ],
+  outroCopy:
+    "Another day of it. The alphabet still looks like alphabet. Andy says that's " +
+    "exactly when it starts to change.",
+  outroAside:
+    "\"Chalkboard sighting's not a real ship,\" Andy said, watching you report it " +
+    "anyway, \"but the hand that reports it is the same hand you'll use on a real one.\"",
+};
+
+const TRAINING_DAY3: Scenario = {
+  id: "training-3",
+  dayTag: "Camp Murphy · Day 3",
+  introTitle: "Orders",
+  introCopy:
+    "Orders came down today. Andy read them like they cost him something.",
+  notes:
+    "Day 3. Last one, apparently. Passed whatever it is you're supposed to pass — Andy " +
+    "didn't make a ceremony of it, just said \"good enough\" the way a man says it when " +
+    "he means it and doesn't like that he does.",
+  briefing: (hqFreqKhz) =>
+    "TRAINEE GOOSE — Camp Murphy, final day. One last sked with Andy (KEN) on " +
+    `${hqFreqKhz} kHz before the transport. Authenticate first contact, same as every ` +
+    "day — some habits you keep for good.",
+  buildTimeline: (authChallenge) => [
+    {
+      kind: "sked",
+      clock: "0800",
+      light: "morning",
+      msg: `${MY_CALL} DE ${HQ_CALL} LAST DAY GOOD ENOUGH AUTHENTICATE ${authChallenge} K`,
+      prompt:
+        "Copy your orders and the authenticator challenge. Check today's table, then " +
+        "send QSL I AUTHENTICATE <code> together — or AGN? to hear it again.",
+    },
+    {
+      kind: "sked",
+      clock: "1000",
+      light: "morning",
+      msg: `${MY_CALL} DE ${HQ_CALL} REPORT TO TRANSPORT 1400 GN K`,
+      prompt: "Copy your orders, then acknowledge (QSL).",
+      final: true,
+    },
+  ],
+  outroCopy:
+    "Camp Murphy's gone before you're even off the truck. Everything after this, " +
+    "you'll be doing for real.",
+  outroAside:
+    "Andy walked you to the truck, which he hadn't done for anyone else that cycle. " +
+    "\"It's not enough,\" he said, not looking at you. \"It never is. It's what we had " +
+    "time for.\" Somewhere above him, a transport manifest didn't care whether you " +
+    "agreed — the boat left Thursday with or without you being ready. You were ready " +
+    "enough. You'd find out exactly how ready, soon.",
+};
+
 const SCENARIOS: Scenario[] = [
+  TRAINING_DAY1,
+  TRAINING_DAY2,
+  TRAINING_DAY3,
   KOLOMBANGARA_DAY14,
   KOLOMBANGARA_DAY3,
   KOLOMBANGARA_DAY_RELAY,
