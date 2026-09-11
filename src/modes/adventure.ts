@@ -897,10 +897,11 @@ const MAGIC_CARPET_FINALE: Scenario = {
 const TRAINING_DAY1: Scenario = {
   id: "training-1",
   dayTag: "Camp Murphy · Day 1",
-  introTitle: "Never Traveled",
+  introTitle: "The Train South",
   introCopy:
-    "Never traveled, and suddenly I'm in another state entirely for training — boot " +
-    "camp, then specialist school. Like they can't wait to send me out there. Not so " +
+    "Window was dark all night. Just lights flashing by. Since sunup the window's " +
+    "showing me states I can't name. Never traveled — not once — and now it's boot " +
+    "camp, then specialist school, like they can't wait to get me out there. Not so " +
     "sure I'm ready.",
   notes:
     "Day 1. A corporal named Andy runs the key like he's been doing it since birth and " +
@@ -950,11 +951,11 @@ const TRAINING_DAY1: Scenario = {
 const TRAINING_DAY2: Scenario = {
   id: "training-2",
   dayTag: "Camp Murphy · Day 2",
-  introTitle: "The Grind",
+  introTitle: "Dots Into Music",
   introCopy:
     "Days blur now — reveille, drill, chow, the key, chow, drill, lights out. Andy " +
-    "says the alphabet stops being letters if you drill it enough. Sam says he's still " +
-    "waiting to notice that happening.",
+    "says the alphabet stops being letters if you drill it enough. Eight hours on the " +
+    "key today, still counting dots, still waiting for them to turn into anything else.",
   notes:
     "Sam says Andy keeps telling them it's like music. Sam doesn't hear it yet — keeps " +
     "asking when the dots and dashes are supposed to turn into something else. I didn't " +
@@ -1005,7 +1006,8 @@ const TRAINING_DAY3: Scenario = {
   dayTag: "Camp Murphy · Day 3",
   introTitle: "Orders",
   introCopy:
-    "Orders came down today. Andy read them like they cost him something.",
+    "Called to Andy's desk today, thought I was in trouble. Orders came down. He read " +
+    "them out like they cost him something.",
   notes:
     "Day 3. Last one, apparently. Passed whatever it is you're supposed to pass — Andy " +
     "didn't make a ceremony of it, just said \"good enough\" the way a man says it when " +
@@ -1374,7 +1376,10 @@ export class AdventureMode {
 
   private buildCodebook(): HTMLElement {
     const panel = el("div", "shack-panel shack-codebook");
-    panel.appendChild(text("div", "shack-label", "Codebook (since bootcamp)"));
+    const codebookLabel = this.scenario.id.startsWith("training-")
+      ? "Codebook (from Andy)"
+      : "Codebook (since bootcamp)";
+    panel.appendChild(text("div", "shack-label", codebookLabel));
 
     const groups: { id: string; title: string; entries: [string, string][] }[] = [
       {
