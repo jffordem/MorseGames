@@ -230,6 +230,13 @@ That per-character data appends to cumulative localStorage stats → feeds the g
 scoring HUD + graduation logic. Building it also builds the stats spine the other modes reuse.
 
 ### 2. Real contest mode (flagship)
+**Status (2026-08-01): design paused, pending outside input.** The project owner is
+looking to bring in a colleague for a more specific pass on contest-mode design before
+this gets built out further — treat this section as a starting sketch, not a spec
+ready for implementation, until that review happens. Active build effort in the
+meantime is on the Adventure/campaign levels (see [MORSE-GAMES.md](MORSE-GAMES.md)),
+not this mode.
+
 The headline game. Run a contest, work stations, **and log them correctly** — that's
 how you score. Copying is only half the job; getting it into the log right is the
 other half (just like the real thing).
@@ -748,6 +755,15 @@ Score the way a contester thinks, not raw keystrokes:
     pings.
 
 ## Questions for Hams
+
+**Status update (2026-08-01): no further live feedback expected — proceeding on
+best judgment.** These were meant to be settled with experienced operators before
+building Search & Pounce, but no more hands-on club/on-air feedback is coming in the
+near term. Rather than block the feature on it indefinitely, S&P design will proceed
+using the project owner's own best guesses at the answers below, documented as
+assumptions rather than settled facts. If a ham ever does weigh in later (a club
+meeting, an on-air friend, a stray comment), revisit this section and correct course —
+but it's no longer a gating dependency.
 
 Open design questions to settle with experienced operators **before** building the
 Search & Pounce / frequency-dial feature. The goal is to learn which bits of realism

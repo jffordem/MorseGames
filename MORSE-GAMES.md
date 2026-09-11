@@ -508,7 +508,8 @@ Additional world-building — several of these resolve open threads.
     feedback to the player's own performance, and let the known-good ending carry the
     payoff ("we contributed, in some real way") instead of manufactured suspense. Applies
     to every milestone mission, not just this one.
-  - **Milestone mission seed — protecting the Munda Seabees (2026-07-07).** The New
+  - **Milestone mission seed — protecting the Munda Seabees (2026-07-07, implemented
+    2026-08-01 as `munda-2`/`munda-3` in `adventure.ts`).** The New
     Georgia / Munda posting's milestone beat. GOOSE misreads an HQ ask as "they want an
     airstrip" — exhausted, assuming he and the scouts are somehow expected to hack one out
     of the jungle by hand (see the "how much chopping does that take?!" line under the
@@ -570,6 +571,29 @@ Additional world-building — several of these resolve open threads.
     items exist, what "better/worse outcome" concretely changes), and whether the
     request items (batteries, quinine) should vary per playthrough or stay fixed like
     the PT-109 sighting does.
+- **Second Request Supplies beat — the relay version, later in the campaign,
+  *Mr. Roberts*-flavored (2026-08-01, drafted after a family re-watch).** A deliberately
+  simpler cousin to Munda Day 1's haggle mission, not a repeat of it — no negotiation
+  engine at all, just the **relay net** level type (see below) reused for supply
+  traffic: the player copies an inbound resupply request from one station and relays
+  it onward to the actual supply source exactly as heard, fidelity being the whole
+  test, minus the back-and-forth haggling Nick already owns. Inspired by *Mr. Roberts*
+  (Henry Fonda as a junior officer worn down by the monotony of a South Pacific supply
+  ship, far from the real fighting) — that tedium-and-distance flavor, not the haggle,
+  is the thing worth borrowing here.
+  - **Placement — leaning Bougainville, not locked.** Munda already holds the
+    campaign's one "Request Supplies" table slot (see draft above), so this doesn't
+    need its own row in the 25-mission scaffold — it reads best as a routine-day
+    flavor variant late in a posting, and Bougainville's grinding, worn-down tone fits
+    the "monotonous supply run far from the real fighting" feeling *Mr. Roberts* is
+    built on.
+  - **Easter egg — "captain's compliments of oranges."** A one-line aside tucked into
+    the relayed traffic or a between-mission note, not a scripted beat — keeps it in
+    the same restrained register as the game's other cameos/eggs (a wink for anyone
+    who's seen the film, invisible to anyone who hasn't).
+  - **Open for next pass:** exact posting/day placement, and whether the relay is one
+    hop (GOOSE → supply source) or two (mirrors the real net-in-the-middle shape more
+    closely, at the cost of the complexity this mission is trying to avoid).
 - **Level control — self-paced navigation (Portal-style, with one twist).** Missions are
   capsules, so let the player move through the plot at their own pace with simple
   **previous / replay / next** controls — the lightweight, in-context form of the islands
@@ -860,20 +884,43 @@ How missions string into an arc — resolves the former "campaign structure" ope
   | | 2 | Decode (HQ's ask) | Airstrip misconception builds |
   | | 3 | **Milestone: React to threats** | Reveal — Seabees are building it; real job is watching the sky |
   | | 4 | Sign-off | Strip finished; **Promotion** |
-  | Kolombangara | 1 | Control frequency | Light arrival card — existing intro/cold-open |
-  | | 2 | **Full worked example** | The built demo day |
-  | | 3 | Decode (peripheral) | JFK/PT-109 rescue heard on the net |
+  | Kolombangara | 1 | Control frequency | Light arrival card — existing intro/cold-open (Day 14) |
+  | | 2 | **Full worked example** | The built demo day; JFK/PT-109 wreckage sighting folds in here, not a separate day (Day 17) |
+  | | 3 | Relay net (SKIP) | SKIP's traffic can't reach KEN direct — copy, acknowledge, forward (Day 23) |
   | | 4 | Sign-off | **Promotion** |
   | Bougainville (posting 1) | 1 | React to threats | Arrival already tense |
   | | 2 | React to threats | **Relocate** — forced |
   | Bougainville (posting 2) | 1 | React to threats | New spot, tenser still |
   | | 2 | React to threats / home | **Relocate** again — echoes Read & Mason |
   | Bougainville invasion | 1 | Decode | Last full field day |
-  | | 2 | — | The invasion itself, Nov 1943 |
+  | | 2 | Decode / React to threats | The invasion itself, Nov 1943 — a playable field day, not a cutscene |
   | Magic Carpet coordination (true finale) | 1 | **Coordinator role — the relay net, at scale** | Big calendar skip (~20 months) to mid/late 1945; see below |
 
   25 missions total (3 training + 22 field) — a draft scaffold for future mission writing,
   not locked content.
+
+  **Build status (2026-08-01, updated same night), to anchor incremental
+  mission-writing sessions.** The table above is the map; this is the current position
+  on it. Three tiers:
+  - **Built** (playable in `adventure.ts`'s `SCENARIOS`, 6 of 25): Kolombangara days
+    1–3 (`kolombangara-14`, `kolombangara-3`, `kolombangara-relay`) and all of Munda
+    days 1–3 (`munda-1`, `munda-2`, `munda-3`) — Munda days 2 and 3 shipped tonight,
+    completing the Seabees-milestone arc (see **Milestone mission seed — protecting the
+    Munda Seabees** above).
+  - **Drafted, not built** (a scene-level design exists in this doc, ready to code, 1 of
+    25): the Magic Carpet finale (below).
+  - **Not started** (table row only — a one-line focus/notes hook, no scene draft yet;
+    the remaining 18): all of Stateside training, all of Guadalcanal, Munda day 4,
+    Kolombangara day 4 (sign-off), all of Bougainville (both postings), and both
+    Bougainville-invasion days.
+  - Sign-off/promotion days (Guadalcanal 7, Munda 4, Kolombangara 4) are the cheapest of
+    the "not started" set — they reuse the existing final-sked-plus-promotion pattern
+    already built for Kolombangara day 4's predecessor days, so they likely don't need a
+    full design pass before coding.
+  - **Resolved (2026-08-01):** Bougainville invasion day 2 ("the invasion itself") is a
+    playable Decode/React-to-threats field day, not a narrative-only cutscene — same
+    tone as invasion day 1, matching the "not started" backlog above rather than a
+    special case.
 
   **The true finale — Magic Carpet coordination (2026-07-07).** Answers "what does the
   rank-driven coordinator role shift actually look like to play?" (see **Rank as levels**
