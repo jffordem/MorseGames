@@ -38,6 +38,7 @@ const NICK_CALL = "NICK"; // supply — the Request Supplies mission element's t
 const FREQ_MIN = 4000;
 const FREQ_MAX = 5200;
 const FREQ_STEP_KHZ = 5; // dial grid; HQ's sked frequency is always on it
+const DIAL_START_KHZ = 4200; // where the dial sits at the start of each run — never HQ's frequency
 const FREQ_SETTLE_MS = 700; // dwell time on a steady frequency before static/the sked fires
 const CLOCK_TRANSITION_PAUSE_MS = 4000; // beat between events so the player notices the clock jump, not just a harried KEN
 const OVERHEAR_PAUSE_MS = 2500; // how long "not for you" traffic lingers before the day moves on by itself
@@ -51,12 +52,15 @@ const SPOT_ACK = `${MY_CALL} DE ${HQ_CALL} QSL K`; // HQ's ack of a completed re
 /** Today's sked frequency — generated fresh per mission, same SOI logic as the
  *  authenticator table (real Signal Operating Instructions bundled call signs,
  *  frequencies, and authentication together, and all changed periodically). A
- *  multiple of 5 kHz, comfortably inside the dial so the on-freq window never
- *  clips an edge. */
+ *  dial-grid step, comfortably inside the dial, and never the dial's starting
+ *  position (tuning in should always be the first task). */
 function makeHqFreqKhz(): number {
   const lo = 4200,
     hi = 5000;
-  return lo + FREQ_STEP_KHZ * randInt(0, (hi - lo) / FREQ_STEP_KHZ);
+  let f: number;
+  do f = lo + FREQ_STEP_KHZ * randInt(0, (hi - lo) / FREQ_STEP_KHZ);
+  while (f === DIAL_START_KHZ);
+  return f;
 }
 
 // ---- Sighting generator ---------------------------------------------------
@@ -1452,7 +1456,7 @@ export class AdventureMode {
   private phase: Phase = "cold";
   private radioOn = false; // distinct from phase: lets the player kill power mid-day by mistake without ending the run
   private playing = false;
-  private freqKhz = 4200; // start off-frequency so tuning is the first task
+  private freqKhz = DIAL_START_KHZ; // start off-frequency so tuning is the first task
   private power = 10; // watts, 0..100; low = quiet/faint, high = strong/exposed
   private txCount = 0;
   private showText = false; // "plot mode": reveal inbound HQ traffic as text
@@ -1531,7 +1535,7 @@ export class AdventureMode {
     this.phase = "cold";
     this.radioOn = false;
     this.playing = false;
-    this.freqKhz = 4200;
+    this.freqKhz = DIAL_START_KHZ;
     this.power = 10;
     this.txCount = 0;
     this.showText = false;
