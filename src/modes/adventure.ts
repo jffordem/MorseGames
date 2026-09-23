@@ -1134,6 +1134,92 @@ const GUADALCANAL_DAY6: Scenario = {
         "He'd remembered.",
 };
 
+/** Guadalcanal Day 7 — the posting's sign-off: promotion by Bill, and the boat
+ *  to New Georgia (MORSE-GAMES.md's mission allocation table). Anchored to the
+ *  campaign's real end, 9 Feb 1943, when the Army commander reported to Halsey
+ *  that the "Tokyo Express no longer has terminus on Guadalcanal" — KEN passes
+ *  it on, a callback to Day 3's Express, with GOOSE only copying it (Forrest
+ *  Gump restraint; brass as flavor, unnamed). The Express's last runs were the
+ *  real Japanese evacuation, not yet understood as such at the time, so Aaron
+ *  only guesses at it. Promotion is Technician Fifth Grade (T/5) — the first
+ *  step on the doc's Technician track (T/5 → T/4 → T/3 at the later sign-offs);
+ *  two chevrons over a "T", the insignia since Sept. 1942. Aaron comes along to
+ *  New Georgia, matching MUNDA_DAY1 (he's there before the first sked). */
+const GUADALCANAL_DAY7: Scenario = {
+  id: "guadalcanal-7",
+  dayTag: "Guadalcanal · Day 68",
+  minEffectiveWpm: FIELD_MIN_WPM,
+  introTitle: "Terminus",
+  introCopy:
+    "The Express ran all week, but not the way it used to. Destroyers down the Slot " +
+    "after dark, three nights running, and back up again before dawn, riding low in the " +
+    "water. Nobody on the net will say what it means. Aaron thinks they're taking men " +
+    "off, not putting them on.",
+  notes:
+    "Day 68. I keep counting days without meaning to. Sixty-eight, and I could name " +
+    "something Aaron taught me for nearly every one of them — three trees, how a wake " +
+    "sits, how to shut the set down in the dark without a sound. KEN's been saying " +
+    "\"stand by\" all week in a voice I haven't heard from him before. Not worried. " +
+    "Something else.",
+  briefing: (hqFreqKhz) =>
+    "STATION GOOSE — Guadalcanal. OP on the northwest ridge. Enemy destroyer traffic " +
+    `in the Slot all week, pattern changed. Skeds with HQ (KEN) on ${hqFreqKhz} kHz: ` +
+    "0600 / 0900 / 1300 / 1700 / 1800. Authenticate first contact; answer QRU? with QRU.",
+  buildTimeline: (authChallenge) => [
+    {
+      kind: "sked",
+      clock: "0600",
+      light: "dawn",
+      msg: `${MY_CALL} DE ${HQ_CALL} GM AUTHENTICATE ${authChallenge} K`,
+      prompt:
+        "Copy KEN and the authenticator challenge. Check today's table, then send " +
+        "QSL I AUTHENTICATE <code> together — or AGN? to hear it again.",
+    },
+    {
+      kind: "sked",
+      clock: "0900",
+      light: "morning",
+      msg: `${MY_CALL} DE ${HQ_CALL} QRU? K`,
+      prompt: "KEN's asking if you have anything for him. Answer it — or AGN? for a repeat.",
+      reply: {
+        words: ["QRU"],
+        hint: "KEN asked QRU? — a QSL doesn't answer it. Send QRU: nothing for you.",
+      },
+    },
+    {
+      kind: "sked",
+      clock: "1300",
+      light: "noon",
+      msg: `${MY_CALL} DE ${HQ_CALL} STAND BY FOR ORDERS TONIGHT K`,
+      prompt: "Copy KEN, then acknowledge (QSL).",
+    },
+    {
+      kind: "sked",
+      clock: "1700",
+      light: "afternoon",
+      msg: `${MY_CALL} DE ${HQ_CALL} TOKYO EXPRESS NO LONGER HAS TERMINUS ON CACTUS K`,
+      prompt: "Word from the top, passed down the net. This one's worth copying clean — then QSL.",
+    },
+    {
+      kind: "sked",
+      clock: "1800",
+      light: "dusk",
+      msg: `${MY_CALL} DE ${HQ_CALL} BILL ON MINNOW TONIGHT QRT GN K`,
+      prompt: "Your last sign-off on Cactus. Acknowledge (QSL).",
+      final: true,
+    },
+  ],
+  outroCopy: "Your last watch on Cactus, logged. The Slot is just water now.",
+  outroAside:
+    "Bill came up the ridge after dark, a harried sergeant sweating through his shirt, " +
+    "carrying a canvas bag of other people's problems. He handed you two stripes with a " +
+    "little T stitched under them and waved off whatever you were about to say. " +
+    "\"Technician Fifth Grade,\" he said, like an apology — corporal's pay, not a " +
+    "corporal. \"New Georgia. Boat at first light. Your scout's coming too; I asked.\" " +
+    "Then three days on a tug under a skipper you privately named Captain Bligh, " +
+    "squinting at the sun. You hope he doesn't forget where he's put you.",
+};
+
 /** New Georgia/Munda Day 1 — the Request Supplies kit element's first outing. A
  *  single haggle beat, no sked/authenticator ceremony (this post isn't being
  *  watched today — see the notes), so the whole day is the negotiation with
@@ -1630,6 +1716,7 @@ const SCENARIOS: Scenario[] = [
   GUADALCANAL_DAY4,
   GUADALCANAL_DAY5,
   GUADALCANAL_DAY6,
+  GUADALCANAL_DAY7,
   MUNDA_DAY1,
   MUNDA_DAY2,
   MUNDA_DAY3,
