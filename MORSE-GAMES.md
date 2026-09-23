@@ -899,24 +899,33 @@ How missions string into an arc — resolves the former "campaign structure" ope
   25 missions total (3 training + 22 field) — a draft scaffold for future mission writing,
   not locked content.
 
-  **Build status (2026-08-01, updated same night), to anchor incremental
-  mission-writing sessions.** The table above is the map; this is the current position
-  on it. Three tiers:
-  - **Built** (playable in `adventure.ts`'s `SCENARIOS`, 6 of 25): Kolombangara days
-    1–3 (`kolombangara-14`, `kolombangara-3`, `kolombangara-relay`) and all of Munda
-    days 1–3 (`munda-1`, `munda-2`, `munda-3`) — Munda days 2 and 3 shipped tonight,
-    completing the Seabees-milestone arc (see **Milestone mission seed — protecting the
-    Munda Seabees** above).
-  - **Drafted, not built** (a scene-level design exists in this doc, ready to code, 1 of
-    25): the Magic Carpet finale (below).
+  **Build status (2026-09-22), to anchor incremental mission-writing sessions.** The
+  table above is the map; this is the current position on it.
+  - **Built** (playable in `adventure.ts`'s `SCENARIOS`, 10 of 25): all of Stateside
+    training (`training-1`/`-2`/`-3`, Camp Murphy — shipped 2026-09-10 as ordinary
+    shack-engine scenarios; the Random-Run-wrapper / graduate-on-speed mechanic is still
+    a parked follow-up, see the scope note above `TRAINING_DAY1`), Kolombangara days 1–3
+    (`kolombangara-14`, `kolombangara-3`, `kolombangara-relay`), all of Munda days 1–3
+    (`munda-1`, `munda-2`, `munda-3` — the haggle and the Seabees-milestone arc), and the
+    Magic Carpet finale (`magic-carpet`).
   - **Not started** (table row only — a one-line focus/notes hook, no scene draft yet;
-    the remaining 18): all of Stateside training, all of Guadalcanal, Munda day 4,
-    Kolombangara day 4 (sign-off), all of Bougainville (both postings), and both
-    Bougainville-invasion days.
-  - Sign-off/promotion days (Guadalcanal 7, Munda 4, Kolombangara 4) are the cheapest of
-    the "not started" set — they reuse the existing final-sked-plus-promotion pattern
-    already built for Kolombangara day 4's predecessor days, so they likely don't need a
-    full design pass before coding.
+    the remaining 15): all of Guadalcanal (7), Munda day 4 and Kolombangara day 4
+    (sign-offs), all of Bougainville (both postings, 4), and both Bougainville-invasion
+    days.
+  - **Build order from here: linear along the timeline (decided 2026-09-22).** Start at
+    Guadalcanal Day 1 and walk forward, filling gaps until the new work catches up to the
+    already-built Munda / Kolombangara days — so each deploy adds a stretch of story that
+    hangs together for people actually playing the live site (it's being shared with a
+    radio club for feedback), rather than scattered one-off days. Sign-off/promotion days
+    (Guadalcanal 7, Munda 4, Kolombangara 4) stay cheap when their turn comes — they
+    reuse the final-sked-plus-promotion pattern.
+  - **Known ordering wrinkle:** `SCENARIOS` currently runs Kolombangara *before* Munda
+    (the demo was built first), the reverse of the historical spine and the WPM curve.
+    Fix it as part of the linear pass — there's no persisted Adventure progress and every
+    mission is unlocked, so reordering the array costs nothing for existing players.
+  - **Not yet wired: per-posting WPM.** Missions play at the player's own trainer
+    settings; the posting-by-posting curve (see **Speed as the difficulty gate** below)
+    is design only.
   - **Resolved (2026-08-01):** Bougainville invasion day 2 ("the invasion itself") is a
     playable Decode/React-to-threats field day, not a narrative-only cutscene — same
     tone as invasion day 1, matching the "not started" backlog above rather than a
