@@ -942,6 +942,90 @@ const GUADALCANAL_DAY4: Scenario = {
         "going over every AGN, and resolved there'd be fewer next time.",
 };
 
+/** Guadalcanal Day 5 — "Messages from home": the first letter, a breather
+ *  (MORSE-GAMES.md's mission allocation table and "Messages from home" note).
+ *  The letter comes by mail on the Minnow, not over the air — personal traffic
+ *  on the net would break the airtime discipline the whole game teaches (and
+ *  "a KEN beat that breaks radio format once" is being saved for later). So
+ *  the letter lives in the Notes panel, the diary-voice channel, and the radio
+ *  day is deliberately short and gentle. Opens Evelyn's arc at full strength
+ *  (it's meant to peter out later — see her Cast entry). Period details are
+ *  dated to late 1942: V-mail (from June 1942), "White Christmas" (the fall
+ *  1942 hit), the Cardinals over the Yankees (October 1942 World Series). */
+const GUADALCANAL_DAY5: Scenario = {
+  id: "guadalcanal-5",
+  dayTag: "Guadalcanal · Day 16",
+  minEffectiveWpm: FIELD_MIN_WPM,
+  introTitle: "Mail Call",
+  introCopy:
+    "The Minnow came in after midnight with stores, a fresh battery, and a canvas sack " +
+    "that had been chasing you across the Pacific for two months. One envelope in it " +
+    "with your name. You didn't open it until there was light enough to read it " +
+    "properly, which meant four hours lying awake, holding it.",
+  notes:
+    "Day 16. V-mail from Evelyn, shrunk so small I read it with my nose on the page. " +
+    "She says my letter from the ship came with the middle cut out by the censor, so " +
+    "she's decided I'm somewhere warm and eating well, and I'm not allowed to argue. " +
+    "Everybody at home is singing that Bing Crosby song about the snow. She sings it " +
+    "too, she says, but it drags without somebody keeping time. My kid brother wants me " +
+    "to know the Cardinals beat the Yankees, like the news might not reach me. Mr. Hale " +
+    "at the school says the scholarship will keep. I've read it six times. The seventh " +
+    "time I just looked at her handwriting.",
+  briefing: (hqFreqKhz) =>
+    "STATION GOOSE — Guadalcanal. OP on the northwest ridge. Quiet stretch: the Slot's " +
+    `been empty for days. Skeds with HQ (KEN) on ${hqFreqKhz} kHz: 0600 / 0900 / 1400 / ` +
+    "1800. Authenticate first contact; answer QRU? with QRU.",
+  buildTimeline: (authChallenge) => [
+    {
+      kind: "sked",
+      clock: "0600",
+      light: "dawn",
+      msg: `${MY_CALL} DE ${HQ_CALL} GM QUIET DAY AUTHENTICATE ${authChallenge} K`,
+      prompt:
+        "Copy KEN and the authenticator challenge. Check today's table, then send " +
+        "QSL I AUTHENTICATE <code> together — or AGN? to hear it again.",
+    },
+    {
+      kind: "sked",
+      clock: "0900",
+      light: "morning",
+      msg: `${MY_CALL} DE ${HQ_CALL} QRU? K`,
+      prompt: "KEN's asking if you have anything for him. Answer it — or AGN? for a repeat.",
+      reply: {
+        words: ["QRU"],
+        hint: "KEN asked QRU? — a QSL doesn't answer it. Send QRU: nothing for you.",
+      },
+    },
+    {
+      kind: "sked",
+      clock: "1400",
+      light: "afternoon",
+      msg: `${MY_CALL} DE ${HQ_CALL} MINNOW BACK SAFE K`,
+      prompt: "Copy KEN, then acknowledge (QSL).",
+    },
+    {
+      kind: "sked",
+      clock: "1800",
+      light: "dusk",
+      msg: `${MY_CALL} DE ${HQ_CALL} QRU? HOPE MAIL WAS GOOD GN K`,
+      prompt: "Last sked of the day. Answer KEN's QRU? before he signs off.",
+      reply: {
+        words: ["QRU"],
+        hint: "KEN asked QRU? — answer QRU before signing off.",
+      },
+      final: true,
+    },
+  ],
+  outroCopy:
+    "A quiet day. The Slot stayed empty and nobody needed you for anything, which " +
+    "turned out to be its own kind of hard.",
+  outroAside:
+    "You wrote back by lamplight, three pages. You kept it to the weather and the food " +
+    "so the censor would leave it whole — and then at the bottom, before you could stop " +
+    "yourself, a short line of dots and dashes she'd never be able to read. The censor " +
+    "cut it out, of course. You'd have cut it too.",
+};
+
 /** New Georgia/Munda Day 1 — the Request Supplies kit element's first outing. A
  *  single haggle beat, no sked/authenticator ceremony (this post isn't being
  *  watched today — see the notes), so the whole day is the negotiation with
@@ -1436,6 +1520,7 @@ const SCENARIOS: Scenario[] = [
   GUADALCANAL_DAY2,
   GUADALCANAL_DAY3,
   GUADALCANAL_DAY4,
+  GUADALCANAL_DAY5,
   MUNDA_DAY1,
   MUNDA_DAY2,
   MUNDA_DAY3,
