@@ -210,7 +210,9 @@ type DayEvent =
       // already fixed as QSL + authenticator.
       reply?: { words: string[]; hint: string };
     }
-  | { kind: "spot"; clock: string; light: string; sighting: Sighting }
+  // `spotter` names who brings the sighting in (default: an unnamed runner,
+  // "the boy" — Kolombangara's scouts); e.g. Aaron on Guadalcanal.
+  | { kind: "spot"; clock: string; light: string; sighting: Sighting; spotter?: string }
   // A third station (RELAY_CALL) has traffic for HQ that can't reach HQ directly —
   // copy it, acknowledge the sender, then re-address and forward to HQ. See
   // "Level type — the relay net" in MORSE-GAMES.md.
@@ -736,6 +738,96 @@ const GUADALCANAL_DAY2: Scenario = {
     "You counted without meaning to. Aaron didn't ask what the number was.",
 };
 
+/** Guadalcanal Day 3 — "Send reports (spot)": the first real sighting reports.
+ *  A morning floatplane as the warm-up, then the day's reason for being: the
+ *  Tokyo Express (real — Japanese destroyer runs down the Slot to the
+ *  island's northwest end, timed for darkness), which passes right under a
+ *  northwest-coast OP. Type and course are fixed (destroyers, down the Slot
+ *  = SE) because that's what the Express was; the count varies per run so
+ *  the report still has to be copied, not remembered. Aaron is the spotter
+ *  (see the spot event's `spotter`). Forrest Gump restraint on the payoff:
+ *  GOOSE only sees distant flashes that night and never learns what they were. */
+function makeGuadalcanalFloatplane(): Sighting {
+  const alt: "HI" | "LO" = Math.random() < 0.5 ? "HI" : "LO";
+  const dir = pick(DIRS);
+  return {
+    category: "ACFT",
+    count: 1,
+    type: "FLOATPLANE",
+    alt,
+    dir,
+    prose:
+      `One floatplane, ${alt === "HI" ? "high" : "low"}, ${dirPhrase(dir)}. Enemy scout — ` +
+      "they come most mornings, looking for exactly what you are.",
+  };
+}
+
+function makeTokyoExpress(): Sighting {
+  const count = randInt(3, 6);
+  return {
+    category: "SHIP",
+    count,
+    type: "DD",
+    dir: "SE",
+    prose:
+      `${count} destroyers running down the Slot, fast and in line, bows throwing white. ` +
+      "The Express — and early.",
+  };
+}
+
+const GUADALCANAL_DAY3: Scenario = {
+  id: "guadalcanal-3",
+  dayTag: "Guadalcanal · Day 9",
+  minEffectiveWpm: FIELD_MIN_WPM,
+  introTitle: "The Express",
+  introCopy:
+    "Nine days, and nothing on the Slot worth a word to KEN. Aaron says that won't " +
+    "last. The Express runs when the moon is dark, and the moon's been thinning all week.",
+  notes:
+    "Day 9. Aaron's teaching me to see the water — how a wake sits different from a " +
+    "wave, how a ship shows up as a smudge of smoke long before it's a ship. I nearly " +
+    "called in our own Wildcats twice. KEN says a report is a handful of words, sent " +
+    "clean the first time. Andy used to say the same thing, slower.",
+  briefing: (hqFreqKhz) =>
+    "STATION GOOSE — Guadalcanal. OP on the northwest ridge, over the Slot. Skeds with " +
+    `HQ (KEN) on ${hqFreqKhz} kHz: 0600 / 1300 / 1800; report sightings as they come ` +
+    "in. Enemy contacts only: NR, TYPE, ALT (aircraft), CSE — addressed KEN DE GOOSE. " +
+    "Authenticate first contact.",
+  buildTimeline: (authChallenge) => [
+    {
+      kind: "sked",
+      clock: "0600",
+      light: "dawn",
+      msg: `${MY_CALL} DE ${HQ_CALL} GM AUTHENTICATE ${authChallenge} K`,
+      prompt:
+        "Copy KEN and the authenticator challenge. Check today's table, then send " +
+        "QSL I AUTHENTICATE <code> together — or AGN? to hear it again.",
+    },
+    { kind: "spot", clock: "0930", light: "morning", sighting: makeGuadalcanalFloatplane(), spotter: "Aaron" },
+    {
+      kind: "sked",
+      clock: "1300",
+      light: "noon",
+      msg: `${MY_CALL} DE ${HQ_CALL} WATCH SLOT CLOSE TONIGHT K`,
+      prompt: "Copy KEN, then acknowledge (QSL).",
+    },
+    { kind: "spot", clock: "1630", light: "afternoon", sighting: makeTokyoExpress(), spotter: "Aaron" },
+    {
+      kind: "sked",
+      clock: "1800",
+      light: "dusk",
+      msg: `${MY_CALL} DE ${HQ_CALL} TU GOOD RPT QRT GN K`,
+      prompt: "Copy the sign-off, then acknowledge (QSL).",
+      final: true,
+    },
+  ],
+  outroCopy: "Two reports, sent clean. The first ones that were ever really yours.",
+  outroAside:
+    "Near midnight the horizon to the southeast lit up in soundless flickers, far down " +
+    "the Slot. You never learned what they were. You logged the time anyway, and Aaron " +
+    "sat up with you until they stopped.",
+};
+
 /** New Georgia/Munda Day 1 — the Request Supplies kit element's first outing. A
  *  single haggle beat, no sked/authenticator ceremony (this post isn't being
  *  watched today — see the notes), so the whole day is the negotiation with
@@ -1228,6 +1320,7 @@ const SCENARIOS: Scenario[] = [
   TRAINING_DAY3,
   GUADALCANAL_DAY1,
   GUADALCANAL_DAY2,
+  GUADALCANAL_DAY3,
   MUNDA_DAY1,
   MUNDA_DAY2,
   MUNDA_DAY3,
@@ -1831,11 +1924,11 @@ export class AdventureMode {
     if (e.kind === "spot") {
       this.phase = "spot";
       this.need = requiredFields(e.sighting);
-      this.addSpot(e.sighting.prose);
+      this.addSpot(e.sighting.prose, e.spotter?.toUpperCase());
       this.setStatus(
         e.sighting.category === "SHIP"
           ? "This one matters — encode it and report to KEN, clean."
-          : "Runner's in — encode it and report to KEN."
+          : `${e.spotter ?? "Runner"}'s in — encode it and report to KEN.`
       );
     } else if (e.kind === "relay") {
       this.phase = "relay";
@@ -2096,7 +2189,7 @@ export class AdventureMode {
         const e = ctx.currentEvent;
         if (e.kind !== "spot") return;
         ctx.retryCount += 1;
-        ctx.addSpot(e.sighting.prose, "the boy repeats");
+        ctx.addSpot(e.sighting.prose, `${e.spotter ?? "the boy"} repeats`);
       },
     },
     {
