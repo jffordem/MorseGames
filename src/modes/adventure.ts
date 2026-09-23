@@ -1,7 +1,9 @@
-// Adventure mode (sketch): the "radio shack" set for the Morse Adventures game
-// concept — see MORSE-GAMES.md. A first playable pass at the "Kolombangara" demo
-// mission: the four-quadrant shack (briefing/notes, a copy notepad, the radio you
-// tune, and your codebook) walked through a full day of operation.
+// Adventure mode: the "radio shack" set for the Morse Adventures campaign — see
+// MORSE-GAMES.md (its "Build status" note tracks which missions exist). Started
+// as the "Kolombangara" demo mission; now runs every campaign day off one engine:
+// the four-quadrant shack (briefing/notes, a copy notepad, the radio you tune,
+// and your codebook) walked through a full day of operation, with each day
+// defined as a Scenario in the SCENARIOS array below (in campaign order).
 //
 // The day is an INTERLEAVED event timeline that alternates two kinds of beat, so
 // it feels like a real watch rather than a spotter free-for-all:

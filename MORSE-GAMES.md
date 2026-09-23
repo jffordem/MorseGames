@@ -425,7 +425,11 @@ Additional world-building — several of these resolve open threads.
         7.5 WPM floor and forgiving AGN loop, just less hand-holding in the *framing*. The
         partial-Koch-coverage decision above stops being a mere technical concession here
         and becomes the mechanism for the feeling: GOOSE will genuinely hit a letter in the
-        field he never quite drilled clean.
+        field he never quite drilled clean. **Implemented 2026-09-22** as `guadalcanal-1`
+        ("Cactus"): the 7.5 WPM floor is enforced (`minEffectiveWpm`), and "KEN doesn't slow
+        down" lives in the prose. There's no simulated static: the radio deliberately
+        keeps simple "game physics" (tones at the player's chosen pitch, exact-match
+        tuning).
   - *Design note: a pure "no base, learn entirely in-world" approach was considered and
     rejected — keep the base, just make it compelling and consequential.*
 - **The mission-element kit (the shack is the stage; assemble the beats).** The radio
@@ -900,7 +904,11 @@ How missions string into an arc — resolves the former "campaign structure" ope
   not locked content.
 
   **Build status (2026-09-22), to anchor incremental mission-writing sessions.** The
-  table above is the map; this is the current position on it.
+  table above is the map; this is the current position on it. **This note is the
+  single source of truth for mission progress.** When a mission ships, update it here,
+  plus the short summary in `CLAUDE.md` and the Adventure blurb in `README.md` if the
+  player-facing scope changed. Work happens on feature branches, and merging to `main`
+  auto-deploys to the live site.
   - **Built** (playable in `adventure.ts`'s `SCENARIOS`, 14 of 25): Guadalcanal days 1–4
     (`guadalcanal-1` "Cactus" — tune + decode only, introduces Aaron, the Minnow, and
     SKIP's call as overheard traffic; `guadalcanal-2` "The Rhythm", tagged Day 5 — first
@@ -993,7 +1001,8 @@ the doc's core pillar ("Koch speed = difficulty," islands-as-difficulty ⇒ risi
 but this section locks in the concrete decisions for how a WPM jump feels from the
 inside, so a real skill wall never reads as an unfair one.
 
-- **Field missions open at 7.5 WPM minimum, not a slow ramp-in (locked).** No field
+- **Field missions open at 7.5 WPM minimum, not a slow ramp-in (locked; implemented
+  2026-09-22 as `FIELD_MIN_WPM` / `Scenario.minEffectiveWpm` in `adventure.ts`).** No field
   mission ever runs below 7.5 WPM — this is the graduation gate from **Onboarding**
   above, now a concrete number rather than the earlier "~5–7 WPM (tunable)." **Revised
   2026-07-10:** the gate is speed-first, not full-character-set-first (see **Training
@@ -1034,10 +1043,10 @@ inside, so a real skill wall never reads as an unfair one.
   meaningfully riskier later in the campaign even though the player has gotten better.
   Rewards mastery (a skilled player needs fewer retries, so the shrinking budget rarely
   bites) without ever presenting a hard wall (the option to retry is always there, it
-  just costs more). **Not yet built** — today's danger readout is a flavor stub
-  (`Danger: low (this island)`, hardcoded regardless of `txCount`); this section is the
-  target design for whenever that gets wired up for real, not a description of current
-  behavior.
+  just costs more). **Partly built:** the danger readout has been driven by a real
+  `retryCount` since the relay mission (2026-07-18; see the relay-net notes above), and
+  Guadalcanal Day 4's outro now reacts to it. The *shrinking per-posting budget* described
+  here isn't built yet: the low/elevated/high thresholds are the same everywhere.
 - **The posting-by-posting WPM curve, anchored to real license-class speeds
   (2026-07-10).** Escalation should step at posting transitions, not creep smoothly
   mission-to-mission (consistent with "rank ties in only at posting transitions" in
@@ -1055,6 +1064,10 @@ inside, so a real skill wall never reads as an unfair one.
   | Kolombangara | ~13 | the real General-class milestone — lands on the built demo |
   | Bougainville (both postings) | ~16–18 | approaching Extra, matches rising danger |
   | Bougainville invasion / finale | ~20 | the real Extra-class ceiling |
+
+  **Status (2026-09-22):** only the 7.5 floor is enforced, on every field mission. The
+  higher steps aren't wired yet (see **Build status** above for why). When they are, each
+  posting's scenarios just set `minEffectiveWpm` to their row here.
 
   Flat within a posting (only enemy WPM/DF/sked-frequency creep day-to-day per the
   existing two-axis escalation note); the player's own required floor only jumps at a
@@ -1497,7 +1510,9 @@ these fall into place if a beat naturally wants them, and skip them otherwise.
   defense of Henderson Field; Foss became the top-scoring Marine ace of the war (26 kills)
   flying from it. Good "recognizable group" flavor for the Guadalcanal posting, the same
   register as Black Sheep Squadron/Boyington later — a plane overhead, a name on the net,
-  never more than that.
+  never more than that. **Used (2026-09-22):** ambient Wildcats/dive-bombers out of
+  Henderson in Guadalcanal Day 2, and the scramble in Day 4's raid-warning milestone.
+  Foss himself isn't named anywhere yet.
 - **John Basilone (Guadalcanal, 25–26 Oct 1942).** Medal of Honor machine-gunner who held
   the line at the Battle for Henderson Field; killed later at Iwo Jima (1945), outside this
   story's window. Extremely well-documented and moving, but handle with the same care as
