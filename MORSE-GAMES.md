@@ -901,9 +901,11 @@ How missions string into an arc — resolves the former "campaign structure" ope
 
   **Build status (2026-09-22), to anchor incremental mission-writing sessions.** The
   table above is the map; this is the current position on it.
-  - **Built** (playable in `adventure.ts`'s `SCENARIOS`, 11 of 25): Guadalcanal Day 1
-    (`guadalcanal-1`, "Cactus" — tune + decode only, introduces Aaron, the Minnow, and
-    SKIP's call as overheard traffic; 2026-09-22), all of Stateside
+  - **Built** (playable in `adventure.ts`'s `SCENARIOS`, 12 of 25): Guadalcanal days 1–2
+    (`guadalcanal-1` "Cactus" — tune + decode only, introduces Aaron, the Minnow, and
+    SKIP's call as overheard traffic; `guadalcanal-2` "The Rhythm", tagged Day 5 — first
+    send beyond QSL: KEN's `QRU?` must be answered, via a new optional sked `reply`
+    field; Cactus Air Force as ambient flavor; both 2026-09-22), all of Stateside
     training (`training-1`/`-2`/`-3`, Camp Murphy — shipped 2026-09-10 as ordinary
     shack-engine scenarios; the Random-Run-wrapper / graduate-on-speed mechanic is still
     a parked follow-up, see the scope note above `TRAINING_DAY1`), Kolombangara days 1–3
@@ -911,7 +913,7 @@ How missions string into an arc — resolves the former "campaign structure" ope
     (`munda-1`, `munda-2`, `munda-3` — the haggle and the Seabees-milestone arc), and the
     Magic Carpet finale (`magic-carpet`).
   - **Not started** (table row only — a one-line focus/notes hook, no scene draft yet;
-    the remaining 14): Guadalcanal days 2–7, Munda day 4 and Kolombangara day 4
+    the remaining 13): Guadalcanal days 3–7, Munda day 4 and Kolombangara day 4
     (sign-offs), all of Bougainville (both postings, 4), and both Bougainville-invasion
     days.
   - **Build order from here: linear along the timeline (decided 2026-09-22).** Start at

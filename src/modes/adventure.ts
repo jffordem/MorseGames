@@ -197,7 +197,19 @@ function fieldSatisfied(field: string, s: Sighting, tk: Set<string>): boolean {
 // ---- Day timeline ---------------------------------------------------------
 
 type DayEvent =
-  | { kind: "sked"; clock: string; light: string; msg: string; prompt: string; final?: boolean }
+  | {
+      kind: "sked";
+      clock: string;
+      light: string;
+      msg: string;
+      prompt: string;
+      final?: boolean;
+      // KEN asked a question (e.g. QRU?) — the player must answer with these
+      // words, in order, instead of a plain QSL. `hint` is the nudge shown
+      // when the answer is missing. Not used on first contact, whose reply is
+      // already fixed as QSL + authenticator.
+      reply?: { words: string[]; hint: string };
+    }
   | { kind: "spot"; clock: string; light: string; sighting: Sighting }
   // A third station (RELAY_CALL) has traffic for HQ that can't reach HQ directly —
   // copy it, acknowledge the sender, then re-address and forward to HQ. See
@@ -646,6 +658,82 @@ const GUADALCANAL_DAY1: Scenario = {
     "Aaron sat with you while the light went, not saying much. He didn't ask how it " +
     "went and didn't seem worried about it either, and somewhere around the first stars " +
     "you realized that was exactly what you'd needed from somebody all day.",
+};
+
+/** Guadalcanal Day 2 — "Decode / Send, routine": the daily rhythm sets in,
+ *  with the Cactus Air Force overhead as ambient flavor (MORSE-GAMES.md's
+ *  mission allocation table). First real SEND beyond a QSL: KEN's QRU? has to
+ *  be answered (sked `reply`), bookending the day morning and evening, so
+ *  "nothing to report is still a report" becomes habit before Day 3's first
+ *  sighting. The noon sked tells GOOSE not to report friendly aircraft,
+ *  which is both the Cactus flavor beat and a setup for Day 3. Tagged Day 5,
+ *  not Day 2: calendar-as-montage, and a rhythm needs a few days to form. */
+const GUADALCANAL_DAY2: Scenario = {
+  id: "guadalcanal-2",
+  dayTag: "Guadalcanal · Day 5",
+  minEffectiveWpm: FIELD_MIN_WPM,
+  introTitle: "The Rhythm",
+  introCopy:
+    "Five days on the ridge and the day has a shape now: skeds at six and nine and " +
+    "noon and six, coffee in between, the Slot empty and blue. Mid-morning the engines " +
+    "come — Wildcats and dive-bombers climbing out of Henderson, the whole island " +
+    "droning like one long bass note — and then they're gone northwest and it's quiet again.",
+  notes:
+    "Day 5. Aaron's sister sings in the mission choir down the coast. He hummed me a " +
+    "hymn while we waited on the noon sked, and I kept time on my knee without " +
+    "thinking — first music I've made since the train. He laughed and said I'd drag " +
+    "the tempo in church. He's right; I would. KEN asks QRU? morning and evening now, " +
+    "like a clock chiming the hour. Nothing to report is still a report. You answer it.",
+  briefing: (hqFreqKhz) =>
+    "STATION GOOSE — Guadalcanal. OP on the northwest ridge, watching the Slot. Skeds " +
+    `with HQ (KEN) on ${hqFreqKhz} kHz: 0600 / 0900 / 1200 / 1800. Authenticate first ` +
+    "contact. When KEN asks QRU? he wants an answer, not a QSL — send QRU if you have " +
+    "nothing for him. Our own aircraft out of Henderson work this sky; don't report friendlies.",
+  buildTimeline: (authChallenge) => [
+    {
+      kind: "sked",
+      clock: "0600",
+      light: "dawn",
+      msg: `${MY_CALL} DE ${HQ_CALL} GM AUTHENTICATE ${authChallenge} K`,
+      prompt:
+        "Copy KEN and the authenticator challenge. Check today's table, then send " +
+        "QSL I AUTHENTICATE <code> together — or AGN? to hear it again.",
+    },
+    {
+      kind: "sked",
+      clock: "0900",
+      light: "morning",
+      msg: `${MY_CALL} DE ${HQ_CALL} QRU? K`,
+      prompt: "KEN's asking if you have anything for him. Answer it — or AGN? for a repeat.",
+      reply: {
+        words: ["QRU"],
+        hint: "KEN asked QRU? — a QSL doesn't answer it. Send QRU: nothing for you.",
+      },
+    },
+    {
+      kind: "sked",
+      clock: "1200",
+      light: "noon",
+      msg: `${MY_CALL} DE ${HQ_CALL} FRIENDLY ACFT OUTBOUND NW NO RPT K`,
+      prompt: "Copy KEN, then acknowledge (QSL).",
+    },
+    {
+      kind: "sked",
+      clock: "1800",
+      light: "dusk",
+      msg: `${MY_CALL} DE ${HQ_CALL} QRU? QRT GN K`,
+      prompt: "Last sked of the day. Answer KEN's QRU? before he shuts down.",
+      reply: {
+        words: ["QRU"],
+        hint: "KEN asked QRU? — answer QRU before signing off.",
+      },
+      final: true,
+    },
+  ],
+  outroCopy: "A quiet day, and quiet is the job. The Slot stays empty until it doesn't.",
+  outroAside:
+    "Late in the afternoon the engines came back down the Slot, fewer than went up. " +
+    "You counted without meaning to. Aaron didn't ask what the number was.",
 };
 
 /** New Georgia/Munda Day 1 — the Request Supplies kit element's first outing. A
@@ -1139,6 +1227,7 @@ const SCENARIOS: Scenario[] = [
   TRAINING_DAY2,
   TRAINING_DAY3,
   GUADALCANAL_DAY1,
+  GUADALCANAL_DAY2,
   MUNDA_DAY1,
   MUNDA_DAY2,
   MUNDA_DAY3,
@@ -1512,6 +1601,8 @@ export class AdventureMode {
           ["QRZ", "who is calling me? — you dropped your ID"],
           ["QRT", "shut down / go silent"],
           ["QRU", "nothing heard / anything for me?"],
+          ["QRU?", "have you anything for me? — answer QRU if not"],
+          ["GM", "good morning"],
           ["QTC", "I have traffic for __"],
           ["QSP", "relay / I'll relay"],
           ["TU", "thanks"],
@@ -1975,7 +2066,11 @@ export class AdventureMode {
     {
       id: "later-sked-ack",
       when: AdventureMode.isLaterSked,
-      match: (i) => i.words.includes("QSL") || i.words.includes("R"),
+      match: (i, ctx) => {
+        const e = ctx.currentEvent;
+        if (e.kind === "sked" && e.reply) return includesSequence(i.words, e.reply.words);
+        return i.words.includes("QSL") || i.words.includes("R");
+      },
       act: async (_i, ctx) => {
         const e = ctx.currentEvent;
         if (e.kind !== "sked") return;
@@ -1988,7 +2083,9 @@ export class AdventureMode {
       when: AdventureMode.isLaterSked,
       match: () => true,
       act: (_i, ctx) => {
-        ctx.setStatus(`Send QSL to acknowledge ${HQ_CALL}, or AGN? for a repeat.`);
+        const e = ctx.currentEvent;
+        if (e.kind === "sked" && e.reply) ctx.setStatus(e.reply.hint);
+        else ctx.setStatus(`Send QSL to acknowledge ${HQ_CALL}, or AGN? for a repeat.`);
       },
     },
     {
