@@ -39,6 +39,10 @@ const ON_FREQ_KHZ = 5; // within this window, HQ is readable — one grid step, 
 const FREQ_SETTLE_MS = 700; // dwell time on a steady frequency before static/the sked fires
 const CLOCK_TRANSITION_PAUSE_MS = 4000; // beat between events so the player notices the clock jump, not just a harried KEN
 const OVERHEAR_PAUSE_MS = 2500; // how long "not for you" traffic lingers before the day moves on by itself
+// No field mission runs below this effective speed — the training graduation
+// gate, locked in MORSE-GAMES.md's "Speed as the difficulty gate". Later
+// postings can set a higher floor per the posting-by-posting WPM curve.
+const FIELD_MIN_WPM = 7.5;
 
 const SPOT_ACK = `${MY_CALL} DE ${HQ_CALL} QSL K`; // HQ's ack of a completed report
 
@@ -270,11 +274,16 @@ interface Scenario {
   buildTimeline(authChallenge: string): DayEvent[];
   outroCopy: string; // sentence appended after the day's tally on the outro card
   outroAside?: string; // shown only on this scenario's outro — a payoff beat
+  // Speed floor: HQ sends at no less than this effective WPM, even if the
+  // player's trainer setting is slower (a faster setting is left alone).
+  // Omitted for training, which runs at the player's own pace.
+  minEffectiveWpm?: number;
 }
 
 const KOLOMBANGARA_DAY14: Scenario = {
   id: "kolombangara-14",
   dayTag: "Kolombangara · Day 14",
+  minEffectiveWpm: FIELD_MIN_WPM,
   introTitle: "Station GOOSE",
   introCopy:
     "Before dawn the Minnow put you ashore below the summit and slipped back " +
@@ -349,6 +358,7 @@ const PT109_SIGHTING: Sighting = {
 const KOLOMBANGARA_DAY3: Scenario = {
   id: "kolombangara-3",
   dayTag: "Kolombangara · Day 17",
+  minEffectiveWpm: FIELD_MIN_WPM,
   introTitle: "Station GOOSE",
   introCopy:
     "Three quiet days since the last convoy report — routine skeds, routine light. Then, " +
@@ -416,6 +426,7 @@ const KOLOMBANGARA_DAY3: Scenario = {
 const KOLOMBANGARA_DAY_RELAY: Scenario = {
   id: "kolombangara-relay",
   dayTag: "Kolombangara · Day 23",
+  minEffectiveWpm: FIELD_MIN_WPM,
   introTitle: "Station GOOSE",
   introCopy:
     "Six days since the boy brought the news about the wreckage. Today HQ's added a " +
@@ -564,6 +575,79 @@ function haggleEventOf(day: DayEvent[]): Extract<DayEvent, { kind: "haggle" }> |
   return e?.kind === "haggle" ? e : undefined;
 }
 
+/** Guadalcanal Day 1 — the first field day (see MORSE-GAMES.md's mission
+ *  allocation table: "Cold open — first sked, still shaky"). Tune in and
+ *  decode only; no spot reports yet (the first sighting report is Day 3's
+ *  job). Plants two things later days lean on: Aaron, the Guadalcanal-posting
+ *  friendship the rest of the campaign's field companions are measured against,
+ *  and the Minnow, so Munda Day 1's "put you ashore in the dark again" pays
+ *  off. SKIP's overheard traffic introduces his call here, well before
+ *  Kolombangara makes GOOSE his relay. The "KEN doesn't slow down" feeling is
+ *  real, not just prose: FIELD_MIN_WPM applies from here on. */
+const GUADALCANAL_DAY1: Scenario = {
+  id: "guadalcanal-1",
+  dayTag: "Guadalcanal · Day 1",
+  minEffectiveWpm: FIELD_MIN_WPM,
+  introTitle: "Cactus",
+  introCopy:
+    "Weeks on a troopship out of San Francisco, sick for the first nine days of it, " +
+    "the sun off the water too painful to look at and too bright to ignore. Then a " +
+    "transfer in the dark to a little boat the crew called the Minnow, a beach you " +
+    "couldn't see, and a man waiting at the tree line who said his name was Aaron and " +
+    "took the heavy end of the set without being asked.",
+  notes:
+    "Day 1 on Cactus — that's what everybody calls this island, even on the air. Aaron " +
+    "walked the set up the ridge trail like it weighed nothing and told me the names of " +
+    "three trees on the way. I remembered all three, and his. The surf down there keeps " +
+    "a rhythm like a clave, two-and-three, and I caught myself tapping it on the log " +
+    "before I'd noticed one thing a coastwatcher is supposed to notice. KEN's fist is " +
+    "quicker than Andy's ever was. Nobody out here is slowing down for me.",
+  briefing: (hqFreqKhz) =>
+    "STATION GOOSE — Guadalcanal. Put ashore overnight on the northwest coast, behind " +
+    "the enemy's lines; OP on the ridge, watching the Slot. Skeds with HQ (KEN, at " +
+    `Lunga) on ${hqFreqKhz} kHz: 0600 / 1030 / 1800. Authenticate first contact. Other ` +
+    "stations share this frequency — answer only traffic addressed to GOOSE.",
+  buildTimeline: (authChallenge) => [
+    {
+      kind: "sked",
+      clock: "0600",
+      light: "dawn",
+      msg: `${MY_CALL} DE ${HQ_CALL} WELCOME TO CACTUS AUTHENTICATE ${authChallenge} K`,
+      prompt:
+        "Copy KEN and the authenticator challenge. Check today's table, then send " +
+        "QSL I AUTHENTICATE <code> together — or AGN? to hear it again.",
+    },
+    {
+      kind: "sked",
+      clock: "1030",
+      light: "morning",
+      msg: `${MY_CALL} DE ${HQ_CALL} WATCH SLOT FOR DD ES AK RPT ALL ACFT K`,
+      prompt: "Copy your orders, then acknowledge (QSL). AGN? if it got away from you.",
+    },
+    {
+      kind: "overhear",
+      clock: "1300",
+      light: "noon",
+      from: RELAY_CALL,
+      to: HQ_CALL,
+      msg: `${HQ_CALL} DE ${RELAY_CALL} QRU K`,
+    },
+    {
+      kind: "sked",
+      clock: "1800",
+      light: "dusk",
+      msg: `${MY_CALL} DE ${HQ_CALL} GOOD FIRST DAY QRT GN K`,
+      prompt: "Copy the sign-off, then acknowledge (QSL).",
+      final: true,
+    },
+  ],
+  outroCopy: "First day on Cactus, logged. Messier than any drill — and you got through it anyway.",
+  outroAside:
+    "Aaron sat with you while the light went, not saying much. He didn't ask how it " +
+    "went and didn't seem worried about it either, and somewhere around the first stars " +
+    "you realized that was exactly what you'd needed from somebody all day.",
+};
+
 /** New Georgia/Munda Day 1 — the Request Supplies kit element's first outing. A
  *  single haggle beat, no sked/authenticator ceremony (this post isn't being
  *  watched today — see the notes), so the whole day is the negotiation with
@@ -577,6 +661,7 @@ function haggleEventOf(day: DayEvent[]): Extract<DayEvent, { kind: "haggle" }> |
 const MUNDA_DAY1: Scenario = {
   id: "munda-1",
   dayTag: "New Georgia · Munda, Day 1",
+  minEffectiveWpm: FIELD_MIN_WPM,
   introTitle: "Landfall — New Georgia",
   introCopy:
     "The Minnow put you ashore in the dark again, but this beach is different — jerry " +
@@ -645,6 +730,7 @@ const MUNDA_DAY1: Scenario = {
 const MUNDA_DAY2: Scenario = {
   id: "munda-2",
   dayTag: "New Georgia · Munda, Day 2",
+  minEffectiveWpm: FIELD_MIN_WPM,
   introTitle: "The Ask",
   introCopy:
     "Nick's supplies came up the path by scout relay overnight. Back on the ordinary " +
@@ -713,6 +799,7 @@ const MUNDA_DAY2: Scenario = {
 const MUNDA_DAY3: Scenario = {
   id: "munda-3",
   dayTag: "New Georgia · Munda, Day 3",
+  minEffectiveWpm: FIELD_MIN_WPM,
   introTitle: "The Strip",
   introCopy:
     "You came up the track before dawn already sore in advance, machete borrowed and " +
@@ -804,6 +891,7 @@ const BILL_SHIP_SIGHTING: Sighting = {
 const MAGIC_CARPET_FINALE: Scenario = {
   id: "magic-carpet",
   dayTag: "Magic Carpet Coordination · Day 1",
+  minEffectiveWpm: FIELD_MIN_WPM,
   introTitle: "The Priority Board",
   introCopy:
     "Two years gone in the space of a calendar page. The Slot is somebody else's watch " +
@@ -891,9 +979,9 @@ const MAGIC_CARPET_FINALE: Scenario = {
  *  Carpet's finale would put the beginning after the ending in prev/next
  *  order, which is worse than the alternative below. Consequence: the demo's
  *  default mission on load (`SCENARIOS[0]` in mount()) changes from
- *  Kolombangara to Training Day 1. The Kolombangara-before-Munda ordering
- *  further down the array is a separate, still-unreconciled inconsistency —
- *  not fixed here, so as not to compound one ordering change with another. */
+ *  Kolombangara to Training Day 1. (The array now follows the historical
+ *  spine throughout — Munda was moved ahead of Kolombangara on 2026-09-22,
+ *  alongside Guadalcanal Day 1.) */
 const TRAINING_DAY1: Scenario = {
   id: "training-1",
   dayTag: "Camp Murphy · Day 1",
@@ -1050,12 +1138,13 @@ const SCENARIOS: Scenario[] = [
   TRAINING_DAY1,
   TRAINING_DAY2,
   TRAINING_DAY3,
-  KOLOMBANGARA_DAY14,
-  KOLOMBANGARA_DAY3,
-  KOLOMBANGARA_DAY_RELAY,
+  GUADALCANAL_DAY1,
   MUNDA_DAY1,
   MUNDA_DAY2,
   MUNDA_DAY3,
+  KOLOMBANGARA_DAY14,
+  KOLOMBANGARA_DAY3,
+  KOLOMBANGARA_DAY_RELAY,
   MAGIC_CARPET_FINALE,
 ];
 
@@ -1169,6 +1258,12 @@ export class AdventureMode {
     this.liveAuthIdx = randInt(0, this.authTable.length - 1); // which row KEN actually challenges with
     this.hqFreqKhz = makeHqFreqKhz(); // generated fresh — same SOI logic as the auth table
     this.day = scenario.buildTimeline(this.authTable[this.liveAuthIdx].challenge); // this run's mix of skeds + generated sightings
+    const effectiveWpm = Math.max(this.settings.effectiveWpm, scenario.minEffectiveWpm ?? 0);
+    this.engine.settings = {
+      ...this.engine.settings,
+      effectiveWpm,
+      charWpm: Math.max(this.settings.charWpm, effectiveWpm), // Farnsworth: char speed never below effective
+    };
     this.root.innerHTML = "";
     this.root.appendChild(this.buildIntro());
   }
@@ -1184,6 +1279,18 @@ export class AdventureMode {
     card.appendChild(text("div", "intro-tag", this.scenario.dayTag));
     card.appendChild(text("h2", "intro-title", this.scenario.introTitle));
     card.appendChild(text("p", "intro-copy", this.scenario.introCopy));
+    // Say so when the floor overrides the player's own setting, so a sudden
+    // jump in speed reads as the posting, not a bug.
+    const floor = this.scenario.minEffectiveWpm;
+    if (floor !== undefined && floor > this.settings.effectiveWpm) {
+      card.appendChild(
+        text(
+          "p",
+          "intro-speed",
+          `Field speed: KEN sends at ${floor} WPM here — faster than your ${this.settings.effectiveWpm} WPM setting.`
+        )
+      );
+    }
     card.appendChild(this.buildTransitionRow("Begin the watch", () => this.beginShack()));
     view.appendChild(card);
     return view;

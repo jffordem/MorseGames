@@ -901,7 +901,9 @@ How missions string into an arc — resolves the former "campaign structure" ope
 
   **Build status (2026-09-22), to anchor incremental mission-writing sessions.** The
   table above is the map; this is the current position on it.
-  - **Built** (playable in `adventure.ts`'s `SCENARIOS`, 10 of 25): all of Stateside
+  - **Built** (playable in `adventure.ts`'s `SCENARIOS`, 11 of 25): Guadalcanal Day 1
+    (`guadalcanal-1`, "Cactus" — tune + decode only, introduces Aaron, the Minnow, and
+    SKIP's call as overheard traffic; 2026-09-22), all of Stateside
     training (`training-1`/`-2`/`-3`, Camp Murphy — shipped 2026-09-10 as ordinary
     shack-engine scenarios; the Random-Run-wrapper / graduate-on-speed mechanic is still
     a parked follow-up, see the scope note above `TRAINING_DAY1`), Kolombangara days 1–3
@@ -909,7 +911,7 @@ How missions string into an arc — resolves the former "campaign structure" ope
     (`munda-1`, `munda-2`, `munda-3` — the haggle and the Seabees-milestone arc), and the
     Magic Carpet finale (`magic-carpet`).
   - **Not started** (table row only — a one-line focus/notes hook, no scene draft yet;
-    the remaining 15): all of Guadalcanal (7), Munda day 4 and Kolombangara day 4
+    the remaining 14): Guadalcanal days 2–7, Munda day 4 and Kolombangara day 4
     (sign-offs), all of Bougainville (both postings, 4), and both Bougainville-invasion
     days.
   - **Build order from here: linear along the timeline (decided 2026-09-22).** Start at
@@ -919,13 +921,21 @@ How missions string into an arc — resolves the former "campaign structure" ope
     radio club for feedback), rather than scattered one-off days. Sign-off/promotion days
     (Guadalcanal 7, Munda 4, Kolombangara 4) stay cheap when their turn comes — they
     reuse the final-sked-plus-promotion pattern.
-  - **Known ordering wrinkle:** `SCENARIOS` currently runs Kolombangara *before* Munda
-    (the demo was built first), the reverse of the historical spine and the WPM curve.
-    Fix it as part of the linear pass — there's no persisted Adventure progress and every
-    mission is unlocked, so reordering the array costs nothing for existing players.
-  - **Not yet wired: per-posting WPM.** Missions play at the player's own trainer
-    settings; the posting-by-posting curve (see **Speed as the difficulty gate** below)
-    is design only.
+  - **Ordering fixed (2026-09-22):** `SCENARIOS` now follows the historical spine —
+    training → Guadalcanal → Munda → Kolombangara → Magic Carpet (Munda had been after
+    Kolombangara because the demo was built first). Safe to reorder because there's no
+    persisted Adventure progress and every mission is unlocked.
+  - **Release batches for Guadalcanal:** days 1–4 (ending on the air-raid milestone), then
+    days 5–7 (letter home, patrol scare, Bill's promotion into Munda) — each batch one
+    deploy, so the live site gains a stretch of story at a time.
+  - **Per-mission speed floor (2026-09-22, implemented):** `Scenario.minEffectiveWpm`
+    raises HQ's effective WPM to at least that value when the player's setting is slower
+    (a faster setting is left alone; char WPM is lifted to match if needed). Every field
+    mission uses `FIELD_MIN_WPM` (7.5); training has no floor. The intro card says so
+    when the floor overrides the player's setting. The higher per-posting steps of the
+    WPM curve (Munda ~10, Kolombangara ~13, …) are **not** applied yet — a deliberate
+    hold so live players aren't jumped to 13 WPM before the Guadalcanal/Munda stretch
+    exists to ramp them there.
   - **Resolved (2026-08-01):** Bougainville invasion day 2 ("the invasion itself") is a
     playable Decode/React-to-threats field day, not a narrative-only cutscene — same
     tone as invasion day 1, matching the "not started" backlog above rather than a
