@@ -909,7 +909,7 @@ How missions string into an arc — resolves the former "campaign structure" ope
   plus the short summary in `CLAUDE.md` and the Adventure blurb in `README.md` if the
   player-facing scope changed. Work happens on feature branches, and merging to `main`
   auto-deploys to the live site.
-  - **Built** (playable in `adventure.ts`'s `SCENARIOS`, 15 of 25): Guadalcanal days 1–5
+  - **Built** (playable in `adventure.ts`'s `SCENARIOS`, 16 of 25): Guadalcanal days 1–6
     (`guadalcanal-1` "Cactus" — tune + decode only, introduces Aaron, the Minnow, and
     SKIP's call as overheard traffic; `guadalcanal-2` "The Rhythm", tagged Day 5 — first
     send beyond QSL: KEN's `QRU?` must be answered, via a new optional sked `reply`
@@ -924,7 +924,11 @@ How missions string into an arc — resolves the former "campaign structure" ope
     16 — the first letter home, from Evelyn, arriving by mail on the Minnow (not over
     the air) and read in the Notes panel; a short, gentle radio day. Establishes two
     home-front facts later letters should keep: a kid brother, and Mr. Hale, the
-    school's band director, holding the percussion scholarship), all of Stateside
+    school's band director, holding the percussion scholarship; `guadalcanal-6`
+    "Close", tagged Day 21 — a patrol close call via a new `silence` event: KEN's
+    noon call arrives while the patrol is below and must go unanswered; transmitting
+    anyway isn't a fail, it raises danger and sets `brokeSilence` for the outro),
+    all of Stateside
     training (`training-1`/`-2`/`-3`, Camp Murphy — shipped 2026-09-10 as ordinary
     shack-engine scenarios; the Random-Run-wrapper / graduate-on-speed mechanic is still
     a parked follow-up, see the scope note above `TRAINING_DAY1`), Kolombangara days 1–3
@@ -932,7 +936,7 @@ How missions string into an arc — resolves the former "campaign structure" ope
     (`munda-1`, `munda-2`, `munda-3` — the haggle and the Seabees-milestone arc), and the
     Magic Carpet finale (`magic-carpet`).
   - **Not started** (table row only — a one-line focus/notes hook, no scene draft yet;
-    the remaining 10): Guadalcanal days 6–7, Munda day 4 and Kolombangara day 4
+    the remaining 9): Guadalcanal day 7, Munda day 4 and Kolombangara day 4
     (sign-offs), all of Bougainville (both postings, 4), and both Bougainville-invasion
     days.
   - **Build order from here: linear along the timeline (decided 2026-09-22).** Start at

@@ -42,6 +42,8 @@ const DIAL_START_KHZ = 4200; // where the dial sits at the start of each run —
 const FREQ_SETTLE_MS = 700; // dwell time on a steady frequency before static/the sked fires
 const CLOCK_TRANSITION_PAUSE_MS = 4000; // beat between events so the player notices the clock jump, not just a harried KEN
 const OVERHEAR_PAUSE_MS = 2500; // how long "not for you" traffic lingers before the day moves on by itself
+const SILENCE_LEAD_MS = 3000; // a silence beat: warning → KEN's unanswerable call
+const SILENCE_HOLD_MS = 15000; // …then how long the patrol lingers before the all-clear
 // No field mission runs below this effective speed — the training graduation
 // gate, locked in MORSE-GAMES.md's "Speed as the difficulty gate". Later
 // postings can set a higher floor per the posting-by-posting WPM curve.
@@ -226,6 +228,20 @@ type DayEvent =
   // Traffic between two OTHER stations, overheard on the same frequency — nothing
   // to do but recognize it isn't for you and not answer it (monitoring discipline).
   | { kind: "overhear"; clock: string; light: string; from: string; to: string; msg: string }
+  // React to threats — go silent. A patrol is close: `spotter` brings the
+  // `warning`, KEN's routine `call` comes in anyway, and the correct play is
+  // NOT answering it (or anything). Transmitting isn't a hard fail — it bumps
+  // danger and sets brokeSilence, which the outro can tell differently. The
+  // beat ends on its own with the spotter's `allClear`.
+  | {
+      kind: "silence";
+      clock: string;
+      light: string;
+      spotter: string;
+      warning: string;
+      call: string;
+      allClear: string;
+    }
   // Request Supplies kit element — a real back-and-forth negotiation over CW, not
   // a scripted exchange. `partner` haggles via the RULES table below (see "Nick's
   // dialogue rules") using a value-weighted engine with two INDEPENDENT
@@ -296,8 +312,9 @@ interface Scenario {
   // Shown only on this scenario's outro — a payoff beat. A function when the
   // telling depends on how the day went (the outcome itself never does — see
   // MORSE-GAMES.md's "Avoid the escort-mission feel"); `retries` is the day's
-  // retryCount (AGN repeats + incomplete-report resends).
-  outroAside?: string | ((run: { retries: number }) => string);
+  // retryCount (AGN repeats + incomplete-report resends); `brokeSilence` is
+  // whether the player transmitted during a silence beat.
+  outroAside?: string | ((run: { retries: number; brokeSilence: boolean }) => string);
   // Speed floor: HQ sends at no less than this effective WPM, even if the
   // player's trainer setting is slower (a faster setting is left alone).
   // Omitted for training, which runs at the player's own pace.
@@ -1026,6 +1043,97 @@ const GUADALCANAL_DAY5: Scenario = {
     "cut it out, of course. You'd have cut it too.",
 };
 
+/** Guadalcanal Day 6 — "React to threats": the first real scare, a patrol
+ *  close call, survivable (MORSE-GAMES.md's mission allocation table). The
+ *  react is going silent: a `silence` beat where KEN's routine noon call
+ *  comes in while the patrol is on the trail below, and the right play is to
+ *  let it go unanswered. KEN's follow-up then asks after GOOSE — a missed
+ *  sked is survivable, a heard one might not be. Grounded in real coastwatcher
+ *  practice: the charging engine's noise was a genuine giveaway, and posts
+ *  behind the lines lived by going quiet when patrols came near. */
+const GUADALCANAL_DAY6: Scenario = {
+  id: "guadalcanal-6",
+  dayTag: "Guadalcanal · Day 21",
+  minEffectiveWpm: FIELD_MIN_WPM,
+  introTitle: "Close",
+  introCopy:
+    "Patrols have been moving in the hills all week — Aaron hears about them from the " +
+    "villages before anyone else does. This morning he moved the set deeper into the " +
+    "trees and had you practice shutting it down in the dark, twice, without a word.",
+  notes:
+    "Day 21. The charging engine is the loudest thing on this ridge. Never noticed until " +
+    "Aaron walked me down the trail to listen for it — a putt-putt you could set a " +
+    "metronome by. Now I can't stop hearing it. KEN says a missed sked happens and " +
+    "nobody hangs you for one. I'm choosing to believe him.",
+  briefing: (hqFreqKhz) =>
+    "STATION GOOSE — Guadalcanal. OP on the northwest ridge, behind the enemy's lines. " +
+    `Skeds with HQ (KEN) on ${hqFreqKhz} kHz: 0600 / 0900 / 1200 / 1300 / 1800. Enemy ` +
+    "patrols reported in the hills. If one comes near: no transmissions, no answers — " +
+    "not even to KEN. A missed sked is survivable. A heard one may not be.",
+  buildTimeline: (authChallenge) => [
+    {
+      kind: "sked",
+      clock: "0600",
+      light: "dawn",
+      msg: `${MY_CALL} DE ${HQ_CALL} GM AUTHENTICATE ${authChallenge} K`,
+      prompt:
+        "Copy KEN and the authenticator challenge. Check today's table, then send " +
+        "QSL I AUTHENTICATE <code> together — or AGN? to hear it again.",
+    },
+    {
+      kind: "sked",
+      clock: "0900",
+      light: "morning",
+      msg: `${MY_CALL} DE ${HQ_CALL} QRU? K`,
+      prompt: "KEN's asking if you have anything for him. Answer it — or AGN? for a repeat.",
+      reply: {
+        words: ["QRU"],
+        hint: "KEN asked QRU? — a QSL doesn't answer it. Send QRU: nothing for you.",
+      },
+    },
+    {
+      kind: "silence",
+      clock: "1155",
+      light: "noon",
+      spotter: "Aaron",
+      warning:
+        "In from the lookout, low and fast, a finger to his lips. A patrol on the trail " +
+        "below the ridge — six, maybe eight. He's already killed the charging engine.",
+      call: `${MY_CALL} DE ${HQ_CALL} QRU? K`,
+      allClear:
+        "Gone — down toward the river. He doesn't let go of your sleeve for another minute.",
+    },
+    {
+      kind: "sked",
+      clock: "1300",
+      light: "afternoon",
+      msg: `${MY_CALL} DE ${HQ_CALL} MISSED SKED ARE YOU OK? K`,
+      prompt: "KEN's worried about the missed sked. Tell him you're all right.",
+      reply: {
+        words: ["OK"],
+        hint: "KEN wants to know you're all right — tell him OK.",
+      },
+    },
+    {
+      kind: "sked",
+      clock: "1800",
+      light: "dusk",
+      msg: `${MY_CALL} DE ${HQ_CALL} GLAD UR OK QRT GN K`,
+      prompt: "Copy the sign-off, then acknowledge (QSL).",
+      final: true,
+    },
+  ],
+  outroCopy: "The patrol passed. The set's still here, and so are you.",
+  outroAside: ({ brokeSilence }) =>
+    brokeSilence
+      ? "You'd both heard it — the voices below going quiet, the long minute of " +
+        "listening. Then they moved on, and Aaron let out a breath he'd been holding " +
+        "since your hand went to the key. He didn't say anything about it. He didn't have to."
+      : "Afterward your hands wouldn't stop shaking, so Aaron put a pencil in one and " +
+        "had you drum it on the log until they did. Two-and-three, the surf's rhythm. " +
+        "He'd remembered.",
+};
+
 /** New Georgia/Munda Day 1 — the Request Supplies kit element's first outing. A
  *  single haggle beat, no sked/authenticator ceremony (this post isn't being
  *  watched today — see the notes), so the whole day is the negotiation with
@@ -1521,6 +1629,7 @@ const SCENARIOS: Scenario[] = [
   GUADALCANAL_DAY3,
   GUADALCANAL_DAY4,
   GUADALCANAL_DAY5,
+  GUADALCANAL_DAY6,
   MUNDA_DAY1,
   MUNDA_DAY2,
   MUNDA_DAY3,
@@ -1530,7 +1639,7 @@ const SCENARIOS: Scenario[] = [
   MAGIC_CARPET_FINALE,
 ];
 
-type Phase = "cold" | "onair" | "sked" | "spot" | "relay" | "overhear" | "haggle" | "done";
+type Phase = "cold" | "onair" | "sked" | "spot" | "relay" | "overhear" | "silence" | "haggle" | "done";
 
 export class AdventureMode {
   private root: HTMLElement;
@@ -1564,6 +1673,7 @@ export class AdventureMode {
   private haggleLastPlayerTokens: string[] = []; // detects an unchanged, stalled resend
   private haggleRounds = 0; // negotiate-stage player turns — no cap, just a replay-worthy stat (see haggle-accept)
   private retryCount = 0; // AGN repeats + incomplete-report resends this run — drives dangerLabel
+  private brokeSilence = false; // transmitted during a silence beat this run
   private authTable: AuthPair[] = []; // today's authenticator table
   private liveAuthIdx = 0; // which row of authTable KEN actually challenges with, randomized per run
   private hqFreqKhz = 0; // today's sked frequency, generated fresh in mount()
@@ -1636,6 +1746,7 @@ export class AdventureMode {
     this.haggleLastPlayerTokens = [];
     this.haggleRounds = 0;
     this.retryCount = 0;
+    this.brokeSilence = false;
     this.authTable = makeAuthTable(); // generated fresh — see the authenticator note above
     this.liveAuthIdx = randInt(0, this.authTable.length - 1); // which row KEN actually challenges with
     this.hqFreqKhz = makeHqFreqKhz(); // generated fresh — same SOI logic as the auth table
@@ -1900,6 +2011,7 @@ export class AdventureMode {
           ["QSP", "relay / I'll relay"],
           ["TU", "thanks"],
           ["GN", "good night"],
+          ["UR", "your / you're"],
           ["AUTHENTICATE", "reply to the challenge that follows"],
           ["I AUTHENTICATE", "the group that follows is my reply"],
         ],
@@ -2149,6 +2261,20 @@ export class AdventureMode {
       await delay(OVERHEAR_PAUSE_MS);
       await this.advance();
       return;
+    } else if (e.kind === "silence") {
+      this.phase = "silence";
+      this.addSpot(e.warning, e.spotter.toUpperCase());
+      this.setStatus("Patrol below. Stay off the air — don't answer anyone, not even KEN.");
+      this.refresh();
+      await delay(SILENCE_LEAD_MS);
+      if (await this.hqSend(e.call)) {
+        this.setStatus("KEN's calling. Let it go — the patrol's still on the trail.");
+      }
+      this.refresh();
+      await delay(SILENCE_HOLD_MS);
+      this.addSpot(e.allClear, e.spotter.toUpperCase());
+      await this.advance();
+      return;
     } else if (e.kind === "haggle") {
       await this.beginHaggle(e);
     } else {
@@ -2211,7 +2337,8 @@ export class AdventureMode {
     card.appendChild(text("p", "intro-copy", `${tally} ${this.scenario.outroCopy}`));
     const aside = this.scenario.outroAside;
     if (aside) {
-      const copy = typeof aside === "function" ? aside({ retries: this.retryCount }) : aside;
+      const copy =
+        typeof aside === "function" ? aside({ retries: this.retryCount, brokeSilence: this.brokeSilence }) : aside;
       card.appendChild(text("p", "intro-copy intro-aside", copy));
     }
     card.appendChild(this.buildTransitionRow("Replay the day", () => this.resetRun()));
@@ -2770,6 +2897,20 @@ export class AdventureMode {
     if (!msg || this.playing || !this.txEnabled) return;
     this.elTxInput.value = "";
     this.txCount += 1;
+    // Silence beat (patrol nearby): any transmission is the mistake, whatever it
+    // says. Judged by the phase when keying *starts* and never routed to the
+    // rules — the beat can end mid-send, and the message mustn't then count as
+    // an answer to the next sked. Survivable: danger jumps, the outro remembers.
+    if (this.phase === "silence") {
+      this.retryCount += 2;
+      this.brokeSilence = true;
+      await this.playSelf(msg);
+      if (this.phase === "silence") {
+        this.setStatus("A hand clamps on your wrist. Below, the voices stop — a long minute of listening. Stay off the key.");
+      }
+      this.refresh();
+      return;
+    }
     await this.playSelf(msg);
 
     const input: DialogueInput = {
@@ -2790,6 +2931,7 @@ export class AdventureMode {
         this.phase === "spot" ||
         this.phase === "relay" ||
         this.phase === "overhear" ||
+        this.phase === "silence" ||
         this.phase === "haggle")
     );
   }
