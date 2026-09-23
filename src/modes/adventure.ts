@@ -287,7 +287,11 @@ interface Scenario {
   briefing(hqFreqKhz: number, day: DayEvent[]): string; // upper-left Briefing panel text
   buildTimeline(authChallenge: string): DayEvent[];
   outroCopy: string; // sentence appended after the day's tally on the outro card
-  outroAside?: string; // shown only on this scenario's outro — a payoff beat
+  // Shown only on this scenario's outro — a payoff beat. A function when the
+  // telling depends on how the day went (the outcome itself never does — see
+  // MORSE-GAMES.md's "Avoid the escort-mission feel"); `retries` is the day's
+  // retryCount (AGN repeats + incomplete-report resends).
+  outroAside?: string | ((run: { retries: number }) => string);
   // Speed floor: HQ sends at no less than this effective WPM, even if the
   // player's trainer setting is slower (a faster setting is left alone).
   // Omitted for training, which runs at the player's own pace.
@@ -828,6 +832,110 @@ const GUADALCANAL_DAY3: Scenario = {
     "sat up with you until they stopped.",
 };
 
+/** Guadalcanal Day 4 — the posting's milestone ("Decode + React to threats":
+ *  a warning, and the Cactus fighters get up in time). Grounded in the real
+ *  coastwatcher raid warnings that bought Henderson Field its minutes — most
+ *  famously from Bougainville ("…headed yours"), relayed down the chain.
+ *  Forrest Gump restraint: GOOSE is the *last* link, not the source — KEN
+ *  passes the upstream warning, GOOSE confirms the formation as it passes his
+ *  ridge, then goes quiet while the escorts sweep low. The historical outcome
+ *  is fixed (they scramble in time either way); only the telling on the outro
+ *  shifts with how cleanly the day was copied. Deliberately not a relay beat:
+ *  Kolombangara's relay mission introduces relaying as new, so it stays there. */
+function makeRaidFormation(): Sighting {
+  const count = randInt(18, 27); // period-typical raid strength (the real warnings ran "twenty-odd" to "forty")
+  return {
+    category: "ACFT",
+    count,
+    type: "BOMBER",
+    alt: "HI",
+    dir: "SE",
+    prose:
+      "Engines first — a drone that fills the whole sky — then the formation, glinting in " +
+      `the sun: ${count} bombers, high, running down the Slot. No mistaking these for ours.`,
+  };
+}
+
+const GUADALCANAL_DAY4: Scenario = {
+  id: "guadalcanal-4",
+  dayTag: "Guadalcanal · Day 12",
+  minEffectiveWpm: FIELD_MIN_WPM,
+  introTitle: "Headed Yours",
+  introCopy:
+    "The warnings come down the Slot like a bucket brigade. A man on an island three " +
+    "hundred miles north sees the raid form up and keys it out; someone passes it on; " +
+    "KEN hears it at Lunga. Every station on the chain buys Henderson a few more " +
+    "minutes. Today you're the last one.",
+  notes:
+    "Day 12. KEN's fist was different on the morning sked — tighter, no swing in it at " +
+    "all. Aaron noticed me noticing. \"Big day,\" he said, and went down to the point " +
+    "without being asked. The Wildcats didn't go out this morning. They're sitting on " +
+    "the strip waiting, and what they're waiting for is a word from somebody like me.",
+  briefing: (hqFreqKhz) =>
+    "STATION GOOSE — Guadalcanal. OP on the northwest ridge, over the Slot. Raid expected: " +
+    "upstream stations will report it forming. When it passes this ridge, report it to " +
+    `HQ (KEN) at once — NR, TYPE, ALT, CSE. Skeds on ${hqFreqKhz} kHz: 0600 / 1030 / ` +
+    "1500 / 1800. If KEN orders QRT, go silent: escorts fly low.",
+  buildTimeline: (authChallenge) => [
+    {
+      kind: "sked",
+      clock: "0600",
+      light: "dawn",
+      msg: `${MY_CALL} DE ${HQ_CALL} GM RAID LIKELY TODAY AUTHENTICATE ${authChallenge} K`,
+      prompt:
+        "Copy KEN and the authenticator challenge. Check today's table, then send " +
+        "QSL I AUTHENTICATE <code> together — or AGN? to hear it again.",
+    },
+    {
+      kind: "sked",
+      clock: "1030",
+      light: "morning",
+      msg: `${MY_CALL} DE ${HQ_CALL} UPSTREAM RPTS BOMBERS HEADED CACTUS RPT WHEN THEY PASS K`,
+      prompt: "Copy the warning, then acknowledge (QSL).",
+    },
+    { kind: "spot", clock: "1150", light: "noon", sighting: makeRaidFormation(), spotter: "Aaron" },
+    {
+      kind: "sked",
+      clock: "1155",
+      light: "noon",
+      msg: `${MY_CALL} DE ${HQ_CALL} TU CACTUS SCRAMBLING QRT ESCORT LOW K`,
+      prompt: "KEN's ordering you off the air — acknowledge (QSL), then stay quiet.",
+    },
+    {
+      kind: "sked",
+      clock: "1500",
+      light: "afternoon",
+      msg: `${MY_CALL} DE ${HQ_CALL} ALL CLEAR QRU? K`,
+      prompt: "Back on the air. Answer KEN's QRU? — or AGN? for a repeat.",
+      reply: {
+        words: ["QRU"],
+        hint: "KEN asked QRU? — a QSL doesn't answer it. Send QRU: nothing for you.",
+      },
+    },
+    {
+      kind: "sked",
+      clock: "1800",
+      light: "dusk",
+      msg: `${MY_CALL} DE ${HQ_CALL} TU GOOSE QRT GN K`,
+      prompt: "Copy the sign-off, then acknowledge (QSL).",
+      final: true,
+    },
+  ],
+  outroCopy: "The raid came and went. Henderson is still there tonight.",
+  outroAside: ({ retries }) =>
+    retries <= 1
+      ? "Word came up the net after dark: the Wildcats were already at altitude when the " +
+        "bombers reached Lunga, sun at their backs and height to spare. Yours wasn't the " +
+        "only warning — it started three hundred miles up the Slot and passed through a " +
+        "lot of hands — but yours was the last one, and it went out clean. KEN's GN came " +
+        "a beat slower than usual, like a man finally sitting down."
+      : "Word came up the net after dark: the Wildcats got up in time, clawing for " +
+        "altitude as the bombers came over — closer than anyone liked, but in time. " +
+        "Yours wasn't the only warning; it started three hundred miles up the Slot and " +
+        "passed through a lot of hands. You were the last pair. You lay awake a while " +
+        "going over every AGN, and resolved there'd be fewer next time.",
+};
+
 /** New Georgia/Munda Day 1 — the Request Supplies kit element's first outing. A
  *  single haggle beat, no sked/authenticator ceremony (this post isn't being
  *  watched today — see the notes), so the whole day is the negotiation with
@@ -1321,6 +1429,7 @@ const SCENARIOS: Scenario[] = [
   GUADALCANAL_DAY1,
   GUADALCANAL_DAY2,
   GUADALCANAL_DAY3,
+  GUADALCANAL_DAY4,
   MUNDA_DAY1,
   MUNDA_DAY2,
   MUNDA_DAY3,
@@ -2009,8 +2118,10 @@ export class AdventureMode {
     card.appendChild(text("div", "intro-tag", `${this.scenario.dayTag} — complete`));
     card.appendChild(text("h2", "intro-title", "Set's down for the night"));
     card.appendChild(text("p", "intro-copy", `${tally} ${this.scenario.outroCopy}`));
-    if (this.scenario.outroAside) {
-      card.appendChild(text("p", "intro-copy intro-aside", this.scenario.outroAside));
+    const aside = this.scenario.outroAside;
+    if (aside) {
+      const copy = typeof aside === "function" ? aside({ retries: this.retryCount }) : aside;
+      card.appendChild(text("p", "intro-copy intro-aside", copy));
     }
     card.appendChild(this.buildTransitionRow("Replay the day", () => this.resetRun()));
     view.appendChild(card);

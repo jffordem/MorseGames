@@ -901,14 +901,18 @@ How missions string into an arc — resolves the former "campaign structure" ope
 
   **Build status (2026-09-22), to anchor incremental mission-writing sessions.** The
   table above is the map; this is the current position on it.
-  - **Built** (playable in `adventure.ts`'s `SCENARIOS`, 13 of 25): Guadalcanal days 1–3
+  - **Built** (playable in `adventure.ts`'s `SCENARIOS`, 14 of 25): Guadalcanal days 1–4
     (`guadalcanal-1` "Cactus" — tune + decode only, introduces Aaron, the Minnow, and
     SKIP's call as overheard traffic; `guadalcanal-2` "The Rhythm", tagged Day 5 — first
     send beyond QSL: KEN's `QRU?` must be answered, via a new optional sked `reply`
     field; Cactus Air Force as ambient flavor; `guadalcanal-3` "The Express", tagged
     Day 9 — first real spot reports, a morning floatplane then the Tokyo Express down
     the Slot, with Aaron as the named spotter via a new optional spot `spotter` field;
-    all 2026-09-22), all of Stateside
+    `guadalcanal-4` "Headed Yours", tagged Day 12 — the milestone: KEN passes the
+    upstream raid warning, GOOSE reports the formation as it passes (the last link in
+    the chain, not the source), then goes QRT while escorts sweep low; the outro aside
+    varies with the day's retry count via `outroAside` as a function, the historical
+    outcome fixed either way; all 2026-09-22), all of Stateside
     training (`training-1`/`-2`/`-3`, Camp Murphy — shipped 2026-09-10 as ordinary
     shack-engine scenarios; the Random-Run-wrapper / graduate-on-speed mechanic is still
     a parked follow-up, see the scope note above `TRAINING_DAY1`), Kolombangara days 1–3
@@ -916,7 +920,7 @@ How missions string into an arc — resolves the former "campaign structure" ope
     (`munda-1`, `munda-2`, `munda-3` — the haggle and the Seabees-milestone arc), and the
     Magic Carpet finale (`magic-carpet`).
   - **Not started** (table row only — a one-line focus/notes hook, no scene draft yet;
-    the remaining 12): Guadalcanal days 4–7, Munda day 4 and Kolombangara day 4
+    the remaining 11): Guadalcanal days 5–7, Munda day 4 and Kolombangara day 4
     (sign-offs), all of Bougainville (both postings, 4), and both Bougainville-invasion
     days.
   - **Build order from here: linear along the timeline (decided 2026-09-22).** Start at
