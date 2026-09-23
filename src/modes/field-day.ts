@@ -37,7 +37,7 @@ const LEAD_IN_MS = 300;
 // (voice) takes over at 14.150, which a CW station would never operate in.
 const FREQ_MIN = 14025;
 const FREQ_MAX = 14150;
-const ON_FREQ_KHZ = 5;
+const FREQ_STEP_KHZ = 5; // dial grid; the contest frequency is always on it
 
 // ---- Callsign / exchange generators ----------------------------------------
 
@@ -302,7 +302,7 @@ export class FieldDayMode {
     const { el: freqKnobEl, setDisabled: setKnobDisabled } = buildKnob(
       FREQ_MIN,
       FREQ_MAX,
-      5,
+      FREQ_STEP_KHZ,
       this.freqKhz,
       (v) => {
         this.freqKhz = v;
@@ -423,7 +423,8 @@ export class FieldDayMode {
     this.traffic = [];
     // Generated fresh each session, like Adventure's hqFreqKhz — the dial starts off
     // this frequency on purpose, so finding it is the first thing you do.
-    this.contestFreqKhz = FREQ_MIN + 5 * randInt(0, (FREQ_MAX - FREQ_MIN) / 5);
+    // Never FREQ_MIN itself: the dial starts there, and tuning should be the first task.
+    this.contestFreqKhz = FREQ_MIN + FREQ_STEP_KHZ * randInt(1, (FREQ_MAX - FREQ_MIN) / FREQ_STEP_KHZ);
     this.freqKhz = FREQ_MIN;
     this.elAvailableFreq.textContent = `Available frequency: ${this.contestFreqKhz} kHz — tune the dial to it.`;
     this.sessionStartAt = performance.now();
@@ -444,7 +445,9 @@ export class FieldDayMode {
   }
 
   private get onFreq(): boolean {
-    return Math.abs(this.freqKhz - this.contestFreqKhz) <= ON_FREQ_KHZ;
+    // Exact match only: a CW signal is a few hundred Hz wide, so even one dial
+    // step (5 kHz) off is well outside the receiver's passband.
+    return this.freqKhz === this.contestFreqKhz;
   }
 
   private stop(): void {
