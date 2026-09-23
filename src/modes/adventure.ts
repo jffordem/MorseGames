@@ -35,7 +35,7 @@ const RELAY_CALL = "SKIP"; // a second coastwatcher post, out of KEN's direct re
 const NICK_CALL = "NICK"; // supply — the Request Supplies mission element's trading partner
 const FREQ_MIN = 4000;
 const FREQ_MAX = 5200;
-const ON_FREQ_KHZ = 5; // within this window, HQ is readable — one grid step, so the readout actually matches the briefing
+const FREQ_STEP_KHZ = 5; // dial grid; HQ's sked frequency is always on it
 const FREQ_SETTLE_MS = 700; // dwell time on a steady frequency before static/the sked fires
 const CLOCK_TRANSITION_PAUSE_MS = 4000; // beat between events so the player notices the clock jump, not just a harried KEN
 const OVERHEAR_PAUSE_MS = 2500; // how long "not for you" traffic lingers before the day moves on by itself
@@ -54,7 +54,7 @@ const SPOT_ACK = `${MY_CALL} DE ${HQ_CALL} QSL K`; // HQ's ack of a completed re
 function makeHqFreqKhz(): number {
   const lo = 4200,
     hi = 5000;
-  return lo + 5 * randInt(0, (hi - lo) / 5);
+  return lo + FREQ_STEP_KHZ * randInt(0, (hi - lo) / FREQ_STEP_KHZ);
 }
 
 // ---- Sighting generator ---------------------------------------------------
@@ -1407,7 +1407,7 @@ export class AdventureMode {
     const { el: freqKnobEl, setDisabled: setKnobDisabled } = buildKnob(
       FREQ_MIN,
       FREQ_MAX,
-      5,
+      FREQ_STEP_KHZ,
       this.freqKhz,
       (v) => {
         this.freqKhz = v;
@@ -1616,7 +1616,9 @@ export class AdventureMode {
   // ---- Beat driver --------------------------------------------------------
 
   private get onFreq(): boolean {
-    return Math.abs(this.freqKhz - this.hqFreqKhz) <= ON_FREQ_KHZ;
+    // Exact match only: a CW signal is a few hundred Hz wide, so even one dial
+    // step (5 kHz) off is well outside the receiver's passband.
+    return this.freqKhz === this.hqFreqKhz;
   }
 
   /** Danger escalation — first wired up for real on the relay mission (see
