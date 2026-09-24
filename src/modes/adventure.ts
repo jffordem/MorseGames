@@ -212,7 +212,9 @@ type DayEvent =
       kind: "sked";
       clock: string;
       light: string;
-      msg: string;
+      // A function when KEN's words depend on how the day has gone so far
+      // (e.g. Guadalcanal Day 6: whether the player broke silence).
+      msg: string | ((run: RunOutcome) => string);
       prompt: string;
       final?: boolean;
       // KEN asked a question (e.g. QRU?) — the player must answer with these
@@ -1447,8 +1449,12 @@ const GUADALCANAL_DAY6: Scenario = {
       kind: "sked",
       clock: "1300",
       light: "afternoon",
-      msg: `${MY_CALL} DE ${HQ_CALL} MISSED SKED ARE YOU OK? K`,
-      prompt: "KEN's worried about the missed sked. Tell him you're all right.",
+      // Broke silence: KEN heard a garbled answer at noon, not a missed sked.
+      msg: ({ brokeSilence }) =>
+        brokeSilence
+          ? `${MY_CALL} DE ${HQ_CALL} UR NOON SIG GARBLED ARE YOU OK? K`
+          : `${MY_CALL} DE ${HQ_CALL} MISSED SKED ARE YOU OK? K`,
+      prompt: "KEN's worried after noon. Tell him you're all right.",
       reply: {
         words: ["OK"],
         hint: "KEN wants to know you're all right — tell him OK.",
@@ -2748,7 +2754,7 @@ export class AdventureMode {
       this.refresh();
       return;
     }
-    if (await this.hqSend(e.msg)) {
+    if (await this.hqSend(this.skedMsg(e))) {
       this.phase = "sked";
       this.setStatus(e.prompt);
     }
@@ -2912,7 +2918,7 @@ export class AdventureMode {
       await this.beginHaggle(e);
     } else {
       this.phase = "sked";
-      if (await this.hqSend(e.msg)) this.setStatus(e.prompt);
+      if (await this.hqSend(this.skedMsg(e))) this.setStatus(e.prompt);
     }
     this.refresh();
   }
@@ -2972,7 +2978,7 @@ export class AdventureMode {
     if (aside) {
       const copy =
         typeof aside === "function"
-          ? aside({ retries: this.retryCount, brokeSilence: this.brokeSilence, impostor: this.impostorOutcome })
+          ? aside(this.runOutcome)
           : aside;
       card.appendChild(text("p", "intro-copy intro-aside", copy));
     }
@@ -2985,6 +2991,15 @@ export class AdventureMode {
     this.clock = clock;
     this.elShack.className = `adventure ${light}`;
     this.elDay.textContent = `— ${light} · ${clock} —`;
+  }
+
+  private get runOutcome(): RunOutcome {
+    return { retries: this.retryCount, brokeSilence: this.brokeSilence, impostor: this.impostorOutcome };
+  }
+
+  /** A sked's words for this run — see the sked event's `msg`. */
+  private skedMsg(e: Extract<DayEvent, { kind: "sked" }>): string {
+    return typeof e.msg === "function" ? e.msg(this.runOutcome) : e.msg;
   }
 
   private get currentEvent(): DayEvent {
@@ -3061,7 +3076,7 @@ export class AdventureMode {
         const e = ctx.currentEvent;
         if (e.kind !== "sked") return;
         ctx.retryCount += 1;
-        await ctx.hqSend(e.msg);
+        await ctx.hqSend(ctx.skedMsg(e));
       },
     },
     {
@@ -3117,7 +3132,7 @@ export class AdventureMode {
         const e = ctx.currentEvent;
         if (e.kind !== "sked") return;
         ctx.retryCount += 1;
-        await ctx.hqSend(e.msg);
+        await ctx.hqSend(ctx.skedMsg(e));
       },
     },
     {
