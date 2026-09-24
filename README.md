@@ -73,8 +73,12 @@ docker compose up
   just work as many contacts as you like.
 - **Reading** — Passive listening to public-domain texts (Aesop, Gettysburg Address,
   Alice in Wonderland). Bookmarks your place between sessions.
-- **Adventure** — A narrative radio-shack mission: tune to HQ, copy orders, and encode
-  reports as a WWII coastwatcher. Multiple missions to choose from, freely replayable.
+- **Adventure** — A story campaign as a WWII radio operator: tune to HQ, copy orders,
+  and encode sighting reports from a coastwatcher's radio shack. Starts with Signal
+  Corps training at Camp Murphy, then follows the Solomons campaign (Guadalcanal, New
+  Georgia, Kolombangara) to a postwar finale. Every mission is unlocked and freely
+  replayable. Field missions send at a minimum of 7.5 WPM effective speed. If your
+  own setting is faster, it's used.
 
 ## Settings
 

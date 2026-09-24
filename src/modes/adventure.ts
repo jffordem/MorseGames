@@ -1,7 +1,9 @@
-// Adventure mode (sketch): the "radio shack" set for the Morse Adventures game
-// concept — see MORSE-GAMES.md. A first playable pass at the "Kolombangara" demo
-// mission: the four-quadrant shack (briefing/notes, a copy notepad, the radio you
-// tune, and your codebook) walked through a full day of operation.
+// Adventure mode: the "radio shack" set for the Morse Adventures campaign — see
+// MORSE-GAMES.md (its "Build status" note tracks which missions exist). Started
+// as the "Kolombangara" demo mission; now runs every campaign day off one engine:
+// the four-quadrant shack (briefing/notes, a copy notepad, the radio you tune,
+// and your codebook) walked through a full day of operation, with each day
+// defined as a Scenario in the SCENARIOS array below (in campaign order).
 //
 // The day is an INTERLEAVED event timeline that alternates two kinds of beat, so
 // it feels like a real watch rather than a spotter free-for-all:
@@ -35,22 +37,32 @@ const RELAY_CALL = "SKIP"; // a second coastwatcher post, out of KEN's direct re
 const NICK_CALL = "NICK"; // supply — the Request Supplies mission element's trading partner
 const FREQ_MIN = 4000;
 const FREQ_MAX = 5200;
-const ON_FREQ_KHZ = 5; // within this window, HQ is readable — one grid step, so the readout actually matches the briefing
+const FREQ_STEP_KHZ = 5; // dial grid; HQ's sked frequency is always on it
+const DIAL_START_KHZ = 4200; // where the dial sits at the start of each run — never HQ's frequency
 const FREQ_SETTLE_MS = 700; // dwell time on a steady frequency before static/the sked fires
 const CLOCK_TRANSITION_PAUSE_MS = 4000; // beat between events so the player notices the clock jump, not just a harried KEN
 const OVERHEAR_PAUSE_MS = 2500; // how long "not for you" traffic lingers before the day moves on by itself
+const SILENCE_LEAD_MS = 3000; // a silence beat: warning → KEN's unanswerable call
+const SILENCE_HOLD_MS = 15000; // …then how long the patrol lingers before the all-clear
+// No field mission runs below this effective speed — the training graduation
+// gate, locked in MORSE-GAMES.md's "Speed as the difficulty gate". Later
+// postings can set a higher floor per the posting-by-posting WPM curve.
+const FIELD_MIN_WPM = 7.5;
 
 const SPOT_ACK = `${MY_CALL} DE ${HQ_CALL} QSL K`; // HQ's ack of a completed report
 
 /** Today's sked frequency — generated fresh per mission, same SOI logic as the
  *  authenticator table (real Signal Operating Instructions bundled call signs,
  *  frequencies, and authentication together, and all changed periodically). A
- *  multiple of 5 kHz, comfortably inside the dial so the on-freq window never
- *  clips an edge. */
+ *  dial-grid step, comfortably inside the dial, and never the dial's starting
+ *  position (tuning in should always be the first task). */
 function makeHqFreqKhz(): number {
   const lo = 4200,
     hi = 5000;
-  return lo + 5 * randInt(0, (hi - lo) / 5);
+  let f: number;
+  do f = lo + FREQ_STEP_KHZ * randInt(0, (hi - lo) / FREQ_STEP_KHZ);
+  while (f === DIAL_START_KHZ);
+  return f;
 }
 
 // ---- Sighting generator ---------------------------------------------------
@@ -193,8 +205,22 @@ function fieldSatisfied(field: string, s: Sighting, tk: Set<string>): boolean {
 // ---- Day timeline ---------------------------------------------------------
 
 type DayEvent =
-  | { kind: "sked"; clock: string; light: string; msg: string; prompt: string; final?: boolean }
-  | { kind: "spot"; clock: string; light: string; sighting: Sighting }
+  | {
+      kind: "sked";
+      clock: string;
+      light: string;
+      msg: string;
+      prompt: string;
+      final?: boolean;
+      // KEN asked a question (e.g. QRU?) — the player must answer with these
+      // words, in order, instead of a plain QSL. `hint` is the nudge shown
+      // when the answer is missing. Not used on first contact, whose reply is
+      // already fixed as QSL + authenticator.
+      reply?: { words: string[]; hint: string };
+    }
+  // `spotter` names who brings the sighting in (default: an unnamed runner,
+  // "the boy" — Kolombangara's scouts); e.g. Aaron on Guadalcanal.
+  | { kind: "spot"; clock: string; light: string; sighting: Sighting; spotter?: string }
   // A third station (RELAY_CALL) has traffic for HQ that can't reach HQ directly —
   // copy it, acknowledge the sender, then re-address and forward to HQ. See
   // "Level type — the relay net" in MORSE-GAMES.md.
@@ -202,6 +228,20 @@ type DayEvent =
   // Traffic between two OTHER stations, overheard on the same frequency — nothing
   // to do but recognize it isn't for you and not answer it (monitoring discipline).
   | { kind: "overhear"; clock: string; light: string; from: string; to: string; msg: string }
+  // React to threats — go silent. A patrol is close: `spotter` brings the
+  // `warning`, KEN's routine `call` comes in anyway, and the correct play is
+  // NOT answering it (or anything). Transmitting isn't a hard fail — it bumps
+  // danger and sets brokeSilence, which the outro can tell differently. The
+  // beat ends on its own with the spotter's `allClear`.
+  | {
+      kind: "silence";
+      clock: string;
+      light: string;
+      spotter: string;
+      warning: string;
+      call: string;
+      allClear: string;
+    }
   // Request Supplies kit element — a real back-and-forth negotiation over CW, not
   // a scripted exchange. `partner` haggles via the RULES table below (see "Nick's
   // dialogue rules") using a value-weighted engine with two INDEPENDENT
@@ -269,12 +309,22 @@ interface Scenario {
   briefing(hqFreqKhz: number, day: DayEvent[]): string; // upper-left Briefing panel text
   buildTimeline(authChallenge: string): DayEvent[];
   outroCopy: string; // sentence appended after the day's tally on the outro card
-  outroAside?: string; // shown only on this scenario's outro — a payoff beat
+  // Shown only on this scenario's outro — a payoff beat. A function when the
+  // telling depends on how the day went (the outcome itself never does — see
+  // MORSE-GAMES.md's "Avoid the escort-mission feel"); `retries` is the day's
+  // retryCount (AGN repeats + incomplete-report resends); `brokeSilence` is
+  // whether the player transmitted during a silence beat.
+  outroAside?: string | ((run: { retries: number; brokeSilence: boolean }) => string);
+  // Speed floor: HQ sends at no less than this effective WPM, even if the
+  // player's trainer setting is slower (a faster setting is left alone).
+  // Omitted for training, which runs at the player's own pace.
+  minEffectiveWpm?: number;
 }
 
 const KOLOMBANGARA_DAY14: Scenario = {
   id: "kolombangara-14",
   dayTag: "Kolombangara · Day 14",
+  minEffectiveWpm: FIELD_MIN_WPM,
   introTitle: "Station GOOSE",
   introCopy:
     "Before dawn the Minnow put you ashore below the summit and slipped back " +
@@ -349,6 +399,7 @@ const PT109_SIGHTING: Sighting = {
 const KOLOMBANGARA_DAY3: Scenario = {
   id: "kolombangara-3",
   dayTag: "Kolombangara · Day 17",
+  minEffectiveWpm: FIELD_MIN_WPM,
   introTitle: "Station GOOSE",
   introCopy:
     "Three quiet days since the last convoy report — routine skeds, routine light. Then, " +
@@ -416,6 +467,7 @@ const KOLOMBANGARA_DAY3: Scenario = {
 const KOLOMBANGARA_DAY_RELAY: Scenario = {
   id: "kolombangara-relay",
   dayTag: "Kolombangara · Day 23",
+  minEffectiveWpm: FIELD_MIN_WPM,
   introTitle: "Station GOOSE",
   introCopy:
     "Six days since the boy brought the news about the wreckage. Today HQ's added a " +
@@ -564,6 +616,610 @@ function haggleEventOf(day: DayEvent[]): Extract<DayEvent, { kind: "haggle" }> |
   return e?.kind === "haggle" ? e : undefined;
 }
 
+/** Guadalcanal Day 1 — the first field day (see MORSE-GAMES.md's mission
+ *  allocation table: "Cold open — first sked, still shaky"). Tune in and
+ *  decode only; no spot reports yet (the first sighting report is Day 3's
+ *  job). Plants two things later days lean on: Aaron, the Guadalcanal-posting
+ *  friendship the rest of the campaign's field companions are measured against,
+ *  and the Minnow, so Munda Day 1's "put you ashore in the dark again" pays
+ *  off. SKIP's overheard traffic introduces his call here, well before
+ *  Kolombangara makes GOOSE his relay. The "KEN doesn't slow down" feeling is
+ *  real, not just prose: FIELD_MIN_WPM applies from here on. */
+const GUADALCANAL_DAY1: Scenario = {
+  id: "guadalcanal-1",
+  dayTag: "Guadalcanal · Day 1",
+  minEffectiveWpm: FIELD_MIN_WPM,
+  introTitle: "Cactus",
+  introCopy:
+    "Weeks on a troopship out of San Francisco, sick for the first nine days of it, " +
+    "the sun off the water too painful to look at and too bright to ignore. Then a " +
+    "transfer in the dark to a little boat the crew called the Minnow, a beach you " +
+    "couldn't see, and a man waiting at the tree line who said his name was Aaron and " +
+    "took the heavy end of the set without being asked.",
+  notes:
+    "Day 1 on Cactus — that's what everybody calls this island, even on the air. Aaron " +
+    "walked the set up the ridge trail like it weighed nothing and told me the names of " +
+    "three trees on the way. I remembered all three, and his. The surf down there keeps " +
+    "a rhythm like a clave, two-and-three, and I caught myself tapping it on the log " +
+    "before I'd noticed one thing a coastwatcher is supposed to notice. KEN's fist is " +
+    "quicker than Andy's ever was. Nobody out here is slowing down for me.",
+  briefing: (hqFreqKhz) =>
+    "STATION GOOSE — Guadalcanal. Put ashore overnight on the northwest coast, behind " +
+    "the enemy's lines; OP on the ridge, watching the Slot. Skeds with HQ (KEN, at " +
+    `Lunga) on ${hqFreqKhz} kHz: 0600 / 1030 / 1800. Authenticate first contact. Other ` +
+    "stations share this frequency — answer only traffic addressed to GOOSE.",
+  buildTimeline: (authChallenge) => [
+    {
+      kind: "sked",
+      clock: "0600",
+      light: "dawn",
+      msg: `${MY_CALL} DE ${HQ_CALL} WELCOME TO CACTUS AUTHENTICATE ${authChallenge} K`,
+      prompt:
+        "Copy KEN and the authenticator challenge. Check today's table, then send " +
+        "QSL I AUTHENTICATE <code> together — or AGN? to hear it again.",
+    },
+    {
+      kind: "sked",
+      clock: "1030",
+      light: "morning",
+      msg: `${MY_CALL} DE ${HQ_CALL} WATCH SLOT FOR DD ES AK RPT ALL ACFT K`,
+      prompt: "Copy your orders, then acknowledge (QSL). AGN? if it got away from you.",
+    },
+    {
+      kind: "overhear",
+      clock: "1300",
+      light: "noon",
+      from: RELAY_CALL,
+      to: HQ_CALL,
+      msg: `${HQ_CALL} DE ${RELAY_CALL} QRU K`,
+    },
+    {
+      kind: "sked",
+      clock: "1800",
+      light: "dusk",
+      msg: `${MY_CALL} DE ${HQ_CALL} GOOD FIRST DAY QRT GN K`,
+      prompt: "Copy the sign-off, then acknowledge (QSL).",
+      final: true,
+    },
+  ],
+  outroCopy: "First day on Cactus, logged. Messier than any drill — and you got through it anyway.",
+  outroAside:
+    "Aaron sat with you while the light went, not saying much. He didn't ask how it " +
+    "went and didn't seem worried about it either, and somewhere around the first stars " +
+    "you realized that was exactly what you'd needed from somebody all day.",
+};
+
+/** Guadalcanal Day 2 — "Decode / Send, routine": the daily rhythm sets in,
+ *  with the Cactus Air Force overhead as ambient flavor (MORSE-GAMES.md's
+ *  mission allocation table). First real SEND beyond a QSL: KEN's QRU? has to
+ *  be answered (sked `reply`), bookending the day morning and evening, so
+ *  "nothing to report is still a report" becomes habit before Day 3's first
+ *  sighting. The noon sked tells GOOSE not to report friendly aircraft,
+ *  which is both the Cactus flavor beat and a setup for Day 3. Tagged Day 5,
+ *  not Day 2: calendar-as-montage, and a rhythm needs a few days to form. */
+const GUADALCANAL_DAY2: Scenario = {
+  id: "guadalcanal-2",
+  dayTag: "Guadalcanal · Day 5",
+  minEffectiveWpm: FIELD_MIN_WPM,
+  introTitle: "The Rhythm",
+  introCopy:
+    "Five days on the ridge and the day has a shape now: skeds at six and nine and " +
+    "noon and six, coffee in between, the Slot empty and blue. Mid-morning the engines " +
+    "come — Wildcats and dive-bombers climbing out of Henderson, the whole island " +
+    "droning like one long bass note — and then they're gone northwest and it's quiet again.",
+  notes:
+    "Day 5. Aaron's sister sings in the mission choir down the coast. He hummed me a " +
+    "hymn while we waited on the noon sked, and I kept time on my knee without " +
+    "thinking — first music I've made since the train. He laughed and said I'd drag " +
+    "the tempo in church. He's right; I would. KEN asks QRU? morning and evening now, " +
+    "like a clock chiming the hour. Nothing to report is still a report. You answer it.",
+  briefing: (hqFreqKhz) =>
+    "STATION GOOSE — Guadalcanal. OP on the northwest ridge, watching the Slot. Skeds " +
+    `with HQ (KEN) on ${hqFreqKhz} kHz: 0600 / 0900 / 1200 / 1800. Authenticate first ` +
+    "contact. When KEN asks QRU? he wants an answer, not a QSL — send QRU if you have " +
+    "nothing for him. Our own aircraft out of Henderson work this sky; don't report friendlies.",
+  buildTimeline: (authChallenge) => [
+    {
+      kind: "sked",
+      clock: "0600",
+      light: "dawn",
+      msg: `${MY_CALL} DE ${HQ_CALL} GM AUTHENTICATE ${authChallenge} K`,
+      prompt:
+        "Copy KEN and the authenticator challenge. Check today's table, then send " +
+        "QSL I AUTHENTICATE <code> together — or AGN? to hear it again.",
+    },
+    {
+      kind: "sked",
+      clock: "0900",
+      light: "morning",
+      msg: `${MY_CALL} DE ${HQ_CALL} QRU? K`,
+      prompt: "KEN's asking if you have anything for him. Answer it — or AGN? for a repeat.",
+      reply: {
+        words: ["QRU"],
+        hint: "KEN asked QRU? — a QSL doesn't answer it. Send QRU: nothing for you.",
+      },
+    },
+    {
+      kind: "sked",
+      clock: "1200",
+      light: "noon",
+      msg: `${MY_CALL} DE ${HQ_CALL} FRIENDLY ACFT OUTBOUND NW NO RPT K`,
+      prompt: "Copy KEN, then acknowledge (QSL).",
+    },
+    {
+      kind: "sked",
+      clock: "1800",
+      light: "dusk",
+      msg: `${MY_CALL} DE ${HQ_CALL} QRU? QRT GN K`,
+      prompt: "Last sked of the day. Answer KEN's QRU? before he shuts down.",
+      reply: {
+        words: ["QRU"],
+        hint: "KEN asked QRU? — answer QRU before signing off.",
+      },
+      final: true,
+    },
+  ],
+  outroCopy: "A quiet day, and quiet is the job. The Slot stays empty until it doesn't.",
+  outroAside:
+    "Late in the afternoon the engines came back down the Slot, fewer than went up. " +
+    "You counted without meaning to. Aaron didn't ask what the number was.",
+};
+
+/** Guadalcanal Day 3 — "Send reports (spot)": the first real sighting reports.
+ *  A morning floatplane as the warm-up, then the day's reason for being: the
+ *  Tokyo Express (real — Japanese destroyer runs down the Slot to the
+ *  island's northwest end, timed for darkness), which passes right under a
+ *  northwest-coast OP. Type and course are fixed (destroyers, down the Slot
+ *  = SE) because that's what the Express was; the count varies per run so
+ *  the report still has to be copied, not remembered. Aaron is the spotter
+ *  (see the spot event's `spotter`). Forrest Gump restraint on the payoff:
+ *  GOOSE only sees distant flashes that night and never learns what they were. */
+function makeGuadalcanalFloatplane(): Sighting {
+  const alt: "HI" | "LO" = Math.random() < 0.5 ? "HI" : "LO";
+  const dir = pick(DIRS);
+  return {
+    category: "ACFT",
+    count: 1,
+    type: "FLOATPLANE",
+    alt,
+    dir,
+    prose:
+      `One floatplane, ${alt === "HI" ? "high" : "low"}, ${dirPhrase(dir)}. Enemy scout — ` +
+      "they come most mornings, looking for exactly what you are.",
+  };
+}
+
+function makeTokyoExpress(): Sighting {
+  const count = randInt(3, 6);
+  return {
+    category: "SHIP",
+    count,
+    type: "DD",
+    dir: "SE",
+    prose:
+      `${count} destroyers running down the Slot, fast and in line, bows throwing white. ` +
+      "The Express — and early.",
+  };
+}
+
+const GUADALCANAL_DAY3: Scenario = {
+  id: "guadalcanal-3",
+  dayTag: "Guadalcanal · Day 9",
+  minEffectiveWpm: FIELD_MIN_WPM,
+  introTitle: "The Express",
+  introCopy:
+    "Nine days, and nothing on the Slot worth a word to KEN. Aaron says that won't " +
+    "last. The Express runs when the moon is dark, and the moon's been thinning all week.",
+  notes:
+    "Day 9. Aaron's teaching me to see the water — how a wake sits different from a " +
+    "wave, how a ship shows up as a smudge of smoke long before it's a ship. I nearly " +
+    "called in our own Wildcats twice. KEN says a report is a handful of words, sent " +
+    "clean the first time. Andy used to say the same thing, slower.",
+  briefing: (hqFreqKhz) =>
+    "STATION GOOSE — Guadalcanal. OP on the northwest ridge, over the Slot. Skeds with " +
+    `HQ (KEN) on ${hqFreqKhz} kHz: 0600 / 1300 / 1800; report sightings as they come ` +
+    "in. Enemy contacts only: NR, TYPE, ALT (aircraft), CSE — addressed KEN DE GOOSE. " +
+    "Authenticate first contact.",
+  buildTimeline: (authChallenge) => [
+    {
+      kind: "sked",
+      clock: "0600",
+      light: "dawn",
+      msg: `${MY_CALL} DE ${HQ_CALL} GM AUTHENTICATE ${authChallenge} K`,
+      prompt:
+        "Copy KEN and the authenticator challenge. Check today's table, then send " +
+        "QSL I AUTHENTICATE <code> together — or AGN? to hear it again.",
+    },
+    { kind: "spot", clock: "0930", light: "morning", sighting: makeGuadalcanalFloatplane(), spotter: "Aaron" },
+    {
+      kind: "sked",
+      clock: "1300",
+      light: "noon",
+      msg: `${MY_CALL} DE ${HQ_CALL} WATCH SLOT CLOSE TONIGHT K`,
+      prompt: "Copy KEN, then acknowledge (QSL).",
+    },
+    { kind: "spot", clock: "1630", light: "afternoon", sighting: makeTokyoExpress(), spotter: "Aaron" },
+    {
+      kind: "sked",
+      clock: "1800",
+      light: "dusk",
+      msg: `${MY_CALL} DE ${HQ_CALL} TU GOOD RPT QRT GN K`,
+      prompt: "Copy the sign-off, then acknowledge (QSL).",
+      final: true,
+    },
+  ],
+  outroCopy: "Two reports, sent clean. The first ones that were ever really yours.",
+  outroAside:
+    "Near midnight the horizon to the southeast lit up in soundless flickers, far down " +
+    "the Slot. You never learned what they were. You logged the time anyway, and Aaron " +
+    "sat up with you until they stopped.",
+};
+
+/** Guadalcanal Day 4 — the posting's milestone ("Decode + React to threats":
+ *  a warning, and the Cactus fighters get up in time). Grounded in the real
+ *  coastwatcher raid warnings that bought Henderson Field its minutes — most
+ *  famously from Bougainville ("…headed yours"), relayed down the chain.
+ *  Forrest Gump restraint: GOOSE is the *last* link, not the source — KEN
+ *  passes the upstream warning, GOOSE confirms the formation as it passes his
+ *  ridge, then goes quiet while the escorts sweep low. The historical outcome
+ *  is fixed (they scramble in time either way); only the telling on the outro
+ *  shifts with how cleanly the day was copied. Deliberately not a relay beat:
+ *  Kolombangara's relay mission introduces relaying as new, so it stays there. */
+function makeRaidFormation(): Sighting {
+  const count = randInt(18, 27); // period-typical raid strength (the real warnings ran "twenty-odd" to "forty")
+  return {
+    category: "ACFT",
+    count,
+    type: "BOMBER",
+    alt: "HI",
+    dir: "SE",
+    prose:
+      "Engines first — a drone that fills the whole sky — then the formation, glinting in " +
+      `the sun: ${count} bombers, high, running down the Slot. No mistaking these for ours.`,
+  };
+}
+
+const GUADALCANAL_DAY4: Scenario = {
+  id: "guadalcanal-4",
+  dayTag: "Guadalcanal · Day 12",
+  minEffectiveWpm: FIELD_MIN_WPM,
+  introTitle: "Headed Yours",
+  introCopy:
+    "The warnings come down the Slot like a bucket brigade. A man on an island three " +
+    "hundred miles north sees the raid form up and keys it out; someone passes it on; " +
+    "KEN hears it at Lunga. Every station on the chain buys Henderson a few more " +
+    "minutes. Today you're the last one.",
+  notes:
+    "Day 12. KEN's fist was different on the morning sked — tighter, no swing in it at " +
+    "all. Aaron noticed me noticing. \"Big day,\" he said, and went down to the point " +
+    "without being asked. The Wildcats didn't go out this morning. They're sitting on " +
+    "the strip waiting, and what they're waiting for is a word from somebody like me.",
+  briefing: (hqFreqKhz) =>
+    "STATION GOOSE — Guadalcanal. OP on the northwest ridge, over the Slot. Raid expected: " +
+    "upstream stations will report it forming. When it passes this ridge, report it to " +
+    `HQ (KEN) at once — NR, TYPE, ALT, CSE. Skeds on ${hqFreqKhz} kHz: 0600 / 1030 / ` +
+    "1500 / 1800. If KEN orders QRT, go silent: escorts fly low.",
+  buildTimeline: (authChallenge) => [
+    {
+      kind: "sked",
+      clock: "0600",
+      light: "dawn",
+      msg: `${MY_CALL} DE ${HQ_CALL} GM RAID LIKELY TODAY AUTHENTICATE ${authChallenge} K`,
+      prompt:
+        "Copy KEN and the authenticator challenge. Check today's table, then send " +
+        "QSL I AUTHENTICATE <code> together — or AGN? to hear it again.",
+    },
+    {
+      kind: "sked",
+      clock: "1030",
+      light: "morning",
+      msg: `${MY_CALL} DE ${HQ_CALL} UPSTREAM RPTS BOMBERS HEADED CACTUS RPT WHEN THEY PASS K`,
+      prompt: "Copy the warning, then acknowledge (QSL).",
+    },
+    { kind: "spot", clock: "1150", light: "noon", sighting: makeRaidFormation(), spotter: "Aaron" },
+    {
+      kind: "sked",
+      clock: "1155",
+      light: "noon",
+      msg: `${MY_CALL} DE ${HQ_CALL} TU CACTUS SCRAMBLING QRT ESCORT LOW K`,
+      prompt: "KEN's ordering you off the air — acknowledge (QSL), then stay quiet.",
+    },
+    {
+      kind: "sked",
+      clock: "1500",
+      light: "afternoon",
+      msg: `${MY_CALL} DE ${HQ_CALL} ALL CLEAR QRU? K`,
+      prompt: "Back on the air. Answer KEN's QRU? — or AGN? for a repeat.",
+      reply: {
+        words: ["QRU"],
+        hint: "KEN asked QRU? — a QSL doesn't answer it. Send QRU: nothing for you.",
+      },
+    },
+    {
+      kind: "sked",
+      clock: "1800",
+      light: "dusk",
+      msg: `${MY_CALL} DE ${HQ_CALL} TU GOOSE QRT GN K`,
+      prompt: "Copy the sign-off, then acknowledge (QSL).",
+      final: true,
+    },
+  ],
+  outroCopy: "The raid came and went. Henderson is still there tonight.",
+  outroAside: ({ retries }) =>
+    retries <= 1
+      ? "Word came up the net after dark: the Wildcats were already at altitude when the " +
+        "bombers reached Lunga, sun at their backs and height to spare. Yours wasn't the " +
+        "only warning — it started three hundred miles up the Slot and passed through a " +
+        "lot of hands — but yours was the last one, and it went out clean. KEN's GN came " +
+        "a beat slower than usual, like a man finally sitting down."
+      : "Word came up the net after dark: the Wildcats got up in time, clawing for " +
+        "altitude as the bombers came over — closer than anyone liked, but in time. " +
+        "Yours wasn't the only warning; it started three hundred miles up the Slot and " +
+        "passed through a lot of hands. You were the last pair. You lay awake a while " +
+        "going over every AGN, and resolved there'd be fewer next time.",
+};
+
+/** Guadalcanal Day 5 — "Messages from home": the first letter, a breather
+ *  (MORSE-GAMES.md's mission allocation table and "Messages from home" note).
+ *  The letter comes by mail on the Minnow, not over the air — personal traffic
+ *  on the net would break the airtime discipline the whole game teaches (and
+ *  "a KEN beat that breaks radio format once" is being saved for later). So
+ *  the letter lives in the Notes panel, the diary-voice channel, and the radio
+ *  day is deliberately short and gentle. Opens Evelyn's arc at full strength
+ *  (it's meant to peter out later — see her Cast entry). Period details are
+ *  dated to late 1942: V-mail (from June 1942), "White Christmas" (the fall
+ *  1942 hit), the Cardinals over the Yankees (October 1942 World Series). */
+const GUADALCANAL_DAY5: Scenario = {
+  id: "guadalcanal-5",
+  dayTag: "Guadalcanal · Day 16",
+  minEffectiveWpm: FIELD_MIN_WPM,
+  introTitle: "Mail Call",
+  introCopy:
+    "The Minnow came in after midnight with stores, a fresh battery, and a canvas sack " +
+    "that had been chasing you across the Pacific for two months. One envelope in it " +
+    "with your name. You didn't open it until there was light enough to read it " +
+    "properly, which meant four hours lying awake, holding it.",
+  notes:
+    "Day 16. V-mail from Evelyn, shrunk so small I read it with my nose on the page. " +
+    "She says my letter from the ship came with the middle cut out by the censor, so " +
+    "she's decided I'm somewhere warm and eating well, and I'm not allowed to argue. " +
+    "Everybody at home is singing that Bing Crosby song about the snow. She sings it " +
+    "too, she says, but it drags without somebody keeping time. My kid brother wants me " +
+    "to know the Cardinals beat the Yankees, like the news might not reach me. Mr. Hale " +
+    "at the school says the scholarship will keep. I've read it six times. The seventh " +
+    "time I just looked at her handwriting.",
+  briefing: (hqFreqKhz) =>
+    "STATION GOOSE — Guadalcanal. OP on the northwest ridge. Quiet stretch: the Slot's " +
+    `been empty for days. Skeds with HQ (KEN) on ${hqFreqKhz} kHz: 0600 / 0900 / 1400 / ` +
+    "1800. Authenticate first contact; answer QRU? with QRU.",
+  buildTimeline: (authChallenge) => [
+    {
+      kind: "sked",
+      clock: "0600",
+      light: "dawn",
+      msg: `${MY_CALL} DE ${HQ_CALL} GM QUIET DAY AUTHENTICATE ${authChallenge} K`,
+      prompt:
+        "Copy KEN and the authenticator challenge. Check today's table, then send " +
+        "QSL I AUTHENTICATE <code> together — or AGN? to hear it again.",
+    },
+    {
+      kind: "sked",
+      clock: "0900",
+      light: "morning",
+      msg: `${MY_CALL} DE ${HQ_CALL} QRU? K`,
+      prompt: "KEN's asking if you have anything for him. Answer it — or AGN? for a repeat.",
+      reply: {
+        words: ["QRU"],
+        hint: "KEN asked QRU? — a QSL doesn't answer it. Send QRU: nothing for you.",
+      },
+    },
+    {
+      kind: "sked",
+      clock: "1400",
+      light: "afternoon",
+      msg: `${MY_CALL} DE ${HQ_CALL} MINNOW BACK SAFE K`,
+      prompt: "Copy KEN, then acknowledge (QSL).",
+    },
+    {
+      kind: "sked",
+      clock: "1800",
+      light: "dusk",
+      msg: `${MY_CALL} DE ${HQ_CALL} QRU? HOPE MAIL WAS GOOD GN K`,
+      prompt: "Last sked of the day. Answer KEN's QRU? before he signs off.",
+      reply: {
+        words: ["QRU"],
+        hint: "KEN asked QRU? — answer QRU before signing off.",
+      },
+      final: true,
+    },
+  ],
+  outroCopy:
+    "A quiet day. The Slot stayed empty and nobody needed you for anything, which " +
+    "turned out to be its own kind of hard.",
+  outroAside:
+    "You wrote back by lamplight, three pages. You kept it to the weather and the food " +
+    "so the censor would leave it whole — and then at the bottom, before you could stop " +
+    "yourself, a short line of dots and dashes she'd never be able to read. The censor " +
+    "cut it out, of course. You'd have cut it too.",
+};
+
+/** Guadalcanal Day 6 — "React to threats": the first real scare, a patrol
+ *  close call, survivable (MORSE-GAMES.md's mission allocation table). The
+ *  react is going silent: a `silence` beat where KEN's routine noon call
+ *  comes in while the patrol is on the trail below, and the right play is to
+ *  let it go unanswered. KEN's follow-up then asks after GOOSE — a missed
+ *  sked is survivable, a heard one might not be. Grounded in real coastwatcher
+ *  practice: the charging engine's noise was a genuine giveaway, and posts
+ *  behind the lines lived by going quiet when patrols came near. */
+const GUADALCANAL_DAY6: Scenario = {
+  id: "guadalcanal-6",
+  dayTag: "Guadalcanal · Day 21",
+  minEffectiveWpm: FIELD_MIN_WPM,
+  introTitle: "Close",
+  introCopy:
+    "Patrols have been moving in the hills all week — Aaron hears about them from the " +
+    "villages before anyone else does. This morning he moved the set deeper into the " +
+    "trees and had you practice shutting it down in the dark, twice, without a word.",
+  notes:
+    "Day 21. The charging engine is the loudest thing on this ridge. Never noticed until " +
+    "Aaron walked me down the trail to listen for it — a putt-putt you could set a " +
+    "metronome by. Now I can't stop hearing it. KEN says a missed sked happens and " +
+    "nobody hangs you for one. I'm choosing to believe him.",
+  briefing: (hqFreqKhz) =>
+    "STATION GOOSE — Guadalcanal. OP on the northwest ridge, behind the enemy's lines. " +
+    `Skeds with HQ (KEN) on ${hqFreqKhz} kHz: 0600 / 0900 / 1200 / 1300 / 1800. Enemy ` +
+    "patrols reported in the hills. If one comes near: no transmissions, no answers — " +
+    "not even to KEN. A missed sked is survivable. A heard one may not be.",
+  buildTimeline: (authChallenge) => [
+    {
+      kind: "sked",
+      clock: "0600",
+      light: "dawn",
+      msg: `${MY_CALL} DE ${HQ_CALL} GM AUTHENTICATE ${authChallenge} K`,
+      prompt:
+        "Copy KEN and the authenticator challenge. Check today's table, then send " +
+        "QSL I AUTHENTICATE <code> together — or AGN? to hear it again.",
+    },
+    {
+      kind: "sked",
+      clock: "0900",
+      light: "morning",
+      msg: `${MY_CALL} DE ${HQ_CALL} QRU? K`,
+      prompt: "KEN's asking if you have anything for him. Answer it — or AGN? for a repeat.",
+      reply: {
+        words: ["QRU"],
+        hint: "KEN asked QRU? — a QSL doesn't answer it. Send QRU: nothing for you.",
+      },
+    },
+    {
+      kind: "silence",
+      clock: "1155",
+      light: "noon",
+      spotter: "Aaron",
+      warning:
+        "In from the lookout, low and fast, a finger to his lips. A patrol on the trail " +
+        "below the ridge — six, maybe eight. He's already killed the charging engine.",
+      call: `${MY_CALL} DE ${HQ_CALL} QRU? K`,
+      allClear:
+        "Gone — down toward the river. He doesn't let go of your sleeve for another minute.",
+    },
+    {
+      kind: "sked",
+      clock: "1300",
+      light: "afternoon",
+      msg: `${MY_CALL} DE ${HQ_CALL} MISSED SKED ARE YOU OK? K`,
+      prompt: "KEN's worried about the missed sked. Tell him you're all right.",
+      reply: {
+        words: ["OK"],
+        hint: "KEN wants to know you're all right — tell him OK.",
+      },
+    },
+    {
+      kind: "sked",
+      clock: "1800",
+      light: "dusk",
+      msg: `${MY_CALL} DE ${HQ_CALL} GLAD UR OK QRT GN K`,
+      prompt: "Copy the sign-off, then acknowledge (QSL).",
+      final: true,
+    },
+  ],
+  outroCopy: "The patrol passed. The set's still here, and so are you.",
+  outroAside: ({ brokeSilence }) =>
+    brokeSilence
+      ? "You'd both heard it — the voices below going quiet, the long minute of " +
+        "listening. Then they moved on, and Aaron let out a breath he'd been holding " +
+        "since your hand went to the key. He didn't say anything about it. He didn't have to."
+      : "Afterward your hands wouldn't stop shaking, so Aaron put a pencil in one and " +
+        "had you drum it on the log until they did. Two-and-three, the surf's rhythm. " +
+        "He'd remembered.",
+};
+
+/** Guadalcanal Day 7 — the posting's sign-off: promotion by Bill, and the boat
+ *  to New Georgia (MORSE-GAMES.md's mission allocation table). Anchored to the
+ *  campaign's real end, 9 Feb 1943, when the Army commander reported to Halsey
+ *  that the "Tokyo Express no longer has terminus on Guadalcanal" — KEN passes
+ *  it on, a callback to Day 3's Express, with GOOSE only copying it (Forrest
+ *  Gump restraint; brass as flavor, unnamed). The Express's last runs were the
+ *  real Japanese evacuation, not yet understood as such at the time, so Aaron
+ *  only guesses at it. Promotion is Technician Fifth Grade (T/5) — the first
+ *  step on the doc's Technician track (T/5 → T/4 → T/3 at the later sign-offs);
+ *  two chevrons over a "T", the insignia since Sept. 1942. Aaron comes along to
+ *  New Georgia, matching MUNDA_DAY1 (he's there before the first sked). */
+const GUADALCANAL_DAY7: Scenario = {
+  id: "guadalcanal-7",
+  dayTag: "Guadalcanal · Day 68",
+  minEffectiveWpm: FIELD_MIN_WPM,
+  introTitle: "Terminus",
+  introCopy:
+    "The Express ran all week, but not the way it used to. Destroyers down the Slot " +
+    "after dark, three nights running, and back up again before dawn, riding low in the " +
+    "water. Nobody on the net will say what it means. Aaron thinks they're taking men " +
+    "off, not putting them on.",
+  notes:
+    "Day 68. I keep counting days without meaning to. Sixty-eight, and I could name " +
+    "something Aaron taught me for nearly every one of them — three trees, how a wake " +
+    "sits, how to shut the set down in the dark without a sound. KEN's been saying " +
+    "\"stand by\" all week in a voice I haven't heard from him before. Not worried. " +
+    "Something else.",
+  briefing: (hqFreqKhz) =>
+    "STATION GOOSE — Guadalcanal. OP on the northwest ridge. Enemy destroyer traffic " +
+    `in the Slot all week, pattern changed. Skeds with HQ (KEN) on ${hqFreqKhz} kHz: ` +
+    "0600 / 0900 / 1300 / 1700 / 1800. Authenticate first contact; answer QRU? with QRU.",
+  buildTimeline: (authChallenge) => [
+    {
+      kind: "sked",
+      clock: "0600",
+      light: "dawn",
+      msg: `${MY_CALL} DE ${HQ_CALL} GM AUTHENTICATE ${authChallenge} K`,
+      prompt:
+        "Copy KEN and the authenticator challenge. Check today's table, then send " +
+        "QSL I AUTHENTICATE <code> together — or AGN? to hear it again.",
+    },
+    {
+      kind: "sked",
+      clock: "0900",
+      light: "morning",
+      msg: `${MY_CALL} DE ${HQ_CALL} QRU? K`,
+      prompt: "KEN's asking if you have anything for him. Answer it — or AGN? for a repeat.",
+      reply: {
+        words: ["QRU"],
+        hint: "KEN asked QRU? — a QSL doesn't answer it. Send QRU: nothing for you.",
+      },
+    },
+    {
+      kind: "sked",
+      clock: "1300",
+      light: "noon",
+      msg: `${MY_CALL} DE ${HQ_CALL} STAND BY FOR ORDERS TONIGHT K`,
+      prompt: "Copy KEN, then acknowledge (QSL).",
+    },
+    {
+      kind: "sked",
+      clock: "1700",
+      light: "afternoon",
+      msg: `${MY_CALL} DE ${HQ_CALL} TOKYO EXPRESS NO LONGER HAS TERMINUS ON CACTUS K`,
+      prompt: "Word from the top, passed down the net. This one's worth copying clean — then QSL.",
+    },
+    {
+      kind: "sked",
+      clock: "1800",
+      light: "dusk",
+      msg: `${MY_CALL} DE ${HQ_CALL} BILL ON MINNOW TONIGHT QRT GN K`,
+      prompt: "Your last sign-off on Cactus. Acknowledge (QSL).",
+      final: true,
+    },
+  ],
+  outroCopy: "Your last watch on Cactus, logged. The Slot is just water now.",
+  outroAside:
+    "Bill came up the ridge after dark, a harried sergeant sweating through his shirt, " +
+    "carrying a canvas bag of other people's problems. He handed you two stripes with a " +
+    "little T stitched under them and waved off whatever you were about to say. " +
+    "\"Technician Fifth Grade,\" he said, like an apology — corporal's pay, not a " +
+    "corporal. \"New Georgia. Boat at first light. Your scout's coming too; I asked.\" " +
+    "Then three days on a tug under a skipper you privately named Captain Bligh, " +
+    "squinting at the sun. You hope he doesn't forget where he's put you.",
+};
+
 /** New Georgia/Munda Day 1 — the Request Supplies kit element's first outing. A
  *  single haggle beat, no sked/authenticator ceremony (this post isn't being
  *  watched today — see the notes), so the whole day is the negotiation with
@@ -577,6 +1233,7 @@ function haggleEventOf(day: DayEvent[]): Extract<DayEvent, { kind: "haggle" }> |
 const MUNDA_DAY1: Scenario = {
   id: "munda-1",
   dayTag: "New Georgia · Munda, Day 1",
+  minEffectiveWpm: FIELD_MIN_WPM,
   introTitle: "Landfall — New Georgia",
   introCopy:
     "The Minnow put you ashore in the dark again, but this beach is different — jerry " +
@@ -645,6 +1302,7 @@ const MUNDA_DAY1: Scenario = {
 const MUNDA_DAY2: Scenario = {
   id: "munda-2",
   dayTag: "New Georgia · Munda, Day 2",
+  minEffectiveWpm: FIELD_MIN_WPM,
   introTitle: "The Ask",
   introCopy:
     "Nick's supplies came up the path by scout relay overnight. Back on the ordinary " +
@@ -713,6 +1371,7 @@ const MUNDA_DAY2: Scenario = {
 const MUNDA_DAY3: Scenario = {
   id: "munda-3",
   dayTag: "New Georgia · Munda, Day 3",
+  minEffectiveWpm: FIELD_MIN_WPM,
   introTitle: "The Strip",
   introCopy:
     "You came up the track before dawn already sore in advance, machete borrowed and " +
@@ -804,6 +1463,7 @@ const BILL_SHIP_SIGHTING: Sighting = {
 const MAGIC_CARPET_FINALE: Scenario = {
   id: "magic-carpet",
   dayTag: "Magic Carpet Coordination · Day 1",
+  minEffectiveWpm: FIELD_MIN_WPM,
   introTitle: "The Priority Board",
   introCopy:
     "Two years gone in the space of a calendar page. The Slot is somebody else's watch " +
@@ -891,9 +1551,9 @@ const MAGIC_CARPET_FINALE: Scenario = {
  *  Carpet's finale would put the beginning after the ending in prev/next
  *  order, which is worse than the alternative below. Consequence: the demo's
  *  default mission on load (`SCENARIOS[0]` in mount()) changes from
- *  Kolombangara to Training Day 1. The Kolombangara-before-Munda ordering
- *  further down the array is a separate, still-unreconciled inconsistency —
- *  not fixed here, so as not to compound one ordering change with another. */
+ *  Kolombangara to Training Day 1. (The array now follows the historical
+ *  spine throughout — Munda was moved ahead of Kolombangara on 2026-09-22,
+ *  alongside Guadalcanal Day 1.) */
 const TRAINING_DAY1: Scenario = {
   id: "training-1",
   dayTag: "Camp Murphy · Day 1",
@@ -1050,16 +1710,23 @@ const SCENARIOS: Scenario[] = [
   TRAINING_DAY1,
   TRAINING_DAY2,
   TRAINING_DAY3,
-  KOLOMBANGARA_DAY14,
-  KOLOMBANGARA_DAY3,
-  KOLOMBANGARA_DAY_RELAY,
+  GUADALCANAL_DAY1,
+  GUADALCANAL_DAY2,
+  GUADALCANAL_DAY3,
+  GUADALCANAL_DAY4,
+  GUADALCANAL_DAY5,
+  GUADALCANAL_DAY6,
+  GUADALCANAL_DAY7,
   MUNDA_DAY1,
   MUNDA_DAY2,
   MUNDA_DAY3,
+  KOLOMBANGARA_DAY14,
+  KOLOMBANGARA_DAY3,
+  KOLOMBANGARA_DAY_RELAY,
   MAGIC_CARPET_FINALE,
 ];
 
-type Phase = "cold" | "onair" | "sked" | "spot" | "relay" | "overhear" | "haggle" | "done";
+type Phase = "cold" | "onair" | "sked" | "spot" | "relay" | "overhear" | "silence" | "haggle" | "done";
 
 export class AdventureMode {
   private root: HTMLElement;
@@ -1070,7 +1737,7 @@ export class AdventureMode {
   private phase: Phase = "cold";
   private radioOn = false; // distinct from phase: lets the player kill power mid-day by mistake without ending the run
   private playing = false;
-  private freqKhz = 4200; // start off-frequency so tuning is the first task
+  private freqKhz = DIAL_START_KHZ; // start off-frequency so tuning is the first task
   private power = 10; // watts, 0..100; low = quiet/faint, high = strong/exposed
   private txCount = 0;
   private showText = false; // "plot mode": reveal inbound HQ traffic as text
@@ -1093,6 +1760,7 @@ export class AdventureMode {
   private haggleLastPlayerTokens: string[] = []; // detects an unchanged, stalled resend
   private haggleRounds = 0; // negotiate-stage player turns — no cap, just a replay-worthy stat (see haggle-accept)
   private retryCount = 0; // AGN repeats + incomplete-report resends this run — drives dangerLabel
+  private brokeSilence = false; // transmitted during a silence beat this run
   private authTable: AuthPair[] = []; // today's authenticator table
   private liveAuthIdx = 0; // which row of authTable KEN actually challenges with, randomized per run
   private hqFreqKhz = 0; // today's sked frequency, generated fresh in mount()
@@ -1149,7 +1817,7 @@ export class AdventureMode {
     this.phase = "cold";
     this.radioOn = false;
     this.playing = false;
-    this.freqKhz = 4200;
+    this.freqKhz = DIAL_START_KHZ;
     this.power = 10;
     this.txCount = 0;
     this.showText = false;
@@ -1165,10 +1833,17 @@ export class AdventureMode {
     this.haggleLastPlayerTokens = [];
     this.haggleRounds = 0;
     this.retryCount = 0;
+    this.brokeSilence = false;
     this.authTable = makeAuthTable(); // generated fresh — see the authenticator note above
     this.liveAuthIdx = randInt(0, this.authTable.length - 1); // which row KEN actually challenges with
     this.hqFreqKhz = makeHqFreqKhz(); // generated fresh — same SOI logic as the auth table
     this.day = scenario.buildTimeline(this.authTable[this.liveAuthIdx].challenge); // this run's mix of skeds + generated sightings
+    const effectiveWpm = Math.max(this.settings.effectiveWpm, scenario.minEffectiveWpm ?? 0);
+    this.engine.settings = {
+      ...this.engine.settings,
+      effectiveWpm,
+      charWpm: Math.max(this.settings.charWpm, effectiveWpm), // Farnsworth: char speed never below effective
+    };
     this.root.innerHTML = "";
     this.root.appendChild(this.buildIntro());
   }
@@ -1184,6 +1859,18 @@ export class AdventureMode {
     card.appendChild(text("div", "intro-tag", this.scenario.dayTag));
     card.appendChild(text("h2", "intro-title", this.scenario.introTitle));
     card.appendChild(text("p", "intro-copy", this.scenario.introCopy));
+    // Say so when the floor overrides the player's own setting, so a sudden
+    // jump in speed reads as the posting, not a bug.
+    const floor = this.scenario.minEffectiveWpm;
+    if (floor !== undefined && floor > this.settings.effectiveWpm) {
+      card.appendChild(
+        text(
+          "p",
+          "intro-speed",
+          `Field speed: KEN sends at ${floor} WPM here — faster than your ${this.settings.effectiveWpm} WPM setting.`
+        )
+      );
+    }
     card.appendChild(this.buildTransitionRow("Begin the watch", () => this.beginShack()));
     view.appendChild(card);
     return view;
@@ -1300,7 +1987,7 @@ export class AdventureMode {
     const { el: freqKnobEl, setDisabled: setKnobDisabled } = buildKnob(
       FREQ_MIN,
       FREQ_MAX,
-      5,
+      FREQ_STEP_KHZ,
       this.freqKhz,
       (v) => {
         this.freqKhz = v;
@@ -1405,10 +2092,13 @@ export class AdventureMode {
           ["QRZ", "who is calling me? — you dropped your ID"],
           ["QRT", "shut down / go silent"],
           ["QRU", "nothing heard / anything for me?"],
+          ["QRU?", "have you anything for me? — answer QRU if not"],
+          ["GM", "good morning"],
           ["QTC", "I have traffic for __"],
           ["QSP", "relay / I'll relay"],
           ["TU", "thanks"],
           ["GN", "good night"],
+          ["UR", "your / you're"],
           ["AUTHENTICATE", "reply to the challenge that follows"],
           ["I AUTHENTICATE", "the group that follows is my reply"],
         ],
@@ -1509,7 +2199,9 @@ export class AdventureMode {
   // ---- Beat driver --------------------------------------------------------
 
   private get onFreq(): boolean {
-    return Math.abs(this.freqKhz - this.hqFreqKhz) <= ON_FREQ_KHZ;
+    // Exact match only: a CW signal is a few hundred Hz wide, so even one dial
+    // step (5 kHz) off is well outside the receiver's passband.
+    return this.freqKhz === this.hqFreqKhz;
   }
 
   /** Danger escalation — first wired up for real on the relay mission (see
@@ -1631,11 +2323,11 @@ export class AdventureMode {
     if (e.kind === "spot") {
       this.phase = "spot";
       this.need = requiredFields(e.sighting);
-      this.addSpot(e.sighting.prose);
+      this.addSpot(e.sighting.prose, e.spotter?.toUpperCase());
       this.setStatus(
         e.sighting.category === "SHIP"
           ? "This one matters — encode it and report to KEN, clean."
-          : "Runner's in — encode it and report to KEN."
+          : `${e.spotter ?? "Runner"}'s in — encode it and report to KEN.`
       );
     } else if (e.kind === "relay") {
       this.phase = "relay";
@@ -1654,6 +2346,20 @@ export class AdventureMode {
       this.setStatus("Not addressed to you — no need to answer. Keep listening.");
       this.refresh();
       await delay(OVERHEAR_PAUSE_MS);
+      await this.advance();
+      return;
+    } else if (e.kind === "silence") {
+      this.phase = "silence";
+      this.addSpot(e.warning, e.spotter.toUpperCase());
+      this.setStatus("Patrol below. Stay off the air — don't answer anyone, not even KEN.");
+      this.refresh();
+      await delay(SILENCE_LEAD_MS);
+      if (await this.hqSend(e.call)) {
+        this.setStatus("KEN's calling. Let it go — the patrol's still on the trail.");
+      }
+      this.refresh();
+      await delay(SILENCE_HOLD_MS);
+      this.addSpot(e.allClear, e.spotter.toUpperCase());
       await this.advance();
       return;
     } else if (e.kind === "haggle") {
@@ -1716,8 +2422,11 @@ export class AdventureMode {
     card.appendChild(text("div", "intro-tag", `${this.scenario.dayTag} — complete`));
     card.appendChild(text("h2", "intro-title", "Set's down for the night"));
     card.appendChild(text("p", "intro-copy", `${tally} ${this.scenario.outroCopy}`));
-    if (this.scenario.outroAside) {
-      card.appendChild(text("p", "intro-copy intro-aside", this.scenario.outroAside));
+    const aside = this.scenario.outroAside;
+    if (aside) {
+      const copy =
+        typeof aside === "function" ? aside({ retries: this.retryCount, brokeSilence: this.brokeSilence }) : aside;
+      card.appendChild(text("p", "intro-copy intro-aside", copy));
     }
     card.appendChild(this.buildTransitionRow("Replay the day", () => this.resetRun()));
     view.appendChild(card);
@@ -1866,7 +2575,11 @@ export class AdventureMode {
     {
       id: "later-sked-ack",
       when: AdventureMode.isLaterSked,
-      match: (i) => i.words.includes("QSL") || i.words.includes("R"),
+      match: (i, ctx) => {
+        const e = ctx.currentEvent;
+        if (e.kind === "sked" && e.reply) return includesSequence(i.words, e.reply.words);
+        return i.words.includes("QSL") || i.words.includes("R");
+      },
       act: async (_i, ctx) => {
         const e = ctx.currentEvent;
         if (e.kind !== "sked") return;
@@ -1879,7 +2592,9 @@ export class AdventureMode {
       when: AdventureMode.isLaterSked,
       match: () => true,
       act: (_i, ctx) => {
-        ctx.setStatus(`Send QSL to acknowledge ${HQ_CALL}, or AGN? for a repeat.`);
+        const e = ctx.currentEvent;
+        if (e.kind === "sked" && e.reply) ctx.setStatus(e.reply.hint);
+        else ctx.setStatus(`Send QSL to acknowledge ${HQ_CALL}, or AGN? for a repeat.`);
       },
     },
     {
@@ -1890,7 +2605,7 @@ export class AdventureMode {
         const e = ctx.currentEvent;
         if (e.kind !== "spot") return;
         ctx.retryCount += 1;
-        ctx.addSpot(e.sighting.prose, "the boy repeats");
+        ctx.addSpot(e.sighting.prose, `${e.spotter ?? "the boy"} repeats`);
       },
     },
     {
@@ -2269,6 +2984,20 @@ export class AdventureMode {
     if (!msg || this.playing || !this.txEnabled) return;
     this.elTxInput.value = "";
     this.txCount += 1;
+    // Silence beat (patrol nearby): any transmission is the mistake, whatever it
+    // says. Judged by the phase when keying *starts* and never routed to the
+    // rules — the beat can end mid-send, and the message mustn't then count as
+    // an answer to the next sked. Survivable: danger jumps, the outro remembers.
+    if (this.phase === "silence") {
+      this.retryCount += 2;
+      this.brokeSilence = true;
+      await this.playSelf(msg);
+      if (this.phase === "silence") {
+        this.setStatus("A hand clamps on your wrist. Below, the voices stop — a long minute of listening. Stay off the key.");
+      }
+      this.refresh();
+      return;
+    }
     await this.playSelf(msg);
 
     const input: DialogueInput = {
@@ -2289,6 +3018,7 @@ export class AdventureMode {
         this.phase === "spot" ||
         this.phase === "relay" ||
         this.phase === "overhear" ||
+        this.phase === "silence" ||
         this.phase === "haggle")
     );
   }

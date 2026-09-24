@@ -425,7 +425,11 @@ Additional world-building — several of these resolve open threads.
         7.5 WPM floor and forgiving AGN loop, just less hand-holding in the *framing*. The
         partial-Koch-coverage decision above stops being a mere technical concession here
         and becomes the mechanism for the feeling: GOOSE will genuinely hit a letter in the
-        field he never quite drilled clean.
+        field he never quite drilled clean. **Implemented 2026-09-22** as `guadalcanal-1`
+        ("Cactus"): the 7.5 WPM floor is enforced (`minEffectiveWpm`), and "KEN doesn't slow
+        down" lives in the prose. There's no simulated static: the radio deliberately
+        keeps simple "game physics" (tones at the player's chosen pitch, exact-match
+        tuning).
   - *Design note: a pure "no base, learn entirely in-world" approach was considered and
     rejected — keep the base, just make it compelling and consequential.*
 - **The mission-element kit (the shack is the stage; assemble the beats).** The radio
@@ -899,24 +903,73 @@ How missions string into an arc — resolves the former "campaign structure" ope
   25 missions total (3 training + 22 field) — a draft scaffold for future mission writing,
   not locked content.
 
-  **Build status (2026-08-01, updated same night), to anchor incremental
-  mission-writing sessions.** The table above is the map; this is the current position
-  on it. Three tiers:
-  - **Built** (playable in `adventure.ts`'s `SCENARIOS`, 6 of 25): Kolombangara days
-    1–3 (`kolombangara-14`, `kolombangara-3`, `kolombangara-relay`) and all of Munda
-    days 1–3 (`munda-1`, `munda-2`, `munda-3`) — Munda days 2 and 3 shipped tonight,
-    completing the Seabees-milestone arc (see **Milestone mission seed — protecting the
-    Munda Seabees** above).
-  - **Drafted, not built** (a scene-level design exists in this doc, ready to code, 1 of
-    25): the Magic Carpet finale (below).
+  **Build status (2026-09-22), to anchor incremental mission-writing sessions.** The
+  table above is the map; this is the current position on it. **This note is the
+  single source of truth for mission progress.** When a mission ships, update it here,
+  plus the short summary in `CLAUDE.md` and the Adventure blurb in `README.md` if the
+  player-facing scope changed. Work happens on feature branches, and merging to `main`
+  auto-deploys to the live site.
+  - **Built** (playable in `adventure.ts`'s `SCENARIOS`, 17 of 25): all of Guadalcanal, days 1–7
+    (`guadalcanal-1` "Cactus" — tune + decode only, introduces Aaron, the Minnow, and
+    SKIP's call as overheard traffic; `guadalcanal-2` "The Rhythm", tagged Day 5 — first
+    send beyond QSL: KEN's `QRU?` must be answered, via a new optional sked `reply`
+    field; Cactus Air Force as ambient flavor; `guadalcanal-3` "The Express", tagged
+    Day 9 — first real spot reports, a morning floatplane then the Tokyo Express down
+    the Slot, with Aaron as the named spotter via a new optional spot `spotter` field;
+    `guadalcanal-4` "Headed Yours", tagged Day 12 — the milestone: KEN passes the
+    upstream raid warning, GOOSE reports the formation as it passes (the last link in
+    the chain, not the source), then goes QRT while escorts sweep low; the outro aside
+    varies with the day's retry count via `outroAside` as a function, the historical
+    outcome fixed either way; all 2026-09-22; `guadalcanal-5` "Mail Call", tagged Day
+    16 — the first letter home, from Evelyn, arriving by mail on the Minnow (not over
+    the air) and read in the Notes panel; a short, gentle radio day. Establishes two
+    home-front facts later letters should keep: a kid brother, and Mr. Hale, the
+    school's band director, holding the percussion scholarship; `guadalcanal-6`
+    "Close", tagged Day 21 — a patrol close call via a new `silence` event: KEN's
+    noon call arrives while the patrol is below and must go unanswered; transmitting
+    anyway isn't a fail, it raises danger and sets `brokeSilence` for the outro;
+    `guadalcanal-7` "Terminus", tagged Day 68 — the sign-off, anchored to the real
+    9 Feb 1943 "Tokyo Express no longer has terminus on Guadalcanal" message, which KEN
+    passes on; Bill promotes GOOSE to **T/5** (two chevrons over a "T") and Aaron goes
+    with him to New Georgia, matching Munda Day 1. Rank plan from here: T/4 at the Munda
+    sign-off, T/3 at Kolombangara's. Note: the older "Bill handed me Sergeant bars"
+    vignette elsewhere in this doc is superseded: bars are officer insignia, and
+    GOOSE's rank is Technician-track stripes), all of Stateside
+    training (`training-1`/`-2`/`-3`, Camp Murphy — shipped 2026-09-10 as ordinary
+    shack-engine scenarios; the Random-Run-wrapper / graduate-on-speed mechanic is still
+    a parked follow-up, see the scope note above `TRAINING_DAY1`), Kolombangara days 1–3
+    (`kolombangara-14`, `kolombangara-3`, `kolombangara-relay`), all of Munda days 1–3
+    (`munda-1`, `munda-2`, `munda-3` — the haggle and the Seabees-milestone arc), and the
+    Magic Carpet finale (`magic-carpet`).
   - **Not started** (table row only — a one-line focus/notes hook, no scene draft yet;
-    the remaining 18): all of Stateside training, all of Guadalcanal, Munda day 4,
-    Kolombangara day 4 (sign-off), all of Bougainville (both postings), and both
-    Bougainville-invasion days.
-  - Sign-off/promotion days (Guadalcanal 7, Munda 4, Kolombangara 4) are the cheapest of
-    the "not started" set — they reuse the existing final-sked-plus-promotion pattern
-    already built for Kolombangara day 4's predecessor days, so they likely don't need a
-    full design pass before coding.
+    the remaining 8): Munda day 4 and Kolombangara day 4
+    (sign-offs), all of Bougainville (both postings, 4), and both Bougainville-invasion
+    days.
+  - **Build order from here: linear along the timeline (decided 2026-09-22).** Start at
+    Guadalcanal Day 1 and walk forward, filling gaps until the new work catches up to the
+    already-built Munda / Kolombangara days — so each deploy adds a stretch of story that
+    hangs together for people actually playing the live site (it's being shared with a
+    radio club for feedback), rather than scattered one-off days. Sign-off/promotion days
+    (Guadalcanal 7, Munda 4, Kolombangara 4) stay cheap when their turn comes — they
+    reuse the final-sked-plus-promotion pattern.
+  - **Ordering fixed (2026-09-22):** `SCENARIOS` now follows the historical spine —
+    training → Guadalcanal → Munda → Kolombangara → Magic Carpet (Munda had been after
+    Kolombangara because the demo was built first). Safe to reorder because there's no
+    persisted Adventure progress and every mission is unlocked.
+  - **Release batches for Guadalcanal:** days 1–4 (ending on the air-raid milestone), then
+    days 5–7 (letter home, patrol scare, Bill's promotion into Munda) — each batch one
+    deploy, so the live site gains a stretch of story at a time. **All seven built
+    (2026-09-22), none deployed yet** — both batches wait on playtesting on the
+    `guadalcanal-missions` branch. **Next in the linear order: Munda Day 4** (the strip
+    finished; promotion to T/4), then Kolombangara Day 4, then Bougainville.
+  - **Per-mission speed floor (2026-09-22, implemented):** `Scenario.minEffectiveWpm`
+    raises HQ's effective WPM to at least that value when the player's setting is slower
+    (a faster setting is left alone; char WPM is lifted to match if needed). Every field
+    mission uses `FIELD_MIN_WPM` (7.5); training has no floor. The intro card says so
+    when the floor overrides the player's setting. The higher per-posting steps of the
+    WPM curve (Munda ~10, Kolombangara ~13, …) are **not** applied yet — a deliberate
+    hold so live players aren't jumped to 13 WPM before the Guadalcanal/Munda stretch
+    exists to ramp them there.
   - **Resolved (2026-08-01):** Bougainville invasion day 2 ("the invasion itself") is a
     playable Decode/React-to-threats field day, not a narrative-only cutscene — same
     tone as invasion day 1, matching the "not started" backlog above rather than a
@@ -965,7 +1018,8 @@ the doc's core pillar ("Koch speed = difficulty," islands-as-difficulty ⇒ risi
 but this section locks in the concrete decisions for how a WPM jump feels from the
 inside, so a real skill wall never reads as an unfair one.
 
-- **Field missions open at 7.5 WPM minimum, not a slow ramp-in (locked).** No field
+- **Field missions open at 7.5 WPM minimum, not a slow ramp-in (locked; implemented
+  2026-09-22 as `FIELD_MIN_WPM` / `Scenario.minEffectiveWpm` in `adventure.ts`).** No field
   mission ever runs below 7.5 WPM — this is the graduation gate from **Onboarding**
   above, now a concrete number rather than the earlier "~5–7 WPM (tunable)." **Revised
   2026-07-10:** the gate is speed-first, not full-character-set-first (see **Training
@@ -1006,10 +1060,10 @@ inside, so a real skill wall never reads as an unfair one.
   meaningfully riskier later in the campaign even though the player has gotten better.
   Rewards mastery (a skilled player needs fewer retries, so the shrinking budget rarely
   bites) without ever presenting a hard wall (the option to retry is always there, it
-  just costs more). **Not yet built** — today's danger readout is a flavor stub
-  (`Danger: low (this island)`, hardcoded regardless of `txCount`); this section is the
-  target design for whenever that gets wired up for real, not a description of current
-  behavior.
+  just costs more). **Partly built:** the danger readout has been driven by a real
+  `retryCount` since the relay mission (2026-07-18; see the relay-net notes above), and
+  Guadalcanal Day 4's outro now reacts to it. The *shrinking per-posting budget* described
+  here isn't built yet: the low/elevated/high thresholds are the same everywhere.
 - **The posting-by-posting WPM curve, anchored to real license-class speeds
   (2026-07-10).** Escalation should step at posting transitions, not creep smoothly
   mission-to-mission (consistent with "rank ties in only at posting transitions" in
@@ -1027,6 +1081,10 @@ inside, so a real skill wall never reads as an unfair one.
   | Kolombangara | ~13 | the real General-class milestone — lands on the built demo |
   | Bougainville (both postings) | ~16–18 | approaching Extra, matches rising danger |
   | Bougainville invasion / finale | ~20 | the real Extra-class ceiling |
+
+  **Status (2026-09-22):** only the 7.5 floor is enforced, on every field mission. The
+  higher steps aren't wired yet (see **Build status** above for why). When they are, each
+  posting's scenarios just set `minEffectiveWpm` to their row here.
 
   Flat within a posting (only enemy WPM/DF/sked-frequency creep day-to-day per the
   existing two-axis escalation note); the player's own required floor only jumps at a
@@ -1469,7 +1527,9 @@ these fall into place if a beat naturally wants them, and skip them otherwise.
   defense of Henderson Field; Foss became the top-scoring Marine ace of the war (26 kills)
   flying from it. Good "recognizable group" flavor for the Guadalcanal posting, the same
   register as Black Sheep Squadron/Boyington later — a plane overhead, a name on the net,
-  never more than that.
+  never more than that. **Used (2026-09-22):** ambient Wildcats/dive-bombers out of
+  Henderson in Guadalcanal Day 2, and the scramble in Day 4's raid-warning milestone.
+  Foss himself isn't named anywhere yet.
 - **John Basilone (Guadalcanal, 25–26 Oct 1942).** Medal of Honor machine-gunner who held
   the line at the Battle for Henderson Field; killed later at Iwo Jima (1945), outside this
   story's window. Extremely well-documented and moving, but handle with the same care as
