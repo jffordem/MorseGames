@@ -86,6 +86,7 @@ const TYPE_NAME: Record<string, string> = {
   DD: "destroyer",
   AK: "transport",
   PT: "PT boat",
+  BARGE: "barge",
 };
 const DIR_WORD: Record<string, string> = {
   N: "north",
@@ -522,6 +523,92 @@ const KOLOMBANGARA_DAY_RELAY: Scenario = {
     },
   ],
   outroCopy: "Another day on the ridge — and one more voice on the net you can now put a name to.",
+};
+
+/** Kolombangara Day 4 — the posting's sign-off (mission allocation table:
+ *  "Sign-off; Promotion"). Anchored to the real Japanese evacuation of
+ *  Kolombangara by barge (late Sept – early Oct 1943), seen only as dawn
+ *  sightings; nobody on the net names it yet, same restraint as Guadalcanal
+ *  Day 7. Last relay for SKIP. Promotion to T/3 (three chevrons, a rocker, a
+ *  "T"). The outro plays the doc's "the log doesn't ask" beat for real: the
+ *  scouts, "the boy" all posting long, are named on the page for the first
+ *  time, in the handover log. Pita's entry full, Tione's correct but thin —
+ *  the Kolombangara asymmetry in the field-companion decline arc — and
+ *  Aaron's "names first" advice from Munda Day 4 is what it's measured against. */
+function makeBargeSighting(): Sighting {
+  const count = randInt(4, 9);
+  return {
+    category: "SHIP",
+    count,
+    type: "BARGE",
+    dir: "NW",
+    prose:
+      `${count} barges tucked in under the coast at first light, low in the water and ` +
+      "loaded, coming up the Slot toward the north end. They'll lie up under the trees by full day.",
+  };
+}
+
+const KOLOMBANGARA_DAY4: Scenario = {
+  id: "kolombangara-4",
+  dayTag: "Kolombangara · Day 74",
+  minEffectiveWpm: FIELD_MIN_WPM,
+  introTitle: "Handover",
+  introCopy:
+    "The barges started a week ago — low shapes crawling along the coast after dark, " +
+    "engines muffled, making for the north end of the island and the open water past it. " +
+    "The other side is leaving Kolombangara one boatload at a time. A relief operator " +
+    "comes in on the Minnow tonight, and you've been told to have the log in order.",
+  notes:
+    "Day 74. Handover tonight. I've spent the afternoons squaring the log away — " +
+    "frequencies, sked times, which coves the DF launch likes to hide in. The relief " +
+    "will want all of it. What he'll need most isn't in there in any form the Army " +
+    "would recognize: who carries the set, who reads the reef, who comes up the track " +
+    "in the dark without being asked. Aaron said names first. I'm writing them last, " +
+    "but I'm writing them where the new man can't miss them.",
+  briefing: (hqFreqKhz) =>
+    "STATION GOOSE — Kolombangara. Same OP over Blackett Strait. Enemy barge traffic " +
+    "along the coast at night: report any seen, NR TYPE CSE. SKIP may have traffic for " +
+    `relay. Skeds with HQ (KEN) on ${hqFreqKhz} kHz: 0600 / 1300 / 1800. Relief operator ` +
+    "arrives tonight — log in order before QRT.",
+  buildTimeline: (authChallenge) => [
+    {
+      kind: "sked",
+      clock: "0600",
+      light: "dawn",
+      msg: `${MY_CALL} DE ${HQ_CALL} GM RPT ALL BARGES AUTHENTICATE ${authChallenge} K`,
+      prompt:
+        "Copy your orders and the authenticator challenge. Check today's table, then " +
+        "send QSL I AUTHENTICATE <code> together — or AGN? to hear it again.",
+    },
+    { kind: "spot", clock: "0645", light: "dawn", sighting: makeBargeSighting() },
+    { kind: "relay", clock: "1030", light: "morning", from: RELAY_CALL, sighting: makeAircraftSighting() },
+    {
+      kind: "sked",
+      clock: "1300",
+      light: "noon",
+      msg: `${MY_CALL} DE ${HQ_CALL} QSL BARGES ES RELAY RELIEF ON MINNOW TONIGHT K`,
+      prompt: "Copy KEN, then acknowledge (QSL).",
+    },
+    {
+      kind: "sked",
+      clock: "1800",
+      light: "dusk",
+      msg: `${MY_CALL} DE ${HQ_CALL} TU FOR KOLOMBANGARA GOOSE QRT GN K`,
+      prompt: "Your last sign-off on the hill. Acknowledge (QSL).",
+      final: true,
+    },
+  ],
+  outroCopy: "The watch on Kolombangara is someone else's now. Blackett Strait will keep.",
+  outroAside:
+    "The relief was a kid with new T/5 stripes and the look you must have had on Cactus. " +
+    "You gave him the frequencies and the sked times and the coves the launch hides in, " +
+    "and then, on the first page, where he couldn't miss them, two names in capitals. " +
+    "PITA — reads the reef, the tide, the wind; trust him on the water before you trust " +
+    "the chart. TIONE — handles the settling-up with HQ. You held the pencil over the " +
+    "page a while, looking for a second line for Tione, and didn't find one. Bill, " +
+    "sweating through another shirt, handed you three chevrons with a rocker under them " +
+    "and the little T, Technician Third Grade, and said the " +
+    "word \"Bougainville\" like a man apologizing in advance.",
 };
 
 // Request Supplies randomization pools (MUNDA_DAY1 only, so far). Both pools
@@ -1822,6 +1909,7 @@ const SCENARIOS: Scenario[] = [
   KOLOMBANGARA_DAY14,
   KOLOMBANGARA_DAY3,
   KOLOMBANGARA_DAY_RELAY,
+  KOLOMBANGARA_DAY4,
   MAGIC_CARPET_FINALE,
 ];
 
@@ -2214,6 +2302,7 @@ export class AdventureMode {
           ["DD", "destroyer"],
           ["AK", "transport / cargo ship"],
           ["PT", 'PT boat — small, fast ("patrol torpedo boat")'],
+          ["BARGE", "landing barge — small, slow, hugs the coast by night"],
         ],
       },
       {
