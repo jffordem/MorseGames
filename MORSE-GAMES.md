@@ -938,13 +938,15 @@ How missions string into an arc — resolves the former "campaign structure" ope
     training (`training-1`/`-2`/`-3`, Camp Murphy — shipped 2026-09-10 as ordinary
     shack-engine scenarios; the Random-Run-wrapper / graduate-on-speed mechanic is still
     a parked follow-up, see the scope note above `TRAINING_DAY1`), all of Kolombangara,
-    days 1–4 (`kolombangara-14`, `kolombangara-3`, `kolombangara-relay`, and
+    days 1–4 (`kolombangara-14` "The Hill", `kolombangara-3` "Flash on the Water" (PT-109),
+    `kolombangara-relay` "QSP" — titled 2026-09-23, formerly all "Station GOOSE" — and
     `kolombangara-4` "Handover", tagged Day 74 — the sign-off: dawn sightings of the real
     late-Sept 1943 barge evacuation (new `BARGE` contact type), a last SKIP relay, and
     the "the log doesn't ask" beat played in the outro: the scouts, "the boy" all
     posting, are named on the page for the first time in the relief operator's handover
     log — Pita's entry full, Tione's correct but thin; Bill promotes GOOSE to **T/3**),
-    all of Munda, days 1–4 (`munda-1`, `munda-2`, `munda-3` — the haggle and the
+    all of Munda, days 1–4 (`munda-1` "Nick's Price" (formerly "Landfall — New Georgia",
+    renamed once Kolombangara came first), `munda-2`, `munda-3` — the haggle and the
     Seabees-milestone arc — and `munda-4` "Wheels Down", tagged Day 6 — the sign-off:
     the strip opens, the first friendly fighters land, GOOSE reports only the enemy
     recon; **T/4**, and back to Kolombangara; no companion at Munda, on purpose), **Bougainville posting 1, days

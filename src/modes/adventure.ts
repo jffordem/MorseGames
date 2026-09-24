@@ -364,7 +364,7 @@ const KOLOMBANGARA_DAY14: Scenario = {
   id: "kolombangara-14",
   dayTag: "Kolombangara · Day 14",
   minEffectiveWpm: FIELD_MIN_WPM,
-  introTitle: "Station GOOSE",
+  introTitle: "The Hill",
   introCopy:
     "Before dawn the Minnow put you ashore below the summit and slipped back " +
     "out into the dark. The scouts had the set up the mountain track before " +
@@ -439,7 +439,7 @@ const KOLOMBANGARA_DAY3: Scenario = {
   id: "kolombangara-3",
   dayTag: "Kolombangara · Day 17",
   minEffectiveWpm: FIELD_MIN_WPM,
-  introTitle: "Station GOOSE",
+  introTitle: "Flash on the Water",
   introCopy:
     "Three quiet days since the last convoy report — routine skeds, routine light. Then, " +
     "somewhere out past the point last night: a flash on the water, gone before the sound " +
@@ -507,7 +507,7 @@ const KOLOMBANGARA_DAY_RELAY: Scenario = {
   id: "kolombangara-relay",
   dayTag: "Kolombangara · Day 23",
   minEffectiveWpm: FIELD_MIN_WPM,
-  introTitle: "Station GOOSE",
+  introTitle: "QSP",
   introCopy:
     "Six days since the boy brought the news about the wreckage. Today HQ's added a " +
     "wrinkle to the watch: a second post further up the strait, SKIP, whose signal " +
@@ -1828,7 +1828,7 @@ const MUNDA_DAY1: Scenario = {
   id: "munda-1",
   dayTag: "New Georgia · Munda, Day 1",
   minEffectiveWpm: FIELD_MIN_WPM,
-  introTitle: "Landfall — New Georgia",
+  introTitle: "Nick's Price",
   introCopy:
     "Orders came up the net two nights ago: off the hill, across the water, and watch " +
     "Munda for a while — the strip there is ours now, or will be. The Minnow put you " +
