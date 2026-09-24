@@ -853,10 +853,10 @@ How missions string into an arc — resolves the former "campaign structure" ope
   them; this is exactly how real Coastwatcher memoirs read (a highlight reel, not a log
   of every day), so it's free authenticity, not a shortcut that costs believability.
 - **A loose historical spine (anchor, not a rigid schedule):** Guadalcanal (Aug 1942 –
-  Feb 1943; air-raid warnings; Clemens/Vouza) → New Georgia / Munda (Jun–Aug 1943;
-  milestone mission — protecting the Seabees building Munda airfield, see **Real history
-  as milestone missions** below) → Kolombangara / Blackett Strait (Aug 1943; PT-109 — the
-  existing demo's setting) →
+  Feb 1943; air-raid warnings; Clemens/Vouza) → Kolombangara / Blackett Strait (Jul–Oct
+  1943; PT-109 — the existing demo's setting), with a detachment to **New Georgia /
+  Munda** in the middle (Aug 1943; milestone mission — protecting the Seabees building
+  Munda airfield, see **Real history as milestone missions** below) →
   Bougainville (1943; Read & Mason's warnings and eventual compromise/evacuation) →
   the Bougainville invasion (Nov 1943) as a finale-adjacent beat. ~15 months of real
   chronology, compressed by the calendar device into ~20 capsules — selection, not
@@ -968,10 +968,16 @@ How missions string into an arc — resolves the former "campaign structure" ope
     radio club for feedback), rather than scattered one-off days. Sign-off/promotion days
     (Guadalcanal 7, Munda 4, Kolombangara 4) stay cheap when their turn comes — they
     reuse the final-sked-plus-promotion pattern.
-  - **Ordering fixed (2026-09-22):** `SCENARIOS` now follows the historical spine —
-    training → Guadalcanal → Munda → Kolombangara → Magic Carpet (Munda had been after
-    Kolombangara because the demo was built first). Safe to reorder because there's no
-    persisted Adventure progress and every mission is unlocked.
+  - **Ordering fixed (2026-09-22, revised 2026-09-23):** `SCENARIOS` follows the
+    historical spine — training → Guadalcanal → Kolombangara days 14/17/23 → Munda
+    days 1–4 → Kolombangara Day 74 → Bougainville → Magic Carpet. The Munda arc is a
+    detachment inside the Kolombangara posting because the real dates overlap: PT-109
+    sank 2 Aug 1943 (Kolombangara Day 17, so GOOSE is on the hill from ~17 Jul), Munda
+    strip was captured 5 Aug and flew its first fighters ~14 Aug (Munda Day 6), and
+    Kolombangara's barge evacuation began ~28 Sept (Day 74). Aaron stays on
+    Guadalcanal: his "names first" farewell is in Guadalcanal Day 7, and Munda Day 1's
+    advice about Nick comes from the Minnow's coxswain instead. Safe to reorder because
+    there's no persisted Adventure progress and every mission is unlocked.
   - **Release batches for Guadalcanal:** days 1–4 (ending on the air-raid milestone), then
     days 5–7 (letter home, patrol scare, Bill's promotion into Munda) — each batch one
     deploy, so the live site gains a stretch of story at a time. **All seven built

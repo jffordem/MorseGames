@@ -570,7 +570,10 @@ const KOLOMBANGARA_DAY_RELAY: Scenario = {
  *  scouts, "the boy" all posting long, are named on the page for the first
  *  time, in the handover log. Pita's entry full, Tione's correct but thin —
  *  the Kolombangara asymmetry in the field-companion decline arc — and
- *  Aaron's "names first" advice from Munda Day 4 is what it's measured against. */
+ *  Aaron's "names first" advice from Guadalcanal Day 7 is what it's measured
+ *  against. Day 74 counts from GOOSE's first arrival on the hill (~17 Jul 1943,
+ *  so PT-109 falls on Day 17), which puts it on ~28 Sept, and the Munda
+ *  detachment sits in between (see MUNDA_DAY1's chronology note). */
 function makeBargeSighting(): Sighting {
   const count = randInt(4, 9);
   return {
@@ -1480,8 +1483,10 @@ const GUADALCANAL_DAY6: Scenario = {
  *  real Japanese evacuation, not yet understood as such at the time, so Aaron
  *  only guesses at it. Promotion is Technician Fifth Grade (T/5) — the first
  *  step on the doc's Technician track (T/5 → T/4 → T/3 at the later sign-offs);
- *  two chevrons over a "T", the insignia since Sept. 1942. Aaron comes along to
- *  New Georgia, matching MUNDA_DAY1 (he's there before the first sked). */
+ *  two chevrons over a "T", the insignia since Sept. 1942. Aaron stays home on
+ *  Guadalcanal, and his parting "names first" advice is the bar the later
+ *  postings' companions are measured against (field-companion decline arc). The
+ *  next stop is Kolombangara, part of the New Georgia group. */
 const GUADALCANAL_DAY7: Scenario = {
   id: "guadalcanal-7",
   dayTag: "Guadalcanal · Day 68",
@@ -1552,9 +1557,11 @@ const GUADALCANAL_DAY7: Scenario = {
     "carrying a canvas bag of other people's problems. He handed you two stripes with a " +
     "little T stitched under them and waved off whatever you were about to say. " +
     "\"Technician Fifth Grade,\" he said, like an apology — corporal's pay, not a " +
-    "corporal. \"New Georgia. Boat at first light. Your scout's coming too; I asked.\" " +
-    "Then three days on a tug under a skipper you privately named Captain Bligh, " +
-    "squinting at the sun. You hope he doesn't forget where he's put you.",
+    "corporal. \"New Georgia. Boat at first light.\" Aaron walked down to the beach with " +
+    "you in the dark and shook your hand like a man closing a gate carefully behind " +
+    "him. \"Your next scouts will be good,\" he said. \"Learn their names first thing. " +
+    "Before the trees.\" Then three days on a tug under a skipper you privately named " +
+    "Captain Bligh, squinting at the sun. You hope he doesn't forget where he's put you.",
 };
 
 /** New Georgia/Munda Day 1 — the Request Supplies kit element's first outing. A
@@ -1566,17 +1573,23 @@ const GUADALCANAL_DAY7: Scenario = {
  *  Nick's opening ask and which trade goods are on hand are randomized fresh
  *  per run (see buildTimeline()) — replaying isn't just re-running a script,
  *  it's a genuinely different negotiation. See MORSE-GAMES.md's "Request
- *  Supplies mission draft" for the full design note. */
+ *  Supplies mission draft" for the full design note.
+ *  CHRONOLOGY: the Munda arc is a detachment from the Kolombangara posting,
+ *  not a posting before it. The strip was captured 5 Aug 1943 and flew its
+ *  first fighters ~14 Aug, and PT-109 (KOLOMBANGARA_DAY3) went down on 2 Aug,
+ *  so GOOSE works Kolombangara days 14–23, is pulled off the hill for Munda,
+ *  and goes back for the Day 74 handover. */
 const MUNDA_DAY1: Scenario = {
   id: "munda-1",
   dayTag: "New Georgia · Munda, Day 1",
   minEffectiveWpm: FIELD_MIN_WPM,
   introTitle: "Landfall — New Georgia",
   introCopy:
-    "The Minnow put you ashore in the dark again, but this beach is different — jerry " +
-    "cans stacked at the tideline, a hacked path already climbing into the trees. Scouts " +
-    "work this stretch of coast now too. Your shoulders are still sore from the last of " +
-    "the cans.",
+    "Orders came up the net two nights ago: off the hill, across the water, and watch " +
+    "Munda for a while — the strip there is ours now, or will be. The Minnow put you " +
+    "ashore in the dark again, but this beach is different — jerry cans stacked at the " +
+    "tideline, a hacked path already climbing into the trees. Your shoulders are still " +
+    "sore from the last of the cans.",
   notes: (day) => {
     const e = haggleEventOf(day);
     const goods = e ? e.tradeWords.map((w) => TRADE_FLAVOR[w]).join(", ") : "whatever's left in my pack";
@@ -1591,7 +1604,7 @@ const MUNDA_DAY1: Scenario = {
           `${ranked[0].toLowerCase()} — but Nick's never once wanted what I expected him to.`
         : "";
     return (
-      "Day 1 at Munda. Aaron caught me before the sked. \"Don't take his first number,\" " +
+      "Day 1 at Munda. The Minnow's coxswain caught me on the beach. \"Don't take his first number,\" " +
       "he said. \"Nick respects a fella who pushes back — bores him if you don't. Man " +
       "once talked him down on a full case of Spam using nothing but a harmonica and a " +
       `bad attitude.\" I don't have a harmonica — but I've got ${goods}.${opinion} No DF ` +
@@ -1776,10 +1789,10 @@ const MUNDA_DAY3: Scenario = {
  *  restraint: GOOSE watches them come in; he reports only the enemy recon that
  *  comes to see whether it's finished). The noon sked's "no rpt" callbacks to
  *  Guadalcanal Day 2's "don't report friendlies". Promotion to T/4 (three
- *  chevrons over a "T"). Also where Aaron's arc closes: he goes home to
- *  Guadalcanal, and GOOSE goes on to Kolombangara alone — the start of the
- *  field-companion decline (see Aaron's and Pita/Tione's Cast entries), which
- *  is why Aaron's parting advice is about learning the next scouts' names. */
+ *  chevrons over a "T"), and back to Kolombangara — this arc is a detachment
+ *  (see MUNDA_DAY1's chronology note). Tagged Day 6 so it lands on ~14 Aug.
+ *  No companion here, on purpose: Munda is the field-companion arc's
+ *  "task-focused" stretch, and the scouts are just "the boys". */
 function makeMundaRecon(): Sighting {
   const count = randInt(1, 3);
   const type = pick(["FLOATPLANE", "BOMBER"]);
@@ -1799,20 +1812,21 @@ function makeMundaRecon(): Sighting {
 
 const MUNDA_DAY4: Scenario = {
   id: "munda-4",
-  dayTag: "New Georgia · Munda, Day 9",
+  dayTag: "New Georgia · Munda, Day 6",
   minEffectiveWpm: FIELD_MIN_WPM,
   introTitle: "Wheels Down",
   introCopy:
     "The strip is one long pale scar through the palms now, rolled flat and hard, and " +
     "the Seabees are standing along it with their hands in their pockets like men who " +
     "don't know what to do with them. Fighters are coming in today. Bill is coming " +
-    "tonight. Aaron has been quiet since the message about Bill came up the line.",
+    "tonight, which usually means somebody is going somewhere.",
   notes:
-    "Day 9. Aaron's going home. Bill's message said it plain: the scout goes back to " +
-    "Guadalcanal on the boat that brings Bill, and I go on to Kolombangara — you can " +
-    "see it from the strip on a clear day, a dark cone across the water. Aaron took it " +
-    "better than I did. \"Your next scouts will be good,\" he said. \"Learn their names " +
-    "first thing. Before the trees.\" I told him I would.",
+    "Day 6. You can see Kolombangara from the end of the strip on a clear day, a dark " +
+    "cone across the water. I keep catching myself looking at it. The boys here have " +
+    "been fine — quick, careful, gone before I've learned more than which one laughs " +
+    "at the generator. I haven't learned their names. There hasn't been time, and I " +
+    "haven't made any. Bill's message says the hill again after this. I'm glad, and " +
+    "then I think about why, and I stop thinking about it.",
   briefing: (hqFreqKhz) =>
     "STATION GOOSE — New Georgia. OP over Munda strip — finished, and open today. Our " +
     "fighters are landing: don't report friendlies. Enemy aircraft: report at once, NR " +
@@ -1828,7 +1842,7 @@ const MUNDA_DAY4: Scenario = {
         "Copy KEN and the authenticator challenge. Check today's table, then send " +
         "QSL I AUTHENTICATE <code> together — or AGN? to hear it again.",
     },
-    { kind: "spot", clock: "0830", light: "morning", sighting: makeMundaRecon(), spotter: "Aaron" },
+    { kind: "spot", clock: "0830", light: "morning", sighting: makeMundaRecon() },
     {
       kind: "sked",
       clock: "1100",
@@ -1861,11 +1875,11 @@ const MUNDA_DAY4: Scenario = {
     "The fighters came in around noon, one after another, bouncing once on the coral " +
     "and then rolling like they'd always lived there. The Seabees cheered every one. " +
     "Bill came up after dark with three stripes and the little T under them — " +
-    "Technician Fourth Grade, a sergeant's pay and still not a sergeant — and a ride to " +
-    "Kolombangara. Aaron walked down to the beach with you both and shook your hand like " +
-    "a man closing a gate carefully behind him. \"Names first,\" he said. \"Before the " +
-    "trees.\" Then the Minnow took him south, and you watched until you couldn't tell " +
-    "which dark shape was him.",
+    "Technician Fourth Grade, a sergeant's pay and still not a sergeant — and a ride " +
+    "back to Kolombangara. \"They asked for you by name,\" he said, like that settled " +
+    "something. On the beach the boys loaded the set without being asked, and you " +
+    "thanked them all at once, the way you'd thank a crew. The Minnow's wake was the " +
+    "only thing still white by the time Munda went dark behind you.",
 };
 
 /** Scripted, not generated, so this run's reveal always reads the same way —
@@ -1987,8 +2001,8 @@ const MAGIC_CARPET_FINALE: Scenario = {
  *  order, which is worse than the alternative below. Consequence: the demo's
  *  default mission on load (`SCENARIOS[0]` in mount()) changes from
  *  Kolombangara to Training Day 1. (The array now follows the historical
- *  spine throughout — Munda was moved ahead of Kolombangara on 2026-09-22,
- *  alongside Guadalcanal Day 1.) */
+ *  spine throughout. As of 2026-09-23 the Munda arc sits inside the
+ *  Kolombangara posting, as a detachment; see MUNDA_DAY1's chronology note.) */
 const TRAINING_DAY1: Scenario = {
   id: "training-1",
   dayTag: "Camp Murphy · Day 1",
@@ -2152,13 +2166,14 @@ const SCENARIOS: Scenario[] = [
   GUADALCANAL_DAY5,
   GUADALCANAL_DAY6,
   GUADALCANAL_DAY7,
+  // Kolombangara brackets the Munda arc — see MUNDA_DAY1's chronology note.
+  KOLOMBANGARA_DAY14,
+  KOLOMBANGARA_DAY3,
+  KOLOMBANGARA_DAY_RELAY,
   MUNDA_DAY1,
   MUNDA_DAY2,
   MUNDA_DAY3,
   MUNDA_DAY4,
-  KOLOMBANGARA_DAY14,
-  KOLOMBANGARA_DAY3,
-  KOLOMBANGARA_DAY_RELAY,
   KOLOMBANGARA_DAY4,
   BOUGAINVILLE_DAY1,
   BOUGAINVILLE_DAY2,
