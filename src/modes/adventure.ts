@@ -1433,6 +1433,104 @@ const MUNDA_DAY3: Scenario = {
     "the planes that didn't get through were thanks enough.",
 };
 
+/** New Georgia/Munda Day 4 — the posting's sign-off (MORSE-GAMES.md's mission
+ *  allocation table: "Strip finished; Promotion"). Anchored to the real first
+ *  fighters landing on Munda strip, kept undated and unnamed (Forrest Gump
+ *  restraint: GOOSE watches them come in; he reports only the enemy recon that
+ *  comes to see whether it's finished). The noon sked's "no rpt" callbacks to
+ *  Guadalcanal Day 2's "don't report friendlies". Promotion to T/4 (three
+ *  chevrons over a "T"). Also where Aaron's arc closes: he goes home to
+ *  Guadalcanal, and GOOSE goes on to Kolombangara alone — the start of the
+ *  field-companion decline (see Aaron's and Pita/Tione's Cast entries), which
+ *  is why Aaron's parting advice is about learning the next scouts' names. */
+function makeMundaRecon(): Sighting {
+  const count = randInt(1, 3);
+  const type = pick(["FLOATPLANE", "BOMBER"]);
+  const dir = pick(DIRS);
+  const name = TYPE_NAME[type] + (count > 1 ? "s" : "");
+  return {
+    category: "ACFT",
+    count,
+    type,
+    alt: "HI",
+    dir,
+    prose:
+      `${count} ${name}, high over the strip — one slow circle, then ${dirPhrase(dir)}. ` +
+      "Somebody on the other side wants to know if it's finished.",
+  };
+}
+
+const MUNDA_DAY4: Scenario = {
+  id: "munda-4",
+  dayTag: "New Georgia · Munda, Day 9",
+  minEffectiveWpm: FIELD_MIN_WPM,
+  introTitle: "Wheels Down",
+  introCopy:
+    "The strip is one long pale scar through the palms now, rolled flat and hard, and " +
+    "the Seabees are standing along it with their hands in their pockets like men who " +
+    "don't know what to do with them. Fighters are coming in today. Bill is coming " +
+    "tonight. Aaron has been quiet since the message about Bill came up the line.",
+  notes:
+    "Day 9. Aaron's going home. Bill's message said it plain: the scout goes back to " +
+    "Guadalcanal on the boat that brings Bill, and I go on to Kolombangara — you can " +
+    "see it from the strip on a clear day, a dark cone across the water. Aaron took it " +
+    "better than I did. \"Your next scouts will be good,\" he said. \"Learn their names " +
+    "first thing. Before the trees.\" I told him I would.",
+  briefing: (hqFreqKhz) =>
+    "STATION GOOSE — New Georgia. OP over Munda strip — finished, and open today. Our " +
+    "fighters are landing: don't report friendlies. Enemy aircraft: report at once, NR " +
+    `TYPE ALT CSE. Skeds with HQ (KEN) on ${hqFreqKhz} kHz: 0600 / 1100 / 1500 / 1800. ` +
+    "Authenticate first contact; answer QRU? with QRU.",
+  buildTimeline: (authChallenge) => [
+    {
+      kind: "sked",
+      clock: "0600",
+      light: "dawn",
+      msg: `${MY_CALL} DE ${HQ_CALL} GM STRIP OPEN TODAY AUTHENTICATE ${authChallenge} K`,
+      prompt:
+        "Copy KEN and the authenticator challenge. Check today's table, then send " +
+        "QSL I AUTHENTICATE <code> together — or AGN? to hear it again.",
+    },
+    { kind: "spot", clock: "0830", light: "morning", sighting: makeMundaRecon(), spotter: "Aaron" },
+    {
+      kind: "sked",
+      clock: "1100",
+      light: "noon",
+      msg: `${MY_CALL} DE ${HQ_CALL} FRIENDLY FIGHTERS LANDING MUNDA NO RPT K`,
+      prompt: "Copy KEN, then acknowledge (QSL).",
+    },
+    {
+      kind: "sked",
+      clock: "1500",
+      light: "afternoon",
+      msg: `${MY_CALL} DE ${HQ_CALL} QRU? K`,
+      prompt: "KEN's asking if you have anything for him. Answer it — or AGN? for a repeat.",
+      reply: {
+        words: ["QRU"],
+        hint: "KEN asked QRU? — a QSL doesn't answer it. Send QRU: nothing for you.",
+      },
+    },
+    {
+      kind: "sked",
+      clock: "1800",
+      light: "dusk",
+      msg: `${MY_CALL} DE ${HQ_CALL} BILL INBOUND TONIGHT TU GOOSE QRT GN K`,
+      prompt: "Your last sign-off at Munda. Acknowledge (QSL).",
+      final: true,
+    },
+  ],
+  outroCopy: "Wheels down on Munda. The strip is somebody else's to guard now.",
+  outroAside:
+    "The fighters came in around noon, one after another, bouncing once on the coral " +
+    "and then rolling like they'd always lived there. The Seabees cheered every one. " +
+    "Bill came up after dark with three stripes and the little T under them — " +
+    "Technician Fourth Grade, a sergeant's pay and still not a sergeant — and a ride to " +
+    "Kolombangara. Aaron walked down to the beach with you both and shook your hand like " +
+    "a man closing a gate carefully behind him. \"Names first,\" he said. \"Before the " +
+    "trees.\" Then the Minnow took him south, and you watched until you couldn't tell " +
+    "which dark shape was him.",
+};
+
 /** Scripted, not generated, so this run's reveal always reads the same way —
  *  same precedent as PT109_SIGHTING above. The "unmistakably Bill" detail rides
  *  in the prose, not the graded fields; the report itself grades exactly like
@@ -1720,6 +1818,7 @@ const SCENARIOS: Scenario[] = [
   MUNDA_DAY1,
   MUNDA_DAY2,
   MUNDA_DAY3,
+  MUNDA_DAY4,
   KOLOMBANGARA_DAY14,
   KOLOMBANGARA_DAY3,
   KOLOMBANGARA_DAY_RELAY,
