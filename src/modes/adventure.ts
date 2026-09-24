@@ -866,6 +866,245 @@ const BOUGAINVILLE_DAY2: Scenario = {
     "and you let it go.",
 };
 
+/** A dial-grid frequency that's none of `taken` — for days that need more than
+ *  one frequency in play (a relocate target, an impostor's decoy). */
+function makeFreqOtherThan(...taken: number[]): number {
+  let f: number;
+  do f = makeHqFreqKhz();
+  while (taken.includes(f));
+  return f;
+}
+
+/** Bougainville (posting 2), Day 15 — "New spot, tenser still" (mission
+ *  allocation table). The field-companion decline's terminal point: Tomasi-or-
+ *  Tamasi went south with the older guide, never corrected, and the new carrier
+ *  is only ever "the boy", which is also the spotter label GOOSE's own log gives
+ *  him. Evelyn's decline starts here too, per her Cast entry: her last letter is
+ *  one page about the weather, and the "messages from home" slot goes to a KEN
+ *  bulletin instead — the 1943 World Series (Yankees over the Cardinals, 4–1,
+ *  ended 11 Oct 1943), a mirror of Mail Call's 1942 Cardinals win that GOOSE's
+ *  kid brother wrote about. Enemy fighters scrambling from the south fields are
+ *  period-true: Allied air strikes on Bougainville's airfields built through
+ *  October ahead of the November landing. */
+function makeScramble(): Sighting {
+  const count = randInt(6, 12);
+  const dir = pick(["S", "SE", "SW"]);
+  return {
+    category: "ACFT",
+    count,
+    type: "FIGHTER",
+    alt: "HI",
+    dir,
+    prose:
+      `${count} fighters climbing hard out of the south fields, ${dirPhrase(dir)} — going to ` +
+      "meet whatever's coming up from New Georgia.",
+  };
+}
+
+const BOUGAINVILLE_DAY3: Scenario = {
+  id: "bougainville-3",
+  dayTag: "Bougainville · Day 15",
+  minEffectiveWpm: FIELD_MIN_WPM,
+  introTitle: "Box Score",
+  introCopy:
+    "A new spot, higher and wetter than the last, and closer to their trails than anyone " +
+    "likes. The older guide went home after the move, and Tomasi went with him. The boy " +
+    "who came up in their place carries the set like he was born under it and hasn't " +
+    "said ten words since.",
+  notes:
+    "Day 15. The boy is good. He's quiet. I haven't asked his name. In the log he's " +
+    "\"the boy,\" which is what HQ calls all of them. Evelyn's last letter caught up with " +
+    "me before the move — August, the weather, her mother's knee. One page. I read it " +
+    "once and meant to read it again.",
+  briefing: (hqFreqKhz) =>
+    "STATION GOOSE — Bougainville. New OP, high on the ridge; enemy trails below. Report " +
+    "enemy aircraft out of the south fields: NR TYPE ALT CSE. Skeds with HQ (KEN) on " +
+    `${hqFreqKhz} kHz: 0600 / 1000 / 1200 / 1500 / 1800. Patrols are close: if one comes ` +
+    "near, no transmissions, not even to KEN.",
+  buildTimeline: (authChallenge) => [
+    {
+      kind: "sked",
+      clock: "0600",
+      light: "dawn",
+      msg: `${MY_CALL} DE ${HQ_CALL} GM KEEP IT SHORT TODAY AUTHENTICATE ${authChallenge} K`,
+      prompt:
+        "Copy KEN and the authenticator challenge. Check today's table, then send " +
+        "QSL I AUTHENTICATE <code> together — or AGN? to hear it again.",
+    },
+    { kind: "spot", clock: "0715", light: "morning", sighting: makeScramble(), spotter: "the boy" },
+    {
+      kind: "sked",
+      clock: "1000",
+      light: "morning",
+      msg: `${MY_CALL} DE ${HQ_CALL} QRU? K`,
+      prompt: "KEN's asking if you have anything for him. Answer it — or AGN? for a repeat.",
+      reply: {
+        words: ["QRU"],
+        hint: "KEN asked QRU? — a QSL doesn't answer it. Send QRU: nothing for you.",
+      },
+    },
+    {
+      kind: "silence",
+      clock: "1155",
+      light: "noon",
+      spotter: "the boy",
+      warning:
+        "Down from the rocks without a sound, one hand flat, pressing the air toward the " +
+        "ground. Voices on the ridge trail — close enough to hear a canteen knock.",
+      call: `${MY_CALL} DE ${HQ_CALL} QRU? K`,
+      allClear: "A long time later, a nod. Gone, down the far side of the ridge.",
+    },
+    {
+      kind: "sked",
+      clock: "1500",
+      light: "afternoon",
+      msg: `${MY_CALL} DE ${HQ_CALL} NEWS FROM HOME YANKEES WIN SERIES OVER CARDS 4 TO 1 K`,
+      prompt: "KEN's passing along news. Copy it, then acknowledge (QSL).",
+    },
+    {
+      kind: "sked",
+      clock: "1800",
+      light: "dusk",
+      msg: `${MY_CALL} DE ${HQ_CALL} QRT GN K`,
+      prompt: "Copy the sign-off, then acknowledge (QSL).",
+      final: true,
+    },
+  ],
+  outroCopy: "A day on the new ridge, logged. The trails below it are busier than the last ones.",
+  outroAside: ({ brokeSilence }) =>
+    brokeSilence
+      ? "The patrol didn't stop — but it slowed, and for a long minute the whole ridge " +
+        "listened. Afterward the boy looked at you, not angry, just measuring, the way " +
+        "you'd look at a bridge you'd have to cross again. You wanted to tell him it " +
+        "wouldn't happen twice. You didn't know what to call him to say it."
+      : "After dark you wrote the day into the log: fighters out of the south fields, the " +
+        "patrol, the Series. Your brother will be sick about the Series. You started a " +
+        "letter to Evelyn and got as far as the date.",
+};
+
+/** Bougainville (posting 2), Day 22 — "Relocate again — echoes Read & Mason"
+ *  (mission allocation table). The posting's climax combines both new beats:
+ *  an off-sked impostor sends a FALSE relocate order with a decoy frequency,
+ *  then the real order comes on the sked. The player has to copy both and trust
+ *  the one that came when KEN said he would (the lesson from Day 1); after the
+ *  move, the decoy is only static. Doubles as the doc's "near-miss" idea: a
+ *  worn-down GOOSE almost acting on an unchecked order. The Read & Mason echo
+ *  stays general and well documented (their parties moved again and again ahead
+ *  of the patrols), with no names. "Home" is the unsent letter in the notes. */
+const BOUGAINVILLE_DAY4: Scenario = {
+  id: "bougainville-4",
+  dayTag: "Bougainville · Day 22",
+  minEffectiveWpm: FIELD_MIN_WPM,
+  introTitle: "One Clearing Ahead",
+  introCopy:
+    "Dogs in the valley last night. The boy heard them first, and by the time you were " +
+    "awake he had the batteries in the packs. Nobody has given the order yet. Nobody " +
+    "needs to explain what the dogs are for.",
+  notes:
+    "Day 22. I finished the letter to Evelyn — the date, the weather, nothing the censor " +
+    "would want. It'll go out whenever something goes out. The boy watched me fold it and " +
+    "didn't ask who it was for. I didn't ask him anything either. The bombers going over " +
+    "at night are ours now, and KEN's traffic has that Headed Yours tightness in it again. " +
+    "Something's coming to this island, and it isn't only the patrols.",
+  briefing: (hqFreqKhz) =>
+    "STATION GOOSE — Bougainville. OP on the ridge; enemy patrols and DF working this " +
+    `valley. Skeds with HQ (KEN) on ${hqFreqKhz} kHz: 0600 / 1100, then as ordered. ` +
+    "Expect a relocate order: copy the new frequency and sked time, which won't be written " +
+    "down. Enemy operators are sending false orders as KEN — act only on traffic that " +
+    "comes at a sked time or proves itself. Challenge: KEN DE GOOSE AUTHENTICATE <letter> K.",
+  buildTimeline: (authChallenge, hqFreqKhz) => {
+    const newFreqKhz = makeFreqOtherThan(hqFreqKhz);
+    const decoyKhz = makeFreqOtherThan(hqFreqKhz, newFreqKhz);
+    return [
+      {
+        kind: "sked",
+        clock: "0600",
+        light: "dawn",
+        msg: `${MY_CALL} DE ${HQ_CALL} GM DOGS ES PATROLS UR AREA ORDERS AT 1100 AUTHENTICATE ${authChallenge} K`,
+        prompt:
+          "Copy KEN and the authenticator challenge. Check today's table, then send " +
+          "QSL I AUTHENTICATE <code> together — or AGN? to hear it again.",
+      },
+      { kind: "spot", clock: "0730", light: "morning", sighting: makeSearchPlane(), spotter: "the boy" },
+      {
+        kind: "impostor",
+        clock: "1015",
+        light: "morning",
+        msg: `${MY_CALL} DE ${HQ_CALL} RELOCATE NOW NEW FREQ ${decoyKhz} K`,
+        dodge: `${MY_CALL} DE ${HQ_CALL} RELOCATE NOW RELOCATE NOW K`,
+      },
+      {
+        kind: "sked",
+        clock: "1100",
+        light: "morning",
+        msg: `${MY_CALL} DE ${HQ_CALL} RELOCATE NOW NEW FREQ ${newFreqKhz} SKED 1600 QRT K`,
+        prompt:
+          "The 1100 sked — KEN's real orders. Copy the new frequency, then acknowledge " +
+          "(QSL), or AGN? until you have it.",
+      },
+      {
+        kind: "relocate",
+        clock: "1130",
+        light: "noon",
+        spotter: "the boy",
+        breakdown:
+          "No time for the drilled order. The antenna comes down cut, not coiled; the boy " +
+          "has the set on the pole before you've wrapped the key. Downhill first, through " +
+          "the stream to kill the scent, then up the far side without a trail.",
+        arrive:
+          "A shelf of rock under a fig tree, water close, a view of nothing but more ridges. " +
+          "The boy strings the antenna while you're still getting your breath back. It " +
+          "hangs straighter than yours ever did.",
+        arriveClock: "1545",
+        arriveLight: "afternoon",
+        newFreqKhz,
+      },
+      {
+        kind: "sked",
+        clock: "1600",
+        light: "afternoon",
+        msg: `${MY_CALL} DE ${HQ_CALL} GLAD UR UP QRU? K`,
+        prompt: "KEN found you. Answer his QRU? — or AGN? for a repeat.",
+        reply: {
+          words: ["QRU"],
+          hint: "KEN asked QRU? — a QSL doesn't answer it. Send QRU: nothing for you.",
+        },
+      },
+      {
+        kind: "sked",
+        clock: "1800",
+        light: "dusk",
+        msg: `${MY_CALL} DE ${HQ_CALL} STAY PUT BIG DAYS COMING QRT GN K`,
+        prompt: "Copy the sign-off, then acknowledge (QSL).",
+        final: true,
+      },
+    ];
+  },
+  outroCopy: "A new shelf of rock, a new tree for the antenna, and the dogs a valley behind.",
+  outroAside: ({ impostor }) => {
+    const echo =
+      " The men who watched this island before you lived like this for months on end, " +
+      "one clearing ahead of the patrols. In training that had been a story. Tonight it " +
+      "was just a description.";
+    if (impostor === "challenged")
+      return (
+        "Two relocate orders in one morning, and only one of them could prove itself. You " +
+        "made the other one try, the way Andy drilled it, and it couldn't." + echo
+      );
+    if (impostor === "answered")
+      return (
+        "You'd answered the first order before you thought to check it, and somewhere a " +
+        "man with the wrong fist knew he'd reached you. The real one came at 1100, right on " +
+        "time, and you copied it with your hand not quite steady." + echo
+      );
+    return (
+      "The first order came off-sked, and you let it hang there unanswered until the real " +
+      "one came at 1100, right on time. You couldn't have said, afterward, whether that " +
+      "was discipline or exhaustion." + echo
+    );
+  },
+};
+
 // Request Supplies randomization pools (MUNDA_DAY1 only, so far). Both pools
 // are generated once in buildTimeline() and read back by notes()/briefing()
 // from the built day, never re-rolled independently — see the Scenario
@@ -2183,6 +2422,8 @@ const SCENARIOS: Scenario[] = [
   KOLOMBANGARA_DAY4,
   BOUGAINVILLE_DAY1,
   BOUGAINVILLE_DAY2,
+  BOUGAINVILLE_DAY3,
+  BOUGAINVILLE_DAY4,
   MAGIC_CARPET_FINALE,
 ];
 
