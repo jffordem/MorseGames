@@ -884,14 +884,14 @@ How missions string into an arc — resolves the former "campaign structure" ope
   | | 5 | Messages from home | First letter — the pining beat, a breather |
   | | 6 | React to threats | First real scare — a patrol close call, survivable |
   | | 7 | Sign-off | **Promotion** (Bill); boat to New Georgia — "squinting at the sun" |
-  | New Georgia / Munda | 1 | Request supplies | Arrival; jerry cans, hacked paths |
-  | | 2 | Decode (HQ's ask) | Airstrip misconception builds |
-  | | 3 | **Milestone: React to threats** | Reveal — Seabees are building it; real job is watching the sky |
-  | | 4 | Sign-off | Strip finished; **Promotion** |
   | Kolombangara | 1 | Control frequency | Light arrival card — existing intro/cold-open (Day 14) |
   | | 2 | **Full worked example** | The built demo day; JFK/PT-109 wreckage sighting folds in here, not a separate day (Day 17) |
   | | 3 | Relay net (SKIP) | SKIP's traffic can't reach KEN direct — copy, acknowledge, forward (Day 23) |
-  | | 4 | Sign-off | **Promotion** |
+  | New Georgia / Munda (detachment from Kolombangara) | 1 | Request supplies | Arrival; jerry cans, hacked paths |
+  | | 2 | Decode (HQ's ask) | Airstrip misconception builds |
+  | | 3 | **Milestone: React to threats** | Reveal — Seabees are building it; real job is watching the sky |
+  | | 4 | Sign-off | Strip finished; **Promotion** (T/4); back to Kolombangara (Day 6) |
+  | Kolombangara (return) | 4 | Sign-off | Barge evacuation; scouts named in the handover log; **Promotion** (T/3) (Day 74) |
   | Bougainville (posting 1) | 1 | React to threats | Arrival already tense |
   | | 2 | React to threats | **Relocate** — forced |
   | Bougainville (posting 2) | 1 | React to threats | New spot, tenser still |
@@ -945,10 +945,9 @@ How missions string into an arc — resolves the former "campaign structure" ope
     posting, are named on the page for the first time in the relief operator's handover
     log — Pita's entry full, Tione's correct but thin; Bill promotes GOOSE to **T/3**),
     all of Munda, days 1–4 (`munda-1`, `munda-2`, `munda-3` — the haggle and the
-    Seabees-milestone arc — and `munda-4` "Wheels Down", tagged Day 9 — the sign-off:
+    Seabees-milestone arc — and `munda-4` "Wheels Down", tagged Day 6 — the sign-off:
     the strip opens, the first friendly fighters land, GOOSE reports only the enemy
-    recon; **T/4**; and Aaron goes home to Guadalcanal with "names first, before the
-    trees," which starts the field-companion decline), **Bougainville posting 1, days
+    recon; **T/4**, and back to Kolombangara; no companion at Munda, on purpose), **Bougainville posting 1, days
     1–2** (2026-09-23 — `bougainville-1` "Wrong Fist": put ashore by submarine; the first
     **impostor** beat, a new `impostor` event realizing "Soft tells before the hard
     check": off-sked traffic under KEN's call asks for GOOSE's QTH, and the player
@@ -986,13 +985,11 @@ How missions string into an arc — resolves the former "campaign structure" ope
     **Next in the linear order: Bougainville posting 2** (day 1 "new spot, tenser still";
     day 2 relocate again, echoing Read & Mason — the `relocate` event is already built),
     then the two invasion days.
-  - **Known chronology wrinkle (flagged 2026-09-23, not fixed):** the Kolombangara demo
-    days predate the Munda arc they now follow. PT-109 (Kolombangara Day 17) sank on
-    2 Aug 1943, but the first fighters landed at Munda around 14 Aug, so real history has
-    GOOSE on Kolombangara before the Munda sign-off. The missions carry no calendar
-    dates, so players won't see a conflict. Worth a look if Kolombangara's day tags are
-    ever revisited. Separately, `munda-3`'s outro credits the 47th/63rd Battalions with
-    the strip. Verify those unit numbers before the Munda arc gets any more specific.
+  - **Chronology wrinkle resolved (2026-09-23):** see the revised **Ordering fixed** note
+    above. Still unverified: `munda-3`'s outro credits the 47th/63rd Battalions with the
+    strip. Check those unit numbers before the Munda arc gets any more specific. The
+    posting-by-posting WPM table below lists Munda before Kolombangara. When those
+    floors get wired up, Munda's detachment should probably share Kolombangara's step.
   - **Per-mission speed floor (2026-09-22, implemented):** `Scenario.minEffectiveWpm`
     raises HQ's effective WPM to at least that value when the player's setting is slower
     (a faster setting is left alone; char WPM is lifted to match if needed). Every field
@@ -1335,14 +1332,18 @@ faces are worth naming).
     Guadalcanal-side scout/contact — a real friendship, properly earned, because for once
     there's *time*: Aaron teaches him the terrain and something of his own life, and GOOSE
     learns his name without having to try. This is the bar every later posting fails to
-    clear, deliberately.
-  - **Munda — the first crack, task-focused.** Attentive but transactional; the milestone
-    crisis (protecting the Seabees) eats the bandwidth a real friendship would need. No
-    fully realized companion needed here — the *absence* of one is the point.
+    clear, deliberately. Aaron stays on Guadalcanal. His farewell in `guadalcanal-7`
+    ("Learn their names first thing. Before the trees.") is the bar, stated out loud.
   - **Kolombangara — the asymmetry.** Already written above, reframed rather than rewritten:
     Pita gets the full relationship (the tide/rhythm parallel); Tione is acknowledged but
     not fully *seen* — "the one who handles the settling-up," not someone GOOSE bonds with
-    the way he does Pita. That existing asymmetry *is* the first real crack.
+    the way he does Pita. That existing asymmetry *is* the first real crack. Played in
+    `kolombangara-4`'s handover log.
+  - **Munda — task-focused (a detachment in the middle of the Kolombangara posting, per
+    the 2026-09-23 chronology fix).** Attentive but transactional; the milestone
+    crisis (protecting the Seabees) eats the bandwidth a real friendship would need. No
+    fully realized companion needed here — the *absence* of one is the point. `munda-4`'s
+    notes have GOOSE admit he hasn't learned the boys' names.
   - **Bougainville, posting 1 — the name he's not sure of.** Shorter posting, higher danger;
     GOOSE catches a name but isn't fully certain he's got it right, and it's never
     corrected on the page — no time, and if he's honest, not quite the will left either.
