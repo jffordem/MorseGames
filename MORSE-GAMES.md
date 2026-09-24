@@ -909,7 +909,7 @@ How missions string into an arc — resolves the former "campaign structure" ope
   plus the short summary in `CLAUDE.md` and the Adventure blurb in `README.md` if the
   player-facing scope changed. Work happens on feature branches, and merging to `main`
   auto-deploys to the live site.
-  - **Built** (playable in `adventure.ts`'s `SCENARIOS`, 21 of 25): all of Guadalcanal, days 1–7
+  - **Built** (playable in `adventure.ts`'s `SCENARIOS`, 23 of 25): all of Guadalcanal, days 1–7
     (`guadalcanal-1` "Cactus" — tune + decode only, introduces Aaron, the Minnow, and
     SKIP's call as overheard traffic; `guadalcanal-2` "The Rhythm", tagged Day 5 — first
     send beyond QSL: KEN's `QRU?` must be answered, via a new optional sked `reply`
@@ -956,10 +956,21 @@ How missions string into an arc — resolves the former "campaign structure" ope
     name GOOSE isn't sure of. `bougainville-2` "Carrying Poles": the forced move, via a
     new `relocate` event — KEN's relocate order carries the new frequency in Morse only,
     the set goes down, and the day resumes only once the player tunes the new frequency
-    by ear; moving resets DF danger), and the Magic Carpet finale (`magic-carpet`).
+    by ear; moving resets DF danger), **Bougainville posting 2, days 1–2** (2026-09-23 —
+    `bougainville-3` "Box Score", tagged Day 15: a new, higher OP; the companion decline's
+    end point, where the new carrier is only ever "the boy" (Tomasi went south,
+    never corrected); a patrol `silence` beat; and the start of Evelyn's decline — her
+    last letter is one page about the weather, and the home slot goes to a KEN bulletin,
+    the 1943 World Series (Yankees over the Cardinals, 4–1, ended 11 Oct 1943),
+    mirroring Mail Call's 1942 Cardinals win. `bougainville-4` "One Clearing Ahead", tagged
+    Day 22: the hardest relocate — an off-sked impostor sends a false relocate order with
+    a decoy frequency, then the real order arrives on the sked; after the move the decoy
+    is only static. The outro echoes Read & Mason in general terms, without names),
+    and the Magic Carpet finale (`magic-carpet`).
   - **Not started** (table row only — a one-line focus/notes hook, no scene draft yet;
-    the remaining 4): Bougainville posting 2 (days 1–2) and both Bougainville-invasion
-    days.
+    the remaining 2): both Bougainville-invasion days (Nov 1943 — the landing at
+    Empress Augusta Bay, 1 Nov). Bougainville Day 22's sign-off ("STAY PUT BIG DAYS
+    COMING") and notes (our bombers overhead at night) set them up.
   - **Build order from here: linear along the timeline (decided 2026-09-22).** Start at
     Guadalcanal Day 1 and walk forward, filling gaps until the new work catches up to the
     already-built Munda / Kolombangara days — so each deploy adds a stretch of story that
@@ -982,9 +993,8 @@ How missions string into an arc — resolves the former "campaign structure" ope
     deploy, so the live site gains a stretch of story at a time. **All seven built
     (2026-09-22) and deployed together (2026-09-23, PR #18).** Munda Day 4, Kolombangara
     Day 4, and Bougainville posting 1 followed on the `signoffs-and-bougainville` branch.
-    **Next in the linear order: Bougainville posting 2** (day 1 "new spot, tenser still";
-    day 2 relocate again, echoing Read & Mason — the `relocate` event is already built),
-    then the two invasion days.
+    Bougainville posting 2 followed on the same branch. **Next in the linear order: the
+    two Bougainville-invasion days**, which are the last missions to build.
   - **Chronology wrinkle resolved (2026-09-23):** see the revised **Ordering fixed** note
     above. Still unverified: `munda-3`'s outro credits the 47th/63rd Battalions with the
     strip. Check those unit numbers before the Munda arc gets any more specific. The
@@ -1367,6 +1377,10 @@ faces are worth naming).
   else, get sick, just run out of whatever it takes to sustain a solo correspondence
   across years and an ocean? GOOSE never gets a clean answer, which is the honest version
   of what a lot of real wartime relationships actually did.
+- **Where it's played so far (2026-09-23):** full strength in `guadalcanal-5` (Mail
+  Call). The turn comes in `bougainville-3`: a one-page letter about the weather, read
+  once, and KEN's World Series bulletin in the home slot. `bougainville-4` has an unsent
+  letter that says nothing.
 - **GOOSE doesn't know how to grieve it — so the game doesn't show him grieving it.** Per
   the invisibility test above, this isn't a dramatized breakdown scene. It shows up
   sideways: the **"Messages from home" kit element** (see the mission-element kit above)

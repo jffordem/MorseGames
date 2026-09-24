@@ -896,7 +896,7 @@ function makeScramble(): Sighting {
     alt: "HI",
     dir,
     prose:
-      `${count} fighters climbing hard out of the south fields, ${dirPhrase(dir)} — going to ` +
+      `${count} fighters out of the south fields, already high and still climbing, ${dirPhrase(dir)} — going to ` +
       "meet whatever's coming up from New Georgia.",
   };
 }
