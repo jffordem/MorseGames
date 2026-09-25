@@ -896,20 +896,20 @@ How missions string into an arc — resolves the former "campaign structure" ope
   | | 2 | React to threats | **Relocate** — forced |
   | Bougainville (posting 2) | 1 | React to threats | New spot, tenser still |
   | | 2 | React to threats / home | **Relocate** again — echoes Read & Mason |
-  | Bougainville invasion | 1 | Decode | Last full field day |
-  | | 2 | Decode / React to threats | The invasion itself, Nov 1943 — a playable field day, not a cutscene |
+  | Bougainville invasion | 1 | Decode (+ **Intercept**) | Last full field day; first enemy-traffic intercept (31 Oct, Day 27) |
+  | | 2 | Decode / React to threats | The invasion itself, 1 Nov 1943 (Torokina) — a playable field day, not a cutscene (Day 28) |
   | Magic Carpet coordination (true finale) | 1 | **Coordinator role — the relay net, at scale** | Big calendar skip (~20 months) to mid/late 1945; see below |
 
   25 missions total (3 training + 22 field) — a draft scaffold for future mission writing,
   not locked content.
 
-  **Build status (2026-09-23), to anchor incremental mission-writing sessions.** The
+  **Build status (2026-09-24), to anchor incremental mission-writing sessions.** The
   table above is the map; this is the current position on it. **This note is the
   single source of truth for mission progress.** When a mission ships, update it here,
   plus the short summary in `CLAUDE.md` and the Adventure blurb in `README.md` if the
   player-facing scope changed. Work happens on feature branches, and merging to `main`
   auto-deploys to the live site.
-  - **Built** (playable in `adventure.ts`'s `SCENARIOS`, 23 of 25): all of Guadalcanal, days 1–7
+  - **Built** (playable in `adventure.ts`'s `SCENARIOS`, all 25): all of Guadalcanal, days 1–7
     (`guadalcanal-1` "Cactus" — tune + decode only, introduces Aaron, the Minnow, and
     SKIP's call as overheard traffic; `guadalcanal-2` "The Rhythm", tagged Day 5 — first
     send beyond QSL: KEN's `QRU?` must be answered, via a new optional sked `reply`
@@ -968,11 +968,27 @@ How missions string into an arc — resolves the former "campaign structure" ope
     Day 22: the hardest relocate — an off-sked impostor sends a false relocate order with
     a decoy frequency, then the real order arrives on the sked; after the move the decoy
     is only static. The outro echoes Read & Mason in general terms, without names),
-    and the Magic Carpet finale (`magic-carpet`).
-  - **Not started** (table row only — a one-line focus/notes hook, no scene draft yet;
-    the remaining 2): both Bougainville-invasion days (Nov 1943 — the landing at
-    Empress Augusta Bay, 1 Nov). Bougainville Day 22's sign-off ("STAY PUT BIG DAYS
-    COMING") and notes (our bombers overhead at night) set them up.
+    **both Bougainville-invasion days** (2026-09-24 — `invasion-1` "Every Scrap", tagged
+    Day 27 = 31 Oct 1943: the campaign's first **INTERCEPT**, a new `intercept` event —
+    KEN gives an enemy frequency in Morse only; GOOSE tunes it and hears three
+    five-figure groups once (JN-25's real shape: pure copy, nothing to guess from); AGN
+    gets "NIL AGN FROM THEM"; transmit stays locked until he's back on KEN's frequency;
+    KEN only acknowledges the count (he never heard the enemy), and the outro reads
+    how many groups were right, via `outroAside`'s new `intercept` field. The guns in the
+    north after midnight are the real cruiser bombardment of the Buka fields.
+    `invasion-2` "Torokina", tagged Day 28 = 1 Nov 1943: the 3rd Marine Division lands
+    at Cape Torokina on the far side of the island; GOOSE reports raids crossing toward
+    the beachhead, goes silent while a column moves west toward the landing, and hears
+    that the fighter cover came partly from New Georgia — the Munda strip callback. After
+    midnight come the flashes of the Battle of Empress Augusta Bay, echoing Guadalcanal
+    Day 3. The Navajo Code Talkers appear only in the outro, in hindsight and with no
+    names, since their role stayed secret until 1968. The final sked keeps radio format, because
+    KEN's one format-break is saved for the epilogue), and the Magic Carpet finale
+    (`magic-carpet`).
+  - **Not started:** none — every row of the allocation table is built (2026-09-24).
+    Open follow-ups live elsewhere in this doc: the epilogue (a KEN format-break, the
+    scout-log line), the higher per-posting WPM floors, the Training Day Random-Run
+    wrapper, and playtest tuning.
   - **Build order from here: linear along the timeline (decided 2026-09-22).** Start at
     Guadalcanal Day 1 and walk forward, filling gaps until the new work catches up to the
     already-built Munda / Kolombangara days — so each deploy adds a stretch of story that
@@ -995,8 +1011,8 @@ How missions string into an arc — resolves the former "campaign structure" ope
     deploy, so the live site gains a stretch of story at a time. **All seven built
     (2026-09-22) and deployed together (2026-09-23, PR #18).** Munda Day 4, Kolombangara
     Day 4, and Bougainville posting 1 followed on the `signoffs-and-bougainville` branch.
-    Bougainville posting 2 followed on the same branch. **Next in the linear order: the
-    two Bougainville-invasion days**, which are the last missions to build.
+    Bougainville posting 2 followed on the same branch (deployed 2026-09-24, PR #19). The
+    invasion days followed on `bougainville-invasion`, completing the table.
   - **Chronology wrinkle resolved (2026-09-23):** see the revised **Ordering fixed** note
     above. Still unverified: `munda-3`'s outro credits the 47th/63rd Battalions with the
     strip. Check those unit numbers before the Munda arc gets any more specific. The
@@ -1618,7 +1634,9 @@ bootcamp — flip if needed).
   uncluttered. **Sightings are generated** (random category / count / type / altitude /
   heading), so no two runs match and the report can't be memorised.
 - **Intercept deferred.** The enemy-cipher intercept beat needs a second frequency, which
-  fights "radio is one-time" — cut from the demo, kept for full missions.
+  fights "radio is one-time" — cut from the demo, kept for full missions. **Built
+  2026-09-24** as the `intercept` event in `invasion-1`: KEN's order gives the second
+  frequency, and the dial handles it the same way as a relocate.
 
 **Naming & the Gilligan wink.** Missions are named for **real islands** (here
 **Kolombangara** — a volcanic cone with one dominant summit = "the tallest hill" literally,

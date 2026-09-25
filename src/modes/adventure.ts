@@ -271,6 +271,14 @@ type DayEvent =
       arriveLight: string;
       newFreqKhz: number;
     }
+  // INTERCEPT — the third Morse verb. The sked before this one gave
+  // `freqKhz` (in Morse only); the player tunes there and hears the enemy's
+  // `groups` once — five-figure number groups, as real Japanese naval traffic
+  // (JN-25) was sent: nothing to guess from, pure copy. Then back to KEN's sked
+  // frequency to pass them on. KEN can't judge the groups (he never heard
+  // them), so any addressed report with groups in it completes the beat; the
+  // outro reads how many were right via `intercept`.
+  | { kind: "intercept"; clock: string; light: string; freqKhz: number; groups: string[] }
   // Request Supplies kit element — a real back-and-forth negotiation over CW, not
   // a scripted exchange. `partner` haggles via the RULES table below (see "Nick's
   // dialogue rules") using a value-weighted engine with two INDEPENDENT
@@ -302,6 +310,7 @@ interface RunOutcome {
   retries: number;
   brokeSilence: boolean;
   impostor: ImpostorOutcome;
+  intercept: { correct: number; total: number }; // total 0 if the day has no intercept
 }
 
 /** Built once per transmit() call and handed to the dialogue engine's rule table. */
@@ -1103,6 +1112,219 @@ const BOUGAINVILLE_DAY4: Scenario = {
       "was discipline or exhaustion." + echo
     );
   },
+};
+
+/** n random five-figure groups — the shape of real JN-25 traffic. */
+function makeCipherGroups(n: number): string[] {
+  return Array.from({ length: n }, () => Array.from({ length: 5 }, () => String(randInt(0, 9))).join(""));
+}
+
+/** Bougainville invasion, Day 1 — "Decode: last full field day" (mission
+ *  allocation table), 31 Oct 1943, the eve of Operation Cherryblossom. The
+ *  campaign's first INTERCEPT, the third Morse verb: KEN wants every scrap of
+ *  enemy traffic before tomorrow. Forrest Gump restraint on the payoff — GOOSE's
+ *  groups are one copy among many intercept stations', and the decrypting
+ *  happens far away. KEN can't say what tomorrow is (the landing was secret),
+ *  only to stay on the air. The guns in the north after midnight are real:
+ *  US cruisers shelled the Buka airfields in the early hours of 1 Nov. */
+const INVASION_DAY1: Scenario = {
+  id: "invasion-1",
+  dayTag: "Bougainville · Day 27",
+  minEffectiveWpm: FIELD_MIN_WPM,
+  introTitle: "Every Scrap",
+  introCopy:
+    "The bombers go over every night now, and every morning the fields to the south are " +
+    "busier, not quieter. KEN's traffic has come in pieces all week, like he can't say " +
+    "the whole thing at once. Today he wants something new from you — not what you see, " +
+    "but what you hear.",
+  notes:
+    "Day 27. A new job: listen on the enemy's frequency and copy what goes by. Five-" +
+    "figure groups, KEN says, numbers with no meaning I'll ever be told. Andy used to say " +
+    "the purest copy is copy you can't guess at. I thought he meant it as a drill. The " +
+    "boy has started sleeping with his back against the set.",
+  briefing: (hqFreqKhz) =>
+    "STATION GOOSE — Bougainville. OP on the ridge. Skeds with HQ (KEN) on " +
+    `${hqFreqKhz} kHz: 0600 / 1000 / 1400 / 1800. Intercept: when KEN gives you an enemy ` +
+    "frequency, tune it and copy every group exactly — five figures each, and they won't " +
+    "repeat for you. Then tune back here and pass them on: KEN DE GOOSE <groups> K.",
+  buildTimeline: (authChallenge, hqFreqKhz) => {
+    const enemyKhz = makeFreqOtherThan(hqFreqKhz);
+    return [
+      {
+        kind: "sked",
+        clock: "0600",
+        light: "dawn",
+        msg: `${MY_CALL} DE ${HQ_CALL} GM BIG TRAFFIC DAY AUTHENTICATE ${authChallenge} K`,
+        prompt:
+          "Copy KEN and the authenticator challenge. Check today's table, then send " +
+          "QSL I AUTHENTICATE <code> together — or AGN? to hear it again.",
+      },
+      { kind: "spot", clock: "0800", light: "morning", sighting: makeScramble(), spotter: "the boy" },
+      {
+        kind: "sked",
+        clock: "1000",
+        light: "morning",
+        msg: `${MY_CALL} DE ${HQ_CALL} INTERCEPT ${enemyKhz} AT 1100 COPY ALL GROUPS K`,
+        prompt:
+          "KEN's giving you the enemy frequency — it's written nowhere else. Copy it, then " +
+          "acknowledge (QSL), or AGN? until you have it.",
+      },
+      { kind: "intercept", clock: "1100", light: "morning", freqKhz: enemyKhz, groups: makeCipherGroups(3) },
+      {
+        kind: "sked",
+        clock: "1400",
+        light: "afternoon",
+        msg: `${MY_CALL} DE ${HQ_CALL} STAND BY ALL DAY TOMORROW K`,
+        prompt: "Copy KEN, then acknowledge (QSL).",
+      },
+      {
+        kind: "sked",
+        clock: "1800",
+        light: "dusk",
+        msg: `${MY_CALL} DE ${HQ_CALL} TU GOOSE GET SOME SLEEP QRT GN K`,
+        prompt: "Copy the sign-off, then acknowledge (QSL).",
+        final: true,
+      },
+    ];
+  },
+  outroCopy: "The enemy's numbers, passed on. What they meant is somebody else's watch.",
+  outroAside: ({ intercept }) => {
+    const guns =
+      " You didn't sleep, whatever KEN said. Past midnight a long rumble came from far to " +
+      "the north, too steady for thunder — ships' guns, somebody told you later, on the " +
+      "Buka fields.";
+    if (intercept.correct === intercept.total)
+      return (
+        "Somewhere far behind the lines, men you'd never meet would lay your groups beside " +
+        "a dozen other stations' copies of the same transmission and make them talk. Yours " +
+        "would match, figure for figure." + guns
+      );
+    return (
+      "Somewhere far behind the lines, men you'd never meet would lay your groups beside a " +
+      `dozen other stations' copies and make them talk. ${intercept.correct} of yours ` +
+      `${intercept.correct === 1 ? "was" : "were"} clean; the other stations would cover ` +
+      "the rest. That's what the dozen are for." + guns
+    );
+  },
+};
+
+/** Bougainville invasion, Day 2 — the invasion itself (mission allocation
+ *  table: "a playable field day, not a cutscene"), 1 Nov 1943: the 3rd Marine
+ *  Division lands at Cape Torokina, Empress Augusta Bay, on the far (west) side
+ *  of the island from GOOSE. Real beats, all kept peripheral: Japanese air
+ *  strikes on the beachhead that day (GOOSE reports formations crossing the
+ *  island, the "Headed Yours" shape with him now protecting the landing);
+ *  Allied fighter cover out of the New Georgia strips, Munda among them (the
+ *  payoff for the strip GOOSE watched being built); Japanese troops moving
+ *  west toward the landing (a silence beat); and the Battle of Empress Augusta
+ *  Bay after midnight (flashes to the west, echoing Guadalcanal Day 3). The
+ *  Navajo Code Talkers served at Bougainville; they worked by voice, and their
+ *  role stayed secret until 1968, so they appear only in the outro, in
+ *  hindsight, with no individual named. The final sked keeps radio format —
+ *  the doc saves KEN's one format-break for the epilogue. */
+function makeTorokinaRaid(): Sighting {
+  const count = randInt(15, 30);
+  const type = pick(["BOMBER", "FIGHTER"]);
+  return {
+    category: "ACFT",
+    count,
+    type,
+    alt: "HI",
+    dir: "SW",
+    prose:
+      `${count} ${TYPE_NAME[type]}s, high, crossing the island from the north and heading ` +
+      "southwest — toward the far coast, and whatever is happening there.",
+  };
+}
+
+const INVASION_DAY2: Scenario = {
+  id: "invasion-2",
+  dayTag: "Bougainville · Day 28",
+  minEffectiveWpm: FIELD_MIN_WPM,
+  introTitle: "Torokina",
+  introCopy:
+    "Before first light the boy shook you awake and pointed west. Nothing to see — the " +
+    "whole spine of the island between you and the far coast — but the air itself was " +
+    "different. A pressure. Engines somewhere, a great many of them. KEN was on the air " +
+    "early.",
+  notes:
+    "Day 28. Whatever it is, it's on the far side of the island, and I'll never see it. " +
+    "What I can see is the sky between here and there, and every plane that crosses it. " +
+    "That's the job today. Same as Cactus, same as Munda — watch the sky over men who " +
+    "can't look up while they work.",
+  briefing: (hqFreqKhz) =>
+    "STATION GOOSE — Bougainville. Landing underway on the west coast. Report every enemy " +
+    `formation crossing the island at once: NR TYPE ALT CSE. Skeds with HQ (KEN) on ` +
+    `${hqFreqKhz} kHz: 0600 / 0730 / 1500 / 1800. Enemy troops will be moving west past ` +
+    "you — if they come close, stay off the air.",
+  buildTimeline: (authChallenge) => [
+    {
+      kind: "sked",
+      clock: "0600",
+      light: "dawn",
+      msg: `${MY_CALL} DE ${HQ_CALL} GM TODAY IS THE DAY AUTHENTICATE ${authChallenge} K`,
+      prompt:
+        "Copy KEN and the authenticator challenge. Check today's table, then send " +
+        "QSL I AUTHENTICATE <code> together — or AGN? to hear it again.",
+    },
+    {
+      kind: "sked",
+      clock: "0730",
+      light: "morning",
+      msg: `${MY_CALL} DE ${HQ_CALL} MARINES ASHORE EMPRESS AUGUSTA BAY RPT ALL ACFT K`,
+      prompt: "Copy KEN — this is what the week was for. Then acknowledge (QSL).",
+    },
+    { kind: "spot", clock: "0810", light: "morning", sighting: makeTorokinaRaid(), spotter: "the boy" },
+    {
+      kind: "silence",
+      clock: "1140",
+      light: "noon",
+      spotter: "the boy",
+      warning:
+        "Flat on the rock beside you, pointing down. A column on the trail below, moving " +
+        "west fast — more men than you've seen in one place on this island — toward the landing.",
+      call: `${MY_CALL} DE ${HQ_CALL} QRU? K`,
+      allClear: "The last of them passes. They never looked up. They had somewhere to be.",
+    },
+    { kind: "spot", clock: "1310", light: "afternoon", sighting: makeTorokinaRaid(), spotter: "the boy" },
+    {
+      kind: "sked",
+      clock: "1500",
+      light: "afternoon",
+      msg: ({ brokeSilence }) =>
+        brokeSilence
+          ? `${MY_CALL} DE ${HQ_CALL} UR NOON SIG GARBLED ARE YOU OK? K`
+          : `${MY_CALL} DE ${HQ_CALL} MISSED UR NOON SKED ARE YOU OK? K`,
+      prompt: "KEN's checking on you after noon. Tell him you're all right.",
+      reply: {
+        words: ["OK"],
+        hint: "KEN wants to know you're all right — tell him OK.",
+      },
+    },
+    {
+      kind: "sked",
+      clock: "1800",
+      light: "dusk",
+      msg: `${MY_CALL} DE ${HQ_CALL} BEACHHEAD HOLDS TU ALL STATIONS QRT GN K`,
+      prompt: "Copy the sign-off, then acknowledge (QSL).",
+      final: true,
+    },
+  ],
+  outroCopy: "The beachhead held. You never saw it, and you were part of it anyway.",
+  outroAside: ({ retries }) =>
+    (retries <= 1
+      ? "Word came down the net after dark: the raids had found fighters waiting over the " +
+        "bay, some of them up from New Georgia — off a strip you'd once watched them roll " +
+        "flat. Your reports were a few lines among hundreds, and they went out clean."
+      : "Word came down the net after dark: the raids had found fighters waiting over the " +
+        "bay, some of them up from New Georgia — off a strip you'd once watched them roll " +
+        "flat. Your reports were a few lines among hundreds, and not your cleanest. They " +
+        "got there.") +
+    " Past midnight the western sky lit up over the bay in soundless flickers, the way it " +
+    "had over the Slot your first month on Cactus. This time you knew what it was. Years " +
+    "later you'd learn that some of the voices on the Marines' radios that morning had " +
+    "been speaking Navajo — a code nobody on the other side ever broke — and that it was " +
+    "twenty-five years before anyone was allowed to say so.",
 };
 
 // Request Supplies randomization pools (MUNDA_DAY1 only, so far). Both pools
@@ -2424,6 +2646,8 @@ const SCENARIOS: Scenario[] = [
   BOUGAINVILLE_DAY2,
   BOUGAINVILLE_DAY3,
   BOUGAINVILLE_DAY4,
+  INVASION_DAY1,
+  INVASION_DAY2,
   MAGIC_CARPET_FINALE,
 ];
 
@@ -2437,6 +2661,7 @@ type Phase =
   | "silence"
   | "impostor"
   | "relocate"
+  | "intercept"
   | "haggle"
   | "done";
 
@@ -2476,6 +2701,15 @@ export class AdventureMode {
   private impostorOutcome: ImpostorOutcome = "none"; // how this run's impostor beat went, if it has one
   private impostorTimer: ReturnType<typeof setTimeout> | null = null; // ends an unanswered impostor beat
   private relocateArrived = false; // relocate beat: at the new OP, waiting for the dial to find KEN
+  // Intercept beat: "tune" (find the enemy frequency), "listen" (their traffic
+  // is playing), "report" (back on KEN's frequency, passing the groups on).
+  // While tuning/listening, hqFreqKhz temporarily holds the ENEMY frequency, so
+  // the dial, static and drift handling all work unchanged; skedFreqKhz keeps
+  // KEN's and is restored once the traffic has passed.
+  private interceptStage: "tune" | "listen" | "report" = "tune";
+  private skedFreqKhz = 0;
+  private interceptCorrect = 0;
+  private interceptTotal = 0;
   private authTable: AuthPair[] = []; // today's authenticator table
   private liveAuthIdx = 0; // which row of authTable KEN actually challenges with, randomized per run
   private hqFreqKhz = 0; // today's sked frequency, generated fresh in mount()
@@ -2553,6 +2787,9 @@ export class AdventureMode {
     this.clearImpostorTimer();
     this.impostorOutcome = "none";
     this.relocateArrived = false;
+    this.interceptStage = "tune";
+    this.interceptCorrect = 0;
+    this.interceptTotal = 0;
     this.authTable = makeAuthTable(); // generated fresh — see the authenticator note above
     this.liveAuthIdx = randInt(0, this.authTable.length - 1); // which row KEN actually challenges with
     this.hqFreqKhz = makeHqFreqKhz(); // generated fresh — same SOI logic as the auth table
@@ -2814,6 +3051,8 @@ export class AdventureMode {
           ["QRU", "nothing heard / anything for me?"],
           ["QRU?", "have you anything for me? — answer QRU if not"],
           ["QTH", "location — never send your own in the clear"],
+          ["NIL", "nothing / none"],
+          ["groups", "intercepted enemy code: five-figure groups — copy exactly, send as heard"],
           ["GM", "good morning"],
           ["QTC", "I have traffic for __"],
           ["QSP", "relay / I'll relay"],
@@ -3009,8 +3248,10 @@ export class AdventureMode {
     this.clearFreqSettle();
     // Two waits hinge on the dial: the day's first sked, and finding KEN
     // again after a relocate beat moved the station.
+    // An intercept beat adds a third: finding the enemy's frequency.
     const afterMove = this.phase === "relocate" && this.relocateArrived;
-    if (!afterMove && (this.phase !== "onair" || this.evtIx !== 0)) return;
+    const listening = this.phase === "intercept" && this.interceptStage === "tune";
+    if (!afterMove && !listening && (this.phase !== "onair" || this.evtIx !== 0)) return;
     if (this.playing) {
       // Audio's already mid-playback (from an earlier check) — a timer
       // scheduled now would just find `playing` still true and no-op when it
@@ -3021,7 +3262,7 @@ export class AdventureMode {
     }
     this.freqSettleTimer = setTimeout(() => {
       this.freqSettleTimer = null;
-      void (afterMove ? this.tryRelocated() : this.trySked0());
+      void (afterMove ? this.tryRelocated() : listening ? this.tryIntercept() : this.trySked0());
     }, FREQ_SETTLE_MS);
   }
 
@@ -3047,6 +3288,37 @@ export class AdventureMode {
     this.playing = false;
     this.refresh();
     this.recheckIfFreqChangedWhilePlaying();
+  }
+
+  /** Intercept beat, tuning: on the enemy frequency, their traffic plays —
+   *  once — and then it's back to KEN's frequency to report. Anywhere else,
+   *  static, and a reminder where the frequency was given. */
+  private async tryIntercept(): Promise<void> {
+    const e = this.currentEvent;
+    if (this.phase !== "intercept" || this.interceptStage !== "tune" || this.playing || !this.radioOn) return;
+    if (e.kind !== "intercept") return;
+    if (!this.onFreq) {
+      this.playing = true;
+      this.addTraffic("log", "static — off frequency");
+      this.setStatus(`Nothing on ${this.freqKhz} kHz. The frequency to watch was in KEN's order — check your notepad.`);
+      this.refresh();
+      await this.engine.playStatic(900);
+      this.playing = false;
+      this.refresh();
+      this.recheckIfFreqChangedWhilePlaying();
+      return;
+    }
+    this.interceptStage = "listen";
+    this.focusNotepad();
+    await this.hqSend(e.groups.join(" "), "UNKNOWN");
+    if (this.phase !== "intercept") return; // mission left mid-traffic
+    this.interceptStage = "report";
+    this.hqFreqKhz = this.skedFreqKhz;
+    this.setStatus(
+      "That's all you'll get — they won't send it twice. Tune back to KEN's sked frequency " +
+        "(see the briefing) and pass the groups: KEN DE GOOSE <groups> K."
+    );
+    this.refresh();
   }
 
   private clearImpostorTimer(): void {
@@ -3155,6 +3427,13 @@ export class AdventureMode {
       this.addSpot(e.arrive, e.spotter.toUpperCase());
       this.relocateArrived = true;
       this.setStatus("Set's up at the new OP. Tune to the frequency KEN gave you in the relocate order — it's not in the briefing.");
+    } else if (e.kind === "intercept") {
+      this.phase = "intercept";
+      this.interceptStage = "tune";
+      this.interceptTotal = e.groups.length;
+      this.skedFreqKhz = this.hqFreqKhz;
+      this.hqFreqKhz = e.freqKhz; // see the interceptStage field note
+      this.setStatus("Tune to the frequency in KEN's order and listen. You won't hear it twice.");
     } else if (e.kind === "haggle") {
       await this.beginHaggle(e);
     } else {
@@ -3235,7 +3514,12 @@ export class AdventureMode {
   }
 
   private get runOutcome(): RunOutcome {
-    return { retries: this.retryCount, brokeSilence: this.brokeSilence, impostor: this.impostorOutcome };
+    return {
+      retries: this.retryCount,
+      brokeSilence: this.brokeSilence,
+      impostor: this.impostorOutcome,
+      intercept: { correct: this.interceptCorrect, total: this.interceptTotal },
+    };
   }
 
   /** A sked's words for this run — see the sked event's `msg`. */
@@ -3768,6 +4052,40 @@ export class AdventureMode {
         ctx.setStatus("That wasn't addressed to you — no need to answer. Keep listening.");
       },
     },
+    // Intercept (see tryIntercept()). The enemy won't repeat, and KEN never
+    // heard them, so AGN gets nothing; any report with groups in it completes
+    // the beat, and how many were right is the codebreakers' business (the
+    // outro's), not KEN's.
+    {
+      id: "intercept-agn",
+      when: (ctx) => ctx.phase === "intercept",
+      match: (i) => i.isAgn,
+      act: async (_i, ctx) => {
+        await ctx.hqSend(`${MY_CALL} DE ${HQ_CALL} NIL AGN FROM THEM SEND WHAT U HAVE K`);
+        ctx.setStatus("Nobody can repeat it now. Send the groups you copied — partial copy still counts.");
+      },
+    },
+    {
+      id: "intercept-report",
+      when: (ctx) => ctx.phase === "intercept",
+      match: (i) => i.words.some((w) => /^[0-9]{5}$/.test(w)),
+      act: async (i, ctx) => {
+        const e = ctx.currentEvent;
+        if (e.kind !== "intercept") return;
+        const sent = i.words.filter((w) => /^[0-9]{5}$/.test(w)).length;
+        ctx.interceptCorrect = e.groups.filter((g) => i.tk.has(g)).length;
+        await ctx.hqSend(`${MY_CALL} DE ${HQ_CALL} QSL ${sent} GROUPS TU K`);
+        await ctx.advance();
+      },
+    },
+    {
+      id: "intercept-nudge",
+      when: (ctx) => ctx.phase === "intercept",
+      match: () => true,
+      act: (_i, ctx) => {
+        ctx.setStatus("KEN's waiting for the groups, five figures each, as you copied them: KEN DE GOOSE <groups> K.");
+      },
+    },
     // Safety net for states this mission never reaches (phase/event always stay
     // in lockstep — see runEvent()/advance()) but a future mission's content
     // might. Without this, an unanticipated state would go silent.
@@ -3847,6 +4165,7 @@ export class AdventureMode {
         this.phase === "overhear" ||
         this.phase === "silence" ||
         (this.phase === "impostor" && this.impostorOutcome === "ignored") || // one reply, then it's settled
+        (this.phase === "intercept" && this.interceptStage === "report" && this.onFreq) || // KEN can't hear you from their frequency
         this.phase === "haggle")
     );
   }

@@ -74,7 +74,7 @@ docker compose up
 - **Reading** — Passive listening to public-domain texts (Aesop, Gettysburg Address,
   Alice in Wonderland). Bookmarks your place between sessions.
 - **Adventure** — A story campaign as a WWII radio operator: tune to HQ, copy orders,
-  and encode sighting reports from a coastwatcher's radio shack. Starts with Signal
+  encode sighting reports, and intercept enemy traffic from a coastwatcher's radio shack. Starts with Signal
   Corps training at Camp Murphy, then follows the Solomons campaign (Guadalcanal, New
   Georgia, Kolombangara, Bougainville) to a postwar finale. Every mission is unlocked and freely
   replayable. Field missions send at a minimum of 7.5 WPM effective speed. If your
