@@ -853,10 +853,10 @@ How missions string into an arc — resolves the former "campaign structure" ope
   them; this is exactly how real Coastwatcher memoirs read (a highlight reel, not a log
   of every day), so it's free authenticity, not a shortcut that costs believability.
 - **A loose historical spine (anchor, not a rigid schedule):** Guadalcanal (Aug 1942 –
-  Feb 1943; air-raid warnings; Clemens/Vouza) → New Georgia / Munda (Jun–Aug 1943;
-  milestone mission — protecting the Seabees building Munda airfield, see **Real history
-  as milestone missions** below) → Kolombangara / Blackett Strait (Aug 1943; PT-109 — the
-  existing demo's setting) →
+  Feb 1943; air-raid warnings; Clemens/Vouza) → Kolombangara / Blackett Strait (Jul–Oct
+  1943; PT-109 — the existing demo's setting), with a detachment to **New Georgia /
+  Munda** in the middle (Aug 1943; milestone mission — protecting the Seabees building
+  Munda airfield, see **Real history as milestone missions** below) →
   Bougainville (1943; Read & Mason's warnings and eventual compromise/evacuation) →
   the Bougainville invasion (Nov 1943) as a finale-adjacent beat. ~15 months of real
   chronology, compressed by the calendar device into ~20 capsules — selection, not
@@ -884,14 +884,14 @@ How missions string into an arc — resolves the former "campaign structure" ope
   | | 5 | Messages from home | First letter — the pining beat, a breather |
   | | 6 | React to threats | First real scare — a patrol close call, survivable |
   | | 7 | Sign-off | **Promotion** (Bill); boat to New Georgia — "squinting at the sun" |
-  | New Georgia / Munda | 1 | Request supplies | Arrival; jerry cans, hacked paths |
-  | | 2 | Decode (HQ's ask) | Airstrip misconception builds |
-  | | 3 | **Milestone: React to threats** | Reveal — Seabees are building it; real job is watching the sky |
-  | | 4 | Sign-off | Strip finished; **Promotion** |
   | Kolombangara | 1 | Control frequency | Light arrival card — existing intro/cold-open (Day 14) |
   | | 2 | **Full worked example** | The built demo day; JFK/PT-109 wreckage sighting folds in here, not a separate day (Day 17) |
   | | 3 | Relay net (SKIP) | SKIP's traffic can't reach KEN direct — copy, acknowledge, forward (Day 23) |
-  | | 4 | Sign-off | **Promotion** |
+  | New Georgia / Munda (detachment from Kolombangara) | 1 | Request supplies | Arrival; jerry cans, hacked paths |
+  | | 2 | Decode (HQ's ask) | Airstrip misconception builds |
+  | | 3 | **Milestone: React to threats** | Reveal — Seabees are building it; real job is watching the sky |
+  | | 4 | Sign-off | Strip finished; **Promotion** (T/4); back to Kolombangara (Day 6) |
+  | Kolombangara (return) | 4 | Sign-off | Barge evacuation; scouts named in the handover log; **Promotion** (T/3) (Day 74) |
   | Bougainville (posting 1) | 1 | React to threats | Arrival already tense |
   | | 2 | React to threats | **Relocate** — forced |
   | Bougainville (posting 2) | 1 | React to threats | New spot, tenser still |
@@ -903,13 +903,13 @@ How missions string into an arc — resolves the former "campaign structure" ope
   25 missions total (3 training + 22 field) — a draft scaffold for future mission writing,
   not locked content.
 
-  **Build status (2026-09-22), to anchor incremental mission-writing sessions.** The
+  **Build status (2026-09-23), to anchor incremental mission-writing sessions.** The
   table above is the map; this is the current position on it. **This note is the
   single source of truth for mission progress.** When a mission ships, update it here,
   plus the short summary in `CLAUDE.md` and the Adventure blurb in `README.md` if the
   player-facing scope changed. Work happens on feature branches, and merging to `main`
   auto-deploys to the live site.
-  - **Built** (playable in `adventure.ts`'s `SCENARIOS`, 17 of 25): all of Guadalcanal, days 1–7
+  - **Built** (playable in `adventure.ts`'s `SCENARIOS`, 23 of 25): all of Guadalcanal, days 1–7
     (`guadalcanal-1` "Cactus" — tune + decode only, introduces Aaron, the Minnow, and
     SKIP's call as overheard traffic; `guadalcanal-2` "The Rhythm", tagged Day 5 — first
     send beyond QSL: KEN's `QRU?` must be answered, via a new optional sked `reply`
@@ -937,14 +937,42 @@ How missions string into an arc — resolves the former "campaign structure" ope
     GOOSE's rank is Technician-track stripes), all of Stateside
     training (`training-1`/`-2`/`-3`, Camp Murphy — shipped 2026-09-10 as ordinary
     shack-engine scenarios; the Random-Run-wrapper / graduate-on-speed mechanic is still
-    a parked follow-up, see the scope note above `TRAINING_DAY1`), Kolombangara days 1–3
-    (`kolombangara-14`, `kolombangara-3`, `kolombangara-relay`), all of Munda days 1–3
-    (`munda-1`, `munda-2`, `munda-3` — the haggle and the Seabees-milestone arc), and the
-    Magic Carpet finale (`magic-carpet`).
+    a parked follow-up, see the scope note above `TRAINING_DAY1`), all of Kolombangara,
+    days 1–4 (`kolombangara-14` "The Hill", `kolombangara-3` "Flash on the Water" (PT-109),
+    `kolombangara-relay` "QSP" — titled 2026-09-23, formerly all "Station GOOSE" — and
+    `kolombangara-4` "Handover", tagged Day 74 — the sign-off: dawn sightings of the real
+    late-Sept 1943 barge evacuation (new `BARGE` contact type), a last SKIP relay, and
+    the "the log doesn't ask" beat played in the outro: the scouts, "the boy" all
+    posting, are named on the page for the first time in the relief operator's handover
+    log — Pita's entry full, Tione's correct but thin; Bill promotes GOOSE to **T/3**),
+    all of Munda, days 1–4 (`munda-1` "Nick's Price" (formerly "Landfall — New Georgia",
+    renamed once Kolombangara came first), `munda-2`, `munda-3` — the haggle and the
+    Seabees-milestone arc — and `munda-4` "Wheels Down", tagged Day 6 — the sign-off:
+    the strip opens, the first friendly fighters land, GOOSE reports only the enemy
+    recon; **T/4**, and back to Kolombangara; no companion at Munda, on purpose), **Bougainville posting 1, days
+    1–2** (2026-09-23 — `bougainville-1` "Wrong Fist": put ashore by submarine; the first
+    **impostor** beat, a new `impostor` event realizing "Soft tells before the hard
+    check": off-sked traffic under KEN's call asks for GOOSE's QTH, and the player
+    challenges it (AUTHENTICATE), ignores it, or answers it, with the outro varying via
+    `outroAside`'s new `impostor` field; introduces Tomasi-or-Tamasi, the guide whose
+    name GOOSE isn't sure of. `bougainville-2` "Carrying Poles": the forced move, via a
+    new `relocate` event — KEN's relocate order carries the new frequency in Morse only,
+    the set goes down, and the day resumes only once the player tunes the new frequency
+    by ear; moving resets DF danger), **Bougainville posting 2, days 1–2** (2026-09-23 —
+    `bougainville-3` "Box Score", tagged Day 15: a new, higher OP; the companion decline's
+    end point, where the new carrier is only ever "the boy" (Tomasi went south,
+    never corrected); a patrol `silence` beat; and the start of Evelyn's decline — her
+    last letter is one page about the weather, and the home slot goes to a KEN bulletin,
+    the 1943 World Series (Yankees over the Cardinals, 4–1, ended 11 Oct 1943),
+    mirroring Mail Call's 1942 Cardinals win. `bougainville-4` "One Clearing Ahead", tagged
+    Day 22: the hardest relocate — an off-sked impostor sends a false relocate order with
+    a decoy frequency, then the real order arrives on the sked; after the move the decoy
+    is only static. The outro echoes Read & Mason in general terms, without names),
+    and the Magic Carpet finale (`magic-carpet`).
   - **Not started** (table row only — a one-line focus/notes hook, no scene draft yet;
-    the remaining 8): Munda day 4 and Kolombangara day 4
-    (sign-offs), all of Bougainville (both postings, 4), and both Bougainville-invasion
-    days.
+    the remaining 2): both Bougainville-invasion days (Nov 1943 — the landing at
+    Empress Augusta Bay, 1 Nov). Bougainville Day 22's sign-off ("STAY PUT BIG DAYS
+    COMING") and notes (our bombers overhead at night) set them up.
   - **Build order from here: linear along the timeline (decided 2026-09-22).** Start at
     Guadalcanal Day 1 and walk forward, filling gaps until the new work catches up to the
     already-built Munda / Kolombangara days — so each deploy adds a stretch of story that
@@ -952,16 +980,28 @@ How missions string into an arc — resolves the former "campaign structure" ope
     radio club for feedback), rather than scattered one-off days. Sign-off/promotion days
     (Guadalcanal 7, Munda 4, Kolombangara 4) stay cheap when their turn comes — they
     reuse the final-sked-plus-promotion pattern.
-  - **Ordering fixed (2026-09-22):** `SCENARIOS` now follows the historical spine —
-    training → Guadalcanal → Munda → Kolombangara → Magic Carpet (Munda had been after
-    Kolombangara because the demo was built first). Safe to reorder because there's no
-    persisted Adventure progress and every mission is unlocked.
+  - **Ordering fixed (2026-09-22, revised 2026-09-23):** `SCENARIOS` follows the
+    historical spine — training → Guadalcanal → Kolombangara days 14/17/23 → Munda
+    days 1–4 → Kolombangara Day 74 → Bougainville → Magic Carpet. The Munda arc is a
+    detachment inside the Kolombangara posting because the real dates overlap: PT-109
+    sank 2 Aug 1943 (Kolombangara Day 17, so GOOSE is on the hill from ~17 Jul), Munda
+    strip was captured 5 Aug and flew its first fighters ~14 Aug (Munda Day 6), and
+    Kolombangara's barge evacuation began ~28 Sept (Day 74). Aaron stays on
+    Guadalcanal: his "names first" farewell is in Guadalcanal Day 7, and Munda Day 1's
+    advice about Nick comes from the Minnow's coxswain instead. Safe to reorder because
+    there's no persisted Adventure progress and every mission is unlocked.
   - **Release batches for Guadalcanal:** days 1–4 (ending on the air-raid milestone), then
     days 5–7 (letter home, patrol scare, Bill's promotion into Munda) — each batch one
     deploy, so the live site gains a stretch of story at a time. **All seven built
-    (2026-09-22), none deployed yet** — both batches wait on playtesting on the
-    `guadalcanal-missions` branch. **Next in the linear order: Munda Day 4** (the strip
-    finished; promotion to T/4), then Kolombangara Day 4, then Bougainville.
+    (2026-09-22) and deployed together (2026-09-23, PR #18).** Munda Day 4, Kolombangara
+    Day 4, and Bougainville posting 1 followed on the `signoffs-and-bougainville` branch.
+    Bougainville posting 2 followed on the same branch. **Next in the linear order: the
+    two Bougainville-invasion days**, which are the last missions to build.
+  - **Chronology wrinkle resolved (2026-09-23):** see the revised **Ordering fixed** note
+    above. Still unverified: `munda-3`'s outro credits the 47th/63rd Battalions with the
+    strip. Check those unit numbers before the Munda arc gets any more specific. The
+    posting-by-posting WPM table below lists Munda before Kolombangara. When those
+    floors get wired up, Munda's detachment should probably share Kolombangara's step.
   - **Per-mission speed floor (2026-09-22, implemented):** `Scenario.minEffectiveWpm`
     raises HQ's effective WPM to at least that value when the player's setting is slower
     (a faster setting is left alone; char WPM is lifted to match if needed). Every field
@@ -1304,14 +1344,18 @@ faces are worth naming).
     Guadalcanal-side scout/contact — a real friendship, properly earned, because for once
     there's *time*: Aaron teaches him the terrain and something of his own life, and GOOSE
     learns his name without having to try. This is the bar every later posting fails to
-    clear, deliberately.
-  - **Munda — the first crack, task-focused.** Attentive but transactional; the milestone
-    crisis (protecting the Seabees) eats the bandwidth a real friendship would need. No
-    fully realized companion needed here — the *absence* of one is the point.
+    clear, deliberately. Aaron stays on Guadalcanal. His farewell in `guadalcanal-7`
+    ("Learn their names first thing. Before the trees.") is the bar, stated out loud.
   - **Kolombangara — the asymmetry.** Already written above, reframed rather than rewritten:
     Pita gets the full relationship (the tide/rhythm parallel); Tione is acknowledged but
     not fully *seen* — "the one who handles the settling-up," not someone GOOSE bonds with
-    the way he does Pita. That existing asymmetry *is* the first real crack.
+    the way he does Pita. That existing asymmetry *is* the first real crack. Played in
+    `kolombangara-4`'s handover log.
+  - **Munda — task-focused (a detachment in the middle of the Kolombangara posting, per
+    the 2026-09-23 chronology fix).** Attentive but transactional; the milestone
+    crisis (protecting the Seabees) eats the bandwidth a real friendship would need. No
+    fully realized companion needed here — the *absence* of one is the point. `munda-4`'s
+    notes have GOOSE admit he hasn't learned the boys' names.
   - **Bougainville, posting 1 — the name he's not sure of.** Shorter posting, higher danger;
     GOOSE catches a name but isn't fully certain he's got it right, and it's never
     corrected on the page — no time, and if he's honest, not quite the will left either.
@@ -1335,6 +1379,10 @@ faces are worth naming).
   else, get sick, just run out of whatever it takes to sustain a solo correspondence
   across years and an ocean? GOOSE never gets a clean answer, which is the honest version
   of what a lot of real wartime relationships actually did.
+- **Where it's played so far (2026-09-23):** full strength in `guadalcanal-5` (Mail
+  Call). The turn comes in `bougainville-3`: a one-page letter about the weather, read
+  once, and KEN's World Series bulletin in the home slot. `bougainville-4` has an unsent
+  letter that says nothing.
 - **GOOSE doesn't know how to grieve it — so the game doesn't show him grieving it.** Per
   the invisibility test above, this isn't a dramatized breakdown scene. It shows up
   sideways: the **"Messages from home" kit element** (see the mission-element kit above)
