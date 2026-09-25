@@ -271,6 +271,14 @@ type DayEvent =
       arriveLight: string;
       newFreqKhz: number;
     }
+  // INTERCEPT — the third Morse verb. The sked before this one gave
+  // `freqKhz` (in Morse only); the player tunes there and hears the enemy's
+  // `groups` once — five-figure number groups, as real Japanese naval traffic
+  // (JN-25) was sent: nothing to guess from, pure copy. Then back to KEN's sked
+  // frequency to pass them on. KEN can't judge the groups (he never heard
+  // them), so any addressed report with groups in it completes the beat; the
+  // outro reads how many were right via `intercept`.
+  | { kind: "intercept"; clock: string; light: string; freqKhz: number; groups: string[] }
   // Request Supplies kit element — a real back-and-forth negotiation over CW, not
   // a scripted exchange. `partner` haggles via the RULES table below (see "Nick's
   // dialogue rules") using a value-weighted engine with two INDEPENDENT
@@ -302,6 +310,7 @@ interface RunOutcome {
   retries: number;
   brokeSilence: boolean;
   impostor: ImpostorOutcome;
+  intercept: { correct: number; total: number }; // total 0 if the day has no intercept
 }
 
 /** Built once per transmit() call and handed to the dialogue engine's rule table. */
@@ -2437,6 +2446,7 @@ type Phase =
   | "silence"
   | "impostor"
   | "relocate"
+  | "intercept"
   | "haggle"
   | "done";
 
@@ -2476,6 +2486,15 @@ export class AdventureMode {
   private impostorOutcome: ImpostorOutcome = "none"; // how this run's impostor beat went, if it has one
   private impostorTimer: ReturnType<typeof setTimeout> | null = null; // ends an unanswered impostor beat
   private relocateArrived = false; // relocate beat: at the new OP, waiting for the dial to find KEN
+  // Intercept beat: "tune" (find the enemy frequency), "listen" (their traffic
+  // is playing), "report" (back on KEN's frequency, passing the groups on).
+  // While tuning/listening, hqFreqKhz temporarily holds the ENEMY frequency, so
+  // the dial, static and drift handling all work unchanged; skedFreqKhz keeps
+  // KEN's and is restored once the traffic has passed.
+  private interceptStage: "tune" | "listen" | "report" = "tune";
+  private skedFreqKhz = 0;
+  private interceptCorrect = 0;
+  private interceptTotal = 0;
   private authTable: AuthPair[] = []; // today's authenticator table
   private liveAuthIdx = 0; // which row of authTable KEN actually challenges with, randomized per run
   private hqFreqKhz = 0; // today's sked frequency, generated fresh in mount()
@@ -2553,6 +2572,9 @@ export class AdventureMode {
     this.clearImpostorTimer();
     this.impostorOutcome = "none";
     this.relocateArrived = false;
+    this.interceptStage = "tune";
+    this.interceptCorrect = 0;
+    this.interceptTotal = 0;
     this.authTable = makeAuthTable(); // generated fresh — see the authenticator note above
     this.liveAuthIdx = randInt(0, this.authTable.length - 1); // which row KEN actually challenges with
     this.hqFreqKhz = makeHqFreqKhz(); // generated fresh — same SOI logic as the auth table
@@ -2814,6 +2836,8 @@ export class AdventureMode {
           ["QRU", "nothing heard / anything for me?"],
           ["QRU?", "have you anything for me? — answer QRU if not"],
           ["QTH", "location — never send your own in the clear"],
+          ["NIL", "nothing / none"],
+          ["groups", "intercepted enemy code: five-figure groups — copy exactly, send as heard"],
           ["GM", "good morning"],
           ["QTC", "I have traffic for __"],
           ["QSP", "relay / I'll relay"],
@@ -3009,8 +3033,10 @@ export class AdventureMode {
     this.clearFreqSettle();
     // Two waits hinge on the dial: the day's first sked, and finding KEN
     // again after a relocate beat moved the station.
+    // An intercept beat adds a third: finding the enemy's frequency.
     const afterMove = this.phase === "relocate" && this.relocateArrived;
-    if (!afterMove && (this.phase !== "onair" || this.evtIx !== 0)) return;
+    const listening = this.phase === "intercept" && this.interceptStage === "tune";
+    if (!afterMove && !listening && (this.phase !== "onair" || this.evtIx !== 0)) return;
     if (this.playing) {
       // Audio's already mid-playback (from an earlier check) — a timer
       // scheduled now would just find `playing` still true and no-op when it
@@ -3021,7 +3047,7 @@ export class AdventureMode {
     }
     this.freqSettleTimer = setTimeout(() => {
       this.freqSettleTimer = null;
-      void (afterMove ? this.tryRelocated() : this.trySked0());
+      void (afterMove ? this.tryRelocated() : listening ? this.tryIntercept() : this.trySked0());
     }, FREQ_SETTLE_MS);
   }
 
@@ -3047,6 +3073,37 @@ export class AdventureMode {
     this.playing = false;
     this.refresh();
     this.recheckIfFreqChangedWhilePlaying();
+  }
+
+  /** Intercept beat, tuning: on the enemy frequency, their traffic plays —
+   *  once — and then it's back to KEN's frequency to report. Anywhere else,
+   *  static, and a reminder where the frequency was given. */
+  private async tryIntercept(): Promise<void> {
+    const e = this.currentEvent;
+    if (this.phase !== "intercept" || this.interceptStage !== "tune" || this.playing || !this.radioOn) return;
+    if (e.kind !== "intercept") return;
+    if (!this.onFreq) {
+      this.playing = true;
+      this.addTraffic("log", "static — off frequency");
+      this.setStatus(`Nothing on ${this.freqKhz} kHz. The frequency to watch was in KEN's order — check your notepad.`);
+      this.refresh();
+      await this.engine.playStatic(900);
+      this.playing = false;
+      this.refresh();
+      this.recheckIfFreqChangedWhilePlaying();
+      return;
+    }
+    this.interceptStage = "listen";
+    this.focusNotepad();
+    await this.hqSend(e.groups.join(" "), "UNKNOWN");
+    if (this.phase !== "intercept") return; // mission left mid-traffic
+    this.interceptStage = "report";
+    this.hqFreqKhz = this.skedFreqKhz;
+    this.setStatus(
+      "That's all you'll get — they won't send it twice. Tune back to KEN's sked frequency " +
+        "(see the briefing) and pass the groups: KEN DE GOOSE <groups> K."
+    );
+    this.refresh();
   }
 
   private clearImpostorTimer(): void {
@@ -3155,6 +3212,13 @@ export class AdventureMode {
       this.addSpot(e.arrive, e.spotter.toUpperCase());
       this.relocateArrived = true;
       this.setStatus("Set's up at the new OP. Tune to the frequency KEN gave you in the relocate order — it's not in the briefing.");
+    } else if (e.kind === "intercept") {
+      this.phase = "intercept";
+      this.interceptStage = "tune";
+      this.interceptTotal = e.groups.length;
+      this.skedFreqKhz = this.hqFreqKhz;
+      this.hqFreqKhz = e.freqKhz; // see the interceptStage field note
+      this.setStatus("Tune to the frequency in KEN's order and listen. You won't hear it twice.");
     } else if (e.kind === "haggle") {
       await this.beginHaggle(e);
     } else {
@@ -3235,7 +3299,12 @@ export class AdventureMode {
   }
 
   private get runOutcome(): RunOutcome {
-    return { retries: this.retryCount, brokeSilence: this.brokeSilence, impostor: this.impostorOutcome };
+    return {
+      retries: this.retryCount,
+      brokeSilence: this.brokeSilence,
+      impostor: this.impostorOutcome,
+      intercept: { correct: this.interceptCorrect, total: this.interceptTotal },
+    };
   }
 
   /** A sked's words for this run — see the sked event's `msg`. */
@@ -3768,6 +3837,40 @@ export class AdventureMode {
         ctx.setStatus("That wasn't addressed to you — no need to answer. Keep listening.");
       },
     },
+    // Intercept (see tryIntercept()). The enemy won't repeat, and KEN never
+    // heard them, so AGN gets nothing; any report with groups in it completes
+    // the beat, and how many were right is the codebreakers' business (the
+    // outro's), not KEN's.
+    {
+      id: "intercept-agn",
+      when: (ctx) => ctx.phase === "intercept",
+      match: (i) => i.isAgn,
+      act: async (_i, ctx) => {
+        await ctx.hqSend(`${MY_CALL} DE ${HQ_CALL} NIL AGN FROM THEM SEND WHAT U HAVE K`);
+        ctx.setStatus("Nobody can repeat it now. Send the groups you copied — partial copy still counts.");
+      },
+    },
+    {
+      id: "intercept-report",
+      when: (ctx) => ctx.phase === "intercept",
+      match: (i) => i.words.some((w) => /^[0-9]{5}$/.test(w)),
+      act: async (i, ctx) => {
+        const e = ctx.currentEvent;
+        if (e.kind !== "intercept") return;
+        const sent = i.words.filter((w) => /^[0-9]{5}$/.test(w)).length;
+        ctx.interceptCorrect = e.groups.filter((g) => i.tk.has(g)).length;
+        await ctx.hqSend(`${MY_CALL} DE ${HQ_CALL} QSL ${sent} GROUPS TU K`);
+        await ctx.advance();
+      },
+    },
+    {
+      id: "intercept-nudge",
+      when: (ctx) => ctx.phase === "intercept",
+      match: () => true,
+      act: (_i, ctx) => {
+        ctx.setStatus("KEN's waiting for the groups, five figures each, as you copied them: KEN DE GOOSE <groups> K.");
+      },
+    },
     // Safety net for states this mission never reaches (phase/event always stay
     // in lockstep — see runEvent()/advance()) but a future mission's content
     // might. Without this, an unanticipated state would go silent.
@@ -3847,6 +3950,7 @@ export class AdventureMode {
         this.phase === "overhear" ||
         this.phase === "silence" ||
         (this.phase === "impostor" && this.impostorOutcome === "ignored") || // one reply, then it's settled
+        (this.phase === "intercept" && this.interceptStage === "report" && this.onFreq) || // KEN can't hear you from their frequency
         this.phase === "haggle")
     );
   }
